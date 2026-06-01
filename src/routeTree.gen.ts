@@ -14,6 +14,7 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
+import { Route as ApiPublicEmbyProxyRouteImport } from './routes/api/public/emby-proxy'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -40,6 +41,11 @@ const ItemIdRoute = ItemIdRouteImport.update({
   path: '/item/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEmbyProxyRoute = ApiPublicEmbyProxyRouteImport.update({
+  id: '/api/public/emby-proxy',
+  path: '/api/public/emby-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,33 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/library' | '/login' | '/item/$id' | '/watch/$id'
+  fullPaths:
+    | '/'
+    | '/library'
+    | '/login'
+    | '/item/$id'
+    | '/watch/$id'
+    | '/api/public/emby-proxy'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/library' | '/login' | '/item/$id' | '/watch/$id'
-  id: '__root__' | '/' | '/library' | '/login' | '/item/$id' | '/watch/$id'
+  to:
+    | '/'
+    | '/library'
+    | '/login'
+    | '/item/$id'
+    | '/watch/$id'
+    | '/api/public/emby-proxy'
+  id:
+    | '__root__'
+    | '/'
+    | '/library'
+    | '/login'
+    | '/item/$id'
+    | '/watch/$id'
+    | '/api/public/emby-proxy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +105,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ItemIdRoute: typeof ItemIdRoute
   WatchIdRoute: typeof WatchIdRoute
+  ApiPublicEmbyProxyRoute: typeof ApiPublicEmbyProxyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/emby-proxy': {
+      id: '/api/public/emby-proxy'
+      path: '/api/public/emby-proxy'
+      fullPath: '/api/public/emby-proxy'
+      preLoaderRoute: typeof ApiPublicEmbyProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,7 +161,18 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ItemIdRoute: ItemIdRoute,
   WatchIdRoute: WatchIdRoute,
+  ApiPublicEmbyProxyRoute: ApiPublicEmbyProxyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
