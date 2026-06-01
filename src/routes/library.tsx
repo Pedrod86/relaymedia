@@ -40,6 +40,7 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
   const getViews = useServerFn(embyGetViews);
   const getResume = useServerFn(embyGetResume);
   const sessionArg = { serverUrl: session.serverUrl, token: session.token, userId: session.userId };
+  const hidden = new Set(loadHiddenViews());
 
   const views = useQuery({
     queryKey: ["views", session.userId],
