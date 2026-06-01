@@ -1,16 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
-import { loadSession, clearSession, imageUrl, loadHiddenViews, type EmbySession } from "@/lib/emby-client";
+import { plexGetViews, plexGetItems, plexGetResume } from "@/lib/plex.functions";
+import {
+  listServers,
+  loadActiveServer,
+  setActiveServerId,
+  loadHiddenViews,
+  imageUrl,
+  type MediaServer,
+} from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
-      { title: "Library — Emby" },
-      { name: "description", content: "Browse your Emby library." },
+      { title: "Library — Media" },
+      { name: "description", content: "Browse your media library." },
     ],
   }),
   component: LibraryPage,
@@ -18,60 +26,101 @@ export const Route = createFileRoute("/library")({
 
 function LibraryPage() {
   const navigate = useNavigate();
-  const [session, setSession] = useState<EmbySession | null>(null);
+  const [server, setServer] = useState<MediaServer | null>(null);
+  const [servers, setServers] = useState<MediaServer[]>([]);
 
   useEffect(() => {
-    const s = loadSession();
-    if (!s) {
+    const list = listServers();
+    setServers(list);
+    const active = loadActiveServer();
+    if (!active) {
       navigate({ to: "/login" });
       return;
     }
-    setSession(s);
+    setServer(active);
   }, [navigate]);
 
-  if (!session) return null;
-  return <LibraryContent session={session} onSignOut={() => {
-    clearSession();
-    navigate({ to: "/login" });
-  }} />;
+  if (!server) return null;
+  return (
+    <LibraryContent
+      server={server}
+      servers={servers}
+      onSwitch={(id) => {
+        setActiveServerId(id);
+        const next = listServers().find((s) => s.id === id);
+        if (next) setServer(next);
+      }}
+    />
+  );
 }
 
-function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOut: () => void }) {
-  const getViews = useServerFn(embyGetViews);
-  const getResume = useServerFn(embyGetResume);
-  const sessionArg = { serverUrl: session.serverUrl, token: session.token, userId: session.userId };
-  const hidden = new Set(loadHiddenViews());
+function LibraryContent({
+  server,
+  servers,
+  onSwitch,
+}: {
+  server: MediaServer;
+  servers: MediaServer[];
+  onSwitch: (id: string) => void;
+}) {
+  const isPlex = server.kind === "plex";
+  const embyArg = { serverUrl: server.serverUrl, token: server.token, userId: server.userId };
+  const plexArg = { serverUrl: server.serverUrl, token: server.token };
+
+  const getViewsEmby = useServerFn(embyGetViews);
+  const getResumeEmby = useServerFn(embyGetResume);
+  const getViewsPlex = useServerFn(plexGetViews);
+  const getResumePlex = useServerFn(plexGetResume);
+
+  const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
   const views = useQuery({
-    queryKey: ["views", session.userId],
-    queryFn: () => getViews({ data: sessionArg }),
+    queryKey: ["views", server.id],
+    queryFn: () =>
+      isPlex ? getViewsPlex({ data: plexArg }) : getViewsEmby({ data: embyArg }),
   });
   const resume = useQuery({
-    queryKey: ["resume", session.userId],
-    queryFn: () => getResume({ data: sessionArg }),
+    queryKey: ["resume", server.id],
+    queryFn: () =>
+      isPlex ? getResumePlex({ data: plexArg }) : getResumeEmby({ data: embyArg }),
   });
 
   return (
     <main className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Emby</p>
-            <h1 className="text-lg font-semibold">Hi, {session.userName}</h1>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              {server.kind} · {server.name}
+            </p>
+            <h1 className="text-lg font-semibold">Hi, {server.userName}</h1>
           </div>
           <div className="flex items-center gap-2">
+            {servers.length > 1 && (
+              <select
+                value={server.id}
+                onChange={(e) => onSwitch(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1 text-sm"
+                aria-label="Switch server"
+              >
+                {servers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.kind})
+                  </option>
+                ))}
+              </select>
+            )}
             <Button variant="ghost" asChild>
               <Link to="/settings">Settings</Link>
             </Button>
-            <Button variant="ghost" onClick={onSignOut}>Sign out</Button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 space-y-12">
+      <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
         {resume.data && resume.data.items.length > 0 && (
           <Section title="Continue watching">
-            <Row items={resume.data.items} session={session} kind="thumb" />
+            <Row items={resume.data.items} server={server} kind="thumb" />
           </Section>
         )}
 
@@ -81,7 +130,7 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
         )}
 
         {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
-          <LibrarySection key={v.Id} view={v} session={session} />
+          <LibrarySection key={v.Id} view={v} server={server} />
         ))}
       </div>
     </main>
@@ -90,29 +139,36 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
 
 function LibrarySection({
   view,
-  session,
+  server,
 }: {
   view: { Id: string; Name: string; CollectionType?: string };
-  session: EmbySession;
+  server: MediaServer;
 }) {
-  const getItems = useServerFn(embyGetItems);
-  const sessionArg = { serverUrl: session.serverUrl, token: session.token, userId: session.userId };
+  const isPlex = server.kind === "plex";
+  const getItemsEmby = useServerFn(embyGetItems);
+  const getItemsPlex = useServerFn(plexGetItems);
   const q = useQuery({
-    queryKey: ["items", view.Id],
+    queryKey: ["items", server.id, view.Id],
     queryFn: () =>
-      getItems({
-        data: {
-          ...sessionArg,
-          parentId: view.Id,
-          limit: 30,
-          sortBy: "DateCreated,SortName",
-        },
-      }),
+      isPlex
+        ? getItemsPlex({
+            data: { serverUrl: server.serverUrl, token: server.token, parentId: view.Id, limit: 30, sortBy: "addedAt:desc" },
+          })
+        : getItemsEmby({
+            data: {
+              serverUrl: server.serverUrl,
+              token: server.token,
+              userId: server.userId,
+              parentId: view.Id,
+              limit: 30,
+              sortBy: "DateCreated,SortName",
+            },
+          }),
   });
   if (!q.data || q.data.items.length === 0) return null;
   return (
     <Section title={view.Name}>
-      <Row items={q.data.items} session={session} kind="primary" />
+      <Row items={q.data.items} server={server} kind="primary" />
     </Section>
   );
 }
@@ -128,11 +184,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({
   items,
-  session,
+  server,
   kind,
 }: {
   items: any[];
-  session: EmbySession;
+  server: MediaServer;
   kind: "primary" | "thumb";
 }) {
   return (
@@ -140,7 +196,7 @@ function Row({
       {items.map((it) => {
         const portrait = kind === "primary";
         const imgType = kind === "thumb" ? "Thumb" : "Primary";
-        const tag = it.ImageTags?.[imgType];
+        const src = imageUrl(server, it, imgType, { maxWidth: 400 });
         return (
           <Link
             key={it.Id}
@@ -153,15 +209,15 @@ function Row({
               className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
               style={{ aspectRatio: portrait ? "2/3" : "16/9" }}
             >
-              {tag ? (
+              {src ? (
                 <img
-                  src={imageUrl(session, it.Id, imgType, { maxWidth: 400, tag })}
+                  src={src}
                   alt={it.Name}
                   loading="lazy"
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
                   {it.Name}
                 </div>
               )}

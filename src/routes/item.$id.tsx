@@ -3,56 +3,69 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
-import { loadSession, imageUrl, ticksToTime, type EmbySession } from "@/lib/emby-client";
+import { plexGetItem } from "@/lib/plex.functions";
+import { loadActiveServer, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/item/$id")({
-  head: () => ({ meta: [{ title: "Details — Emby" }] }),
+  head: () => ({ meta: [{ title: "Details — Media" }] }),
   component: ItemPage,
 });
 
 function ItemPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
-  const [session, setSession] = useState<EmbySession | null>(null);
+  const [server, setServer] = useState<MediaServer | null>(null);
   useEffect(() => {
-    const s = loadSession();
+    const s = loadActiveServer();
     if (!s) navigate({ to: "/login" });
-    else setSession(s);
+    else setServer(s);
   }, [navigate]);
 
-  if (!session) return null;
-  return <Detail session={session} id={id} />;
+  if (!server) return null;
+  return <Detail server={server} id={id} />;
 }
 
-function Detail({ session, id }: { session: EmbySession; id: string }) {
-  const getItem = useServerFn(embyGetItem);
-  const getItems = useServerFn(embyGetItems);
-  const sessionArg = { serverUrl: session.serverUrl, token: session.token, userId: session.userId };
+function Detail({ server, id }: { server: MediaServer; id: string }) {
+  const isPlex = server.kind === "plex";
+  const getItemEmby = useServerFn(embyGetItem);
+  const getItemsEmby = useServerFn(embyGetItems);
+  const getItemPlex = useServerFn(plexGetItem);
 
   const itemQ = useQuery({
-    queryKey: ["item", id],
-    queryFn: () => getItem({ data: { ...sessionArg, itemId: id } }),
+    queryKey: ["item", server.id, id],
+    queryFn: () =>
+      isPlex
+        ? getItemPlex({ data: { serverUrl: server.serverUrl, token: server.token, itemId: id } })
+        : getItemEmby({ data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId, itemId: id } }),
   });
 
   const item = itemQ.data?.item;
   const isFolder = item?.IsFolder || item?.Type === "Series" || item?.Type === "Season";
 
+  // For Plex the detail call already returns _children. For Emby we fetch.
   const childrenQ = useQuery({
-    enabled: !!item && isFolder,
-    queryKey: ["children", id],
+    enabled: !!item && isFolder && !isPlex,
+    queryKey: ["children", server.id, id],
     queryFn: () =>
-      getItems({
-        data: { ...sessionArg, parentId: id, limit: 100, sortBy: "SortName" },
+      getItemsEmby({
+        data: {
+          serverUrl: server.serverUrl,
+          token: server.token,
+          userId: server.userId,
+          parentId: id,
+          limit: 100,
+          sortBy: "SortName",
+        },
       }),
   });
 
   if (!item) return <div className="p-8 text-muted-foreground">Loading…</div>;
 
-  const backdropTag = item.BackdropImageTags?.[0];
-  const backdrop = backdropTag
-    ? imageUrl(session, item.Id, "Backdrop", { maxWidth: 1920, tag: backdropTag })
-    : null;
+  const backdrop = imageUrl(server, item, "Backdrop", { maxWidth: 1920 });
+  const poster = imageUrl(server, item, "Primary", { maxWidth: 400 });
+
+  const children: any[] = isPlex ? item._children ?? [] : childrenQ.data?.items ?? [];
 
   return (
     <main className="min-h-screen bg-background">
@@ -72,12 +85,9 @@ function Detail({ session, id }: { session: EmbySession; id: string }) {
             ← Back to library
           </Link>
           <div className="mt-32 flex flex-col gap-8 md:flex-row md:items-end">
-            {item.ImageTags?.Primary && (
+            {poster && (
               <img
-                src={imageUrl(session, item.Id, "Primary", {
-                  maxWidth: 400,
-                  tag: item.ImageTags.Primary,
-                })}
+                src={poster}
                 alt={item.Name}
                 className="w-48 rounded-xl shadow-2xl ring-1 ring-border"
               />
@@ -102,39 +112,39 @@ function Detail({ session, id }: { session: EmbySession; id: string }) {
         </div>
       </div>
 
-      {isFolder && childrenQ.data && (
+      {isFolder && children.length > 0 && (
         <div className="mx-auto max-w-6xl px-6 py-12">
           <h2 className="mb-4 text-xl font-semibold">Episodes</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {childrenQ.data.items.map((ep: any) => (
-              <Link
-                key={ep.Id}
-                to={ep.IsFolder ? "/item/$id" : "/watch/$id"}
-                params={{ id: ep.Id }}
-                className="group overflow-hidden rounded-lg border bg-card transition hover:border-primary"
-              >
-                {ep.ImageTags?.Primary && (
-                  <img
-                    src={imageUrl(session, ep.Id, "Primary", {
-                      maxWidth: 600,
-                      tag: ep.ImageTags.Primary,
-                    })}
-                    alt={ep.Name}
-                    loading="lazy"
-                    className="aspect-video w-full object-cover"
-                  />
-                )}
-                <div className="p-3">
-                  <p className="font-medium">
-                    {ep.IndexNumber ? `${ep.IndexNumber}. ` : ""}
-                    {ep.Name}
-                  </p>
-                  {ep.Overview && (
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{ep.Overview}</p>
+            {children.map((ep: any) => {
+              const epImg = imageUrl(server, ep, "Primary", { maxWidth: 600 });
+              return (
+                <Link
+                  key={ep.Id}
+                  to={ep.IsFolder ? "/item/$id" : "/watch/$id"}
+                  params={{ id: ep.Id }}
+                  className="group overflow-hidden rounded-lg border bg-card transition hover:border-primary"
+                >
+                  {epImg && (
+                    <img
+                      src={epImg}
+                      alt={ep.Name}
+                      loading="lazy"
+                      className="aspect-video w-full object-cover"
+                    />
                   )}
-                </div>
-              </Link>
-            ))}
+                  <div className="p-3">
+                    <p className="font-medium">
+                      {ep.IndexNumber ? `${ep.IndexNumber}. ` : ""}
+                      {ep.Name}
+                    </p>
+                    {ep.Overview && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{ep.Overview}</p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
