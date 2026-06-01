@@ -33,9 +33,9 @@ function normalize(url: string) {
 // Wrap any upstream Emby URL in our same-origin HTTPS proxy so http://
 // servers don't get blocked as mixed content in the browser.
 function proxied(target: string) {
-  if (typeof window === "undefined") return target;
-  return `${window.location.origin}/api/public/emby-proxy?u=${encodeURIComponent(target)}`;
+  return `/api/public/emby-proxy?u=${encodeURIComponent(target)}`;
 }
+
 
 export function imageUrl(
   s: EmbySession,
