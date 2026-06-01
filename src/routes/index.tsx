@@ -1,13 +1,34 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
   beforeLoad: () => {
-    if (typeof window !== "undefined") {
-      const servers = localStorage.getItem("media_servers_v1");
-      const legacy = localStorage.getItem("emby_session_v1");
-      const has = (servers && JSON.parse(servers).length > 0) || !!legacy;
-      throw redirect({ to: has ? "/library" : "/login" });
+    // On the server we can't read localStorage, so default to /login.
+    // The client component below re-checks and redirects to /library
+    // if a server has already been configured.
+    if (typeof window === "undefined") {
+      throw redirect({ to: "/login" });
     }
+    const servers = localStorage.getItem("media_servers_v1");
+    const legacy = localStorage.getItem("emby_session_v1");
+    const has =
+      (servers && (() => { try { return JSON.parse(servers).length > 0; } catch { return false; } })()) ||
+      !!legacy;
+    throw redirect({ to: has ? "/library" : "/login" });
   },
-  component: () => null,
+  component: IndexFallback,
 });
+
+function IndexFallback() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const servers = localStorage.getItem("media_servers_v1");
+    const legacy = localStorage.getItem("emby_session_v1");
+    let has = !!legacy;
+    if (!has && servers) {
+      try { has = JSON.parse(servers).length > 0; } catch { /* ignore */ }
+    }
+    navigate({ to: has ? "/library" : "/login", replace: true });
+  }, [navigate]);
+  return null;
+}
