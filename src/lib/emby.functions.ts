@@ -1,0 +1,151 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+const CLIENT_NAME = "LovableEmby";
+const DEVICE_NAME = "Web Browser";
+const APP_VERSION = "1.0.0";
+
+function authHeader(token?: string, userId?: string, deviceId = "lovable-emby-web") {
+  const parts = [
+    `MediaBrowser Client="${CLIENT_NAME}"`,
+    `Device="${DEVICE_NAME}"`,
+    `DeviceId="${deviceId}"`,
+    `Version="${APP_VERSION}"`,
+  ];
+  if (token) parts.push(`Token="${token}"`);
+  if (userId) parts.push(`UserId="${userId}"`);
+  return parts.join(", ");
+}
+
+function normalize(url: string) {
+  return url.replace(/\/+$/, "");
+}
+
+export const embyLogin = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      serverUrl: z.string().url().max(500),
+      username: z.string().min(1).max(200),
+      password: z.string().max(500),
+    })
+  )
+  .handler(async ({ data }) => {
+    const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Emby-Authorization": authHeader(),
+      },
+      body: JSON.stringify({ Username: data.username, Pw: data.password }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false as const, error: `Login failed (${res.status}). ${text.slice(0, 200)}` };
+    }
+    const json = (await res.json()) as {
+      AccessToken: string;
+      User: { Id: string; Name: string };
+      ServerId?: string;
+    };
+    return {
+      ok: true as const,
+      token: json.AccessToken,
+      userId: json.User.Id,
+      userName: json.User.Name,
+      serverId: json.ServerId,
+    };
+  });
+
+const sessionSchema = z.object({
+  serverUrl: z.string().url(),
+  token: z.string(),
+  userId: z.string(),
+});
+
+async function embyFetch(serverUrl: string, path: string, token: string, userId: string) {
+  const res = await fetch(`${normalize(serverUrl)}${path}`, {
+    headers: {
+      "X-Emby-Authorization": authHeader(token, userId),
+      "X-Emby-Token": token,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Emby request failed: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export const embyGetViews = createServerFn({ method: "POST" })
+  .inputValidator(sessionSchema)
+  .handler(async ({ data }) => {
+    const json = (await embyFetch(
+      data.serverUrl,
+      `/Users/${data.userId}/Views`,
+      data.token,
+      data.userId
+    )) as { Items: Array<{ Id: string; Name: string; CollectionType?: string; ImageTags?: Record<string, string> }> };
+    return { views: json.Items ?? [] };
+  });
+
+export const embyGetItems = createServerFn({ method: "POST" })
+  .inputValidator(
+    sessionSchema.extend({
+      parentId: z.string().optional(),
+      includeItemTypes: z.string().optional(),
+      limit: z.number().int().min(1).max(200).default(60),
+      sortBy: z.string().default("SortName"),
+      recursive: z.boolean().default(false),
+    })
+  )
+  .handler(async ({ data }) => {
+    const params = new URLSearchParams({
+      SortBy: data.sortBy,
+      SortOrder: "Ascending",
+      Limit: String(data.limit),
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear",
+      ImageTypeLimit: "1",
+      EnableImageTypes: "Primary,Backdrop,Thumb",
+    });
+    if (data.parentId) params.set("ParentId", data.parentId);
+    if (data.includeItemTypes) params.set("IncludeItemTypes", data.includeItemTypes);
+    if (data.recursive) params.set("Recursive", "true");
+    const json = (await embyFetch(
+      data.serverUrl,
+      `/Users/${data.userId}/Items?${params}`,
+      data.token,
+      data.userId
+    )) as { Items: any[]; TotalRecordCount: number };
+    return { items: json.Items ?? [], total: json.TotalRecordCount ?? 0 };
+  });
+
+export const embyGetItem = createServerFn({ method: "POST" })
+  .inputValidator(sessionSchema.extend({ itemId: z.string().min(1).max(100) }))
+  .handler(async ({ data }) => {
+    const item = (await embyFetch(
+      data.serverUrl,
+      `/Users/${data.userId}/Items/${data.itemId}`,
+      data.token,
+      data.userId
+    )) as any;
+    return { item };
+  });
+
+export const embyGetResume = createServerFn({ method: "POST" })
+  .inputValidator(sessionSchema)
+  .handler(async ({ data }) => {
+    const params = new URLSearchParams({
+      Limit: "20",
+      Fields: "PrimaryImageAspectRatio,Overview",
+      MediaTypes: "Video",
+      ImageTypeLimit: "1",
+      EnableImageTypes: "Primary,Backdrop,Thumb",
+    });
+    const json = (await embyFetch(
+      data.serverUrl,
+      `/Users/${data.userId}/Items/Resume?${params}`,
+      data.token,
+      data.userId
+    )) as { Items: any[] };
+    return { items: json.Items ?? [] };
+  });
