@@ -45,24 +45,20 @@ export function imageUrl(
 // HLS master playlist — broadly compatible, lets the browser pick the best
 // decode path (hardware where available, software fallback otherwise).
 export function hlsStreamUrl(s: EmbySession, itemId: string) {
-  const params = new URLSearchParams({
-    UserId: s.userId,
-    DeviceId: "lovable-emby-web",
-    api_key: s.token,
-    VideoCodec: "h264,hevc",
-    AudioCodec: "aac,mp3",
-    AudioStreamIndex: "1",
-    VideoBitrate: "8000000",
-    AudioBitrate: "192000",
-    MaxAudioChannels: "2",
-    TranscodingMaxAudioChannels: "2",
-    SegmentContainer: "ts",
-    MinSegments: "1",
-    BreakOnNonKeyFrames: "True",
-    h264-profile: "high,main,baseline" as unknown as string,
-  } as Record<string, string>);
-  // remove the bad key from above; use proper key
-  params.delete("h264-profile");
+  const params = new URLSearchParams();
+  params.set("UserId", s.userId);
+  params.set("DeviceId", "lovable-emby-web");
+  params.set("api_key", s.token);
+  params.set("VideoCodec", "h264,hevc");
+  params.set("AudioCodec", "aac,mp3");
+  params.set("AudioStreamIndex", "1");
+  params.set("VideoBitrate", "8000000");
+  params.set("AudioBitrate", "192000");
+  params.set("MaxAudioChannels", "2");
+  params.set("TranscodingMaxAudioChannels", "2");
+  params.set("SegmentContainer", "ts");
+  params.set("MinSegments", "1");
+  params.set("BreakOnNonKeyFrames", "True");
   params.set("h264-profile", "high,main,baseline");
   params.set("h264-level", "51");
   return `${normalize(s.serverUrl)}/Videos/${itemId}/master.m3u8?${params}`;
