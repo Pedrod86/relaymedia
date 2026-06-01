@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
-import { loadSession, clearSession, imageUrl, type EmbySession } from "@/lib/emby-client";
+import { loadSession, clearSession, imageUrl, loadHiddenViews, type EmbySession } from "@/lib/emby-client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/library")({
