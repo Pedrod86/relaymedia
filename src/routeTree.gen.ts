@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
@@ -16,6 +17,11 @@ import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ApiPublicEmbyProxyRouteImport } from './routes/api/public/emby-proxy'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/settings'
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/settings'
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/settings'
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   ItemIdRoute: typeof ItemIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicEmbyProxyRoute: typeof ApiPublicEmbyProxyRoute
@@ -110,6 +123,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   ItemIdRoute: ItemIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicEmbyProxyRoute: ApiPublicEmbyProxyRoute,
@@ -166,3 +187,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
