@@ -59,7 +59,12 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Emby</p>
             <h1 className="text-lg font-semibold">Hi, {session.userName}</h1>
           </div>
-          <Button variant="ghost" onClick={onSignOut}>Sign out</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link to="/settings">Settings</Link>
+            </Button>
+            <Button variant="ghost" onClick={onSignOut}>Sign out</Button>
+          </div>
         </div>
       </header>
 
@@ -75,7 +80,7 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {views.data?.views.map((v) => (
+        {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
           <LibrarySection key={v.Id} view={v} session={session} />
         ))}
       </div>
