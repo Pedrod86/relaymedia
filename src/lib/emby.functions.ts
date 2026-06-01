@@ -1,11 +1,13 @@
+// Emby / Jellyfin share the same HTTP API (Jellyfin is a fork). These server
+// functions work for both — the `kind` field is informational only.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const CLIENT_NAME = "LovableEmby";
+const CLIENT_NAME = "LovableMedia";
 const DEVICE_NAME = "Web Browser";
 const APP_VERSION = "1.0.0";
 
-function authHeader(token?: string, userId?: string, deviceId = "lovable-emby-web") {
+function authHeader(token?: string, userId?: string, deviceId = "lovable-media-web") {
   const parts = [
     `MediaBrowser Client="${CLIENT_NAME}"`,
     `Device="${DEVICE_NAME}"`,
@@ -36,6 +38,8 @@ export const embyLogin = createServerFn({ method: "POST" })
       headers: {
         "Content-Type": "application/json",
         "X-Emby-Authorization": authHeader(),
+        // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
+        Authorization: authHeader(),
       },
       body: JSON.stringify({ Username: data.username, Pw: data.password }),
     });
@@ -67,11 +71,12 @@ async function embyFetch(serverUrl: string, path: string, token: string, userId:
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
     headers: {
       "X-Emby-Authorization": authHeader(token, userId),
+      Authorization: authHeader(token, userId),
       "X-Emby-Token": token,
     },
   });
   if (!res.ok) {
-    throw new Error(`Emby request failed: ${res.status} ${res.statusText}`);
+    throw new Error(`Server request failed: ${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -157,6 +162,7 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
       method: "POST",
       headers: {
         "X-Emby-Authorization": authHeader(data.token, data.userId),
+        Authorization: authHeader(data.token, data.userId),
         "X-Emby-Token": data.token,
       },
     });
