@@ -30,6 +30,13 @@ function normalize(url: string) {
   return url.replace(/\/+$/, "");
 }
 
+// Wrap any upstream Emby URL in our same-origin HTTPS proxy so http://
+// servers don't get blocked as mixed content in the browser.
+function proxied(target: string) {
+  return `/api/public/emby-proxy?u=${encodeURIComponent(target)}`;
+}
+
+
 export function imageUrl(
   s: EmbySession,
   itemId: string,
@@ -39,7 +46,7 @@ export function imageUrl(
   const params = new URLSearchParams({ quality: "90" });
   if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
   if (opts.tag) params.set("tag", opts.tag);
-  return `${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`;
+  return proxied(`${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`);
 }
 
 // HLS master playlist — broadly compatible, lets the browser pick the best
@@ -49,6 +56,7 @@ export function hlsStreamUrl(s: EmbySession, itemId: string) {
   params.set("UserId", s.userId);
   params.set("DeviceId", "lovable-emby-web");
   params.set("api_key", s.token);
+  params.set("PlaySessionId", `lovable-${itemId}-${Date.now()}`);
   params.set("VideoCodec", "h264,hevc");
   params.set("AudioCodec", "aac,mp3");
   params.set("AudioStreamIndex", "1");
@@ -61,8 +69,9 @@ export function hlsStreamUrl(s: EmbySession, itemId: string) {
   params.set("BreakOnNonKeyFrames", "True");
   params.set("h264-profile", "high,main,baseline");
   params.set("h264-level", "51");
-  return `${normalize(s.serverUrl)}/Videos/${itemId}/master.m3u8?${params}`;
+  return proxied(`${normalize(s.serverUrl)}/Videos/${itemId}/master.m3u8?${params}`);
 }
+
 
 // Direct MP4 stream URL — used as a fallback / for already-compatible files.
 export function directStreamUrl(s: EmbySession, itemId: string, container = "mp4") {
@@ -72,8 +81,9 @@ export function directStreamUrl(s: EmbySession, itemId: string, container = "mp4
     api_key: s.token,
     Static: "true",
   });
-  return `${normalize(s.serverUrl)}/Videos/${itemId}/stream.${container}?${params}`;
+  return proxied(`${normalize(s.serverUrl)}/Videos/${itemId}/stream.${container}?${params}`);
 }
+
 
 export function ticksToTime(ticks?: number) {
   if (!ticks) return "";
