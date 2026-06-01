@@ -83,12 +83,16 @@ async function handle(request: Request) {
 
   if (isPlaylist && upstream.ok && request.method !== "HEAD") {
     const text = await upstream.text();
-    const proxyBase = `${url.origin}${url.pathname}`;
+    // Path-only proxy base so the browser resolves segment URLs against the
+    // public origin the playlist was fetched from (avoids leaking the
+    // internal worker host like https://localhost:8080).
+    const proxyBase = url.pathname;
     const rewritten = rewritePlaylist(text, proxyBase, targetUrl);
     outHeaders.set("content-type", "application/vnd.apple.mpegurl");
     outHeaders.delete("content-length");
     return new Response(rewritten, { status: upstream.status, headers: outHeaders });
   }
+
 
   return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
 }
