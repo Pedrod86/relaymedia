@@ -56,6 +56,7 @@ export function hlsStreamUrl(s: EmbySession, itemId: string) {
   params.set("UserId", s.userId);
   params.set("DeviceId", "lovable-emby-web");
   params.set("api_key", s.token);
+  params.set("PlaySessionId", `lovable-${itemId}-${Date.now()}`);
   params.set("VideoCodec", "h264,hevc");
   params.set("AudioCodec", "aac,mp3");
   params.set("AudioStreamIndex", "1");
@@ -70,6 +71,7 @@ export function hlsStreamUrl(s: EmbySession, itemId: string) {
   params.set("h264-level", "51");
   return proxied(`${normalize(s.serverUrl)}/Videos/${itemId}/master.m3u8?${params}`);
 }
+
 
 // Direct MP4 stream URL — used as a fallback / for already-compatible files.
 export function directStreamUrl(s: EmbySession, itemId: string, container = "mp4") {
