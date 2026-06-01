@@ -78,14 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "RelayMedia" },
+      { name: "description", content: "EmbyStream Hub connects to your Emby server to stream your media library." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "RelayMedia" },
+      { property: "og:description", content: "EmbyStream Hub connects to your Emby server to stream your media library." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "RelayMedia" },
+      { name: "twitter:description", content: "EmbyStream Hub connects to your Emby server to stream your media library." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2114b5d4-9825-4f29-b9cd-d25733e16523/id-preview-75e2a720--ac301966-96fc-4075-a80c-85a075fbb090.lovable.app-1780343872555.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2114b5d4-9825-4f29-b9cd-d25733e16523/id-preview-75e2a720--ac301966-96fc-4075-a80c-85a075fbb090.lovable.app-1780343872555.png" },
     ],
     links: [
       {
