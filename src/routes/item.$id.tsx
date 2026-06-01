@@ -22,7 +22,13 @@ function ItemPage() {
     else setServer(s);
   }, [navigate]);
 
-  if (!server) return null;
+  if (!server) {
+    return (
+      <main className="min-h-screen bg-background p-8 text-muted-foreground">
+        Loading…
+      </main>
+    );
+  }
   return <Detail server={server} id={id} />;
 }
 
