@@ -26,6 +26,20 @@ export function clearSession() {
   localStorage.removeItem(KEY);
 }
 
+const HIDDEN_KEY = "emby_hidden_views_v1";
+export function loadHiddenViews(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HIDDEN_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+export function saveHiddenViews(ids: string[]) {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(ids));
+}
+
 function normalize(url: string) {
   return url.replace(/\/+$/, "");
 }

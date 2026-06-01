@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
-import { loadSession, clearSession, imageUrl, type EmbySession } from "@/lib/emby-client";
+import { loadSession, clearSession, imageUrl, loadHiddenViews, type EmbySession } from "@/lib/emby-client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/library")({
@@ -40,6 +40,7 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
   const getViews = useServerFn(embyGetViews);
   const getResume = useServerFn(embyGetResume);
   const sessionArg = { serverUrl: session.serverUrl, token: session.token, userId: session.userId };
+  const hidden = new Set(loadHiddenViews());
 
   const views = useQuery({
     queryKey: ["views", session.userId],
@@ -58,7 +59,12 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Emby</p>
             <h1 className="text-lg font-semibold">Hi, {session.userName}</h1>
           </div>
-          <Button variant="ghost" onClick={onSignOut}>Sign out</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link to="/settings">Settings</Link>
+            </Button>
+            <Button variant="ghost" onClick={onSignOut}>Sign out</Button>
+          </div>
         </div>
       </header>
 
@@ -74,7 +80,7 @@ function LibraryContent({ session, onSignOut }: { session: EmbySession; onSignOu
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {views.data?.views.map((v) => (
+        {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
           <LibrarySection key={v.Id} view={v} session={session} />
         ))}
       </div>

@@ -149,3 +149,23 @@ export const embyGetResume = createServerFn({ method: "POST" })
     )) as { Items: any[] };
     return { items: json.Items ?? [] };
   });
+
+export const embyRefreshLibrary = createServerFn({ method: "POST" })
+  .inputValidator(sessionSchema)
+  .handler(async ({ data }) => {
+    const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
+      method: "POST",
+      headers: {
+        "X-Emby-Authorization": authHeader(data.token, data.userId),
+        "X-Emby-Token": data.token,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return {
+        ok: false as const,
+        error: `Refresh failed (${res.status}). ${text.slice(0, 200)}`,
+      };
+    }
+    return { ok: true as const, startedAt: new Date().toISOString() };
+  });
