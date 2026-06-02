@@ -199,10 +199,24 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
 
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
   const [refreshing, setRefreshing] = useState(false);
+  const [interval, setIntervalMin] = useState<number>(() => getSyncInterval(server.id));
+  const [lastSync, setLastSyncState] = useState<number | null>(() => getLastSync(server.id));
 
   useEffect(() => {
     setHidden(new Set(loadHiddenViews(server.id)));
+    setIntervalMin(getSyncInterval(server.id));
+    setLastSyncState(getLastSync(server.id));
   }, [server.id]);
+
+  function onChangeInterval(minutes: number) {
+    setIntervalMin(minutes);
+    setSyncInterval(server.id, minutes);
+    toast.success(
+      minutes === 0
+        ? "Auto-sync turned off"
+        : `Auto-sync set to ${SYNC_INTERVAL_OPTIONS.find((o) => o.value === minutes)?.label.toLowerCase()}`
+    );
+  }
 
   function toggle(id: string, hide: boolean) {
     const next = new Set(hidden);
