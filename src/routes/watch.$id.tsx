@@ -63,6 +63,67 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [hdrActive, setHdrActive] = useState(false);
   const support = useMemo<PlaybackSupport>(() => detectPlaybackSupport(), []);
   const getPlexStream = useServerFn(plexGetStreamInfo);
+  const getEmbyItem = useServerFn(embyGetItem);
+  const getPlexItemFn = useServerFn(plexGetItem);
+  const [scrobbleTarget, setScrobbleTarget] = useState<ScrobbleTarget | null>(null);
+
+  // Resolve external IDs (IMDb/TMDb) so we can scrobble to Trakt.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        if (server.kind === "plex") {
+          const r = await getPlexItemFn({
+            data: { serverUrl: server.serverUrl, token: server.token, itemId },
+          });
+          if (cancelled || !r?.item) return;
+          const guids: string[] = (r.item.Guid ?? []).map((g: any) => g.id ?? "");
+          const imdb = guids.find((g) => g.startsWith("imdb://"))?.slice(7);
+          const tmdb = guids.find((g) => g.startsWith("tmdb://"))?.slice(7);
+          const isEp = r.item.type === "episode";
+          setScrobbleTarget({
+            type: isEp ? "episode" : "movie",
+            imdbId: imdb,
+            tmdbId: tmdb ? Number(tmdb) : undefined,
+            season: isEp ? r.item.parentIndex : undefined,
+            number: isEp ? r.item.index : undefined,
+          });
+        } else {
+          const r = await getEmbyItem({
+            data: {
+              serverUrl: server.serverUrl,
+              token: server.token,
+              userId: server.userId,
+              itemId,
+            },
+          });
+          if (cancelled || !r?.item) return;
+          const ids = r.item.ProviderIds ?? {};
+          const isEp = r.item.Type === "Episode";
+          setScrobbleTarget({
+            type: isEp ? "episode" : "movie",
+            imdbId: ids.Imdb,
+            tmdbId: ids.Tmdb ? Number(ids.Tmdb) : undefined,
+            season: isEp ? r.item.ParentIndexNumber : undefined,
+            number: isEp ? r.item.IndexNumber : undefined,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [server, itemId, getEmbyItem, getPlexItemFn]);
+
+  // Attach Trakt scrobble once we know what to scrobble.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !scrobbleTarget) return;
+    return attachScrobble(video, scrobbleTarget);
+  }, [scrobbleTarget]);
 
   const refreshTrackLists = useCallback(() => {
     const hls = hlsRef.current;
