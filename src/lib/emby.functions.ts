@@ -102,6 +102,61 @@ export const embyLogin = createServerFn({ method: "POST" })
     };
   });
 
+export const embyApiKeyLogin = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      serverUrl: z.string().url().max(500),
+      apiKey: z.string().min(8).max(2000),
+      username: z.string().max(200).optional(),
+    })
+  )
+  .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
+    const apiKey = data.apiKey.trim();
+    const wanted = data.username?.trim().toLowerCase();
+    let res: Response;
+    try {
+      res = await fetch(`${normalize(data.serverUrl)}/Users?api_key=${encodeURIComponent(apiKey)}`, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
+          "X-Emby-Token": apiKey,
+          "X-Emby-Authorization": authHeader(apiKey),
+          Authorization: authHeader(apiKey),
+        },
+      });
+    } catch (e) {
+      return { ok: false as const, error: networkLoginError(e) };
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return {
+        ok: false as const,
+        error: `API key login failed (${res.status}). ${text.replace(/<[^>]*>/g, " ").slice(0, 200)}`,
+      };
+    }
+    const users = (await res.json()) as Array<{ Id: string; Name: string; Policy?: { IsDisabled?: boolean } }>;
+    const enabled = users.filter((u) => !u.Policy?.IsDisabled);
+    const user = wanted
+      ? enabled.find((u) => u.Name.toLowerCase() === wanted)
+      : enabled[0];
+    if (!user) {
+      return {
+        ok: false as const,
+        error: wanted ? "API key works, but that username was not found." : "API key works, but no enabled users were returned.",
+      };
+    }
+    return {
+      ok: true as const,
+      token: apiKey,
+      userId: user.Id,
+      userName: user.Name,
+    };
+  });
+
 const sessionSchema = z.object({
   serverUrl: z.string().url().max(500),
   token: z.string().max(2000),
