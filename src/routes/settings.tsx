@@ -132,6 +132,7 @@ function SettingsPage() {
         </section>
 
         <ActiveServerPanel server={active} />
+        <TraktPanel />
         <PlaybackCapabilities />
       </div>
     </main>
