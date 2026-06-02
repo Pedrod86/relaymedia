@@ -21,6 +21,23 @@ function authHeader(token?: string, userId?: string, deviceId = "lovable-media-w
   return parts.join(", ");
 }
 
+function embyHeaders(token?: string, userId?: string, contentType?: string) {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": USER_AGENT,
+    "X-RelayMedia-Client": USER_AGENT,
+    Authorization: authHeader(token, userId),
+    "X-Emby-Authorization": authHeader(token, userId),
+    "X-MediaBrowser-Authorization": authHeader(token, userId),
+  };
+  if (contentType) headers["Content-Type"] = contentType;
+  if (token) {
+    headers["X-Emby-Token"] = token;
+    headers["X-MediaBrowser-Token"] = token;
+  }
+  return headers;
+}
+
 function normalize(url: string) {
   return url.replace(/\/+$/, "");
 }
@@ -70,16 +87,8 @@ export const embyLogin = createServerFn({ method: "POST" })
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "User-Agent": USER_AGENT,
-          "X-RelayMedia-Client": USER_AGENT,
-          "X-Emby-Authorization": authHeader(),
-          // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
-          Authorization: authHeader(),
-        },
-        body: JSON.stringify({ Username: data.username, Pw: data.password }),
+        headers: embyHeaders(undefined, undefined, "application/json"),
+        body: JSON.stringify({ Username: data.username.trim(), Pw: data.password }),
       });
     } catch (e) {
       return { ok: false as const, error: networkLoginError(e) };
@@ -119,14 +128,7 @@ export const embyApiKeyLogin = createServerFn({ method: "POST" })
     let res: Response;
     try {
       res = await fetch(`${normalize(data.serverUrl)}/Users?api_key=${encodeURIComponent(apiKey)}`, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": USER_AGENT,
-          "X-RelayMedia-Client": USER_AGENT,
-          "X-Emby-Token": apiKey,
-          "X-Emby-Authorization": authHeader(apiKey),
-          Authorization: authHeader(apiKey),
-        },
+        headers: embyHeaders(apiKey),
       });
     } catch (e) {
       return { ok: false as const, error: networkLoginError(e) };
@@ -166,14 +168,7 @@ const sessionSchema = z.object({
 async function embyFetch(serverUrl: string, path: string, token: string, userId: string) {
   await assertSafeExternalUrl(serverUrl);
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": USER_AGENT,
-      "X-RelayMedia-Client": USER_AGENT,
-      "X-Emby-Authorization": authHeader(token, userId),
-      Authorization: authHeader(token, userId),
-      "X-Emby-Token": token,
-    },
+    headers: embyHeaders(token, userId),
   });
   if (!res.ok) {
     throw new Error(`Server request failed: ${res.status} ${res.statusText}`);
@@ -266,13 +261,7 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     }
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
       method: "POST",
-      headers: {
-        "User-Agent": USER_AGENT,
-        "X-RelayMedia-Client": USER_AGENT,
-        "X-Emby-Authorization": authHeader(data.token, data.userId),
-        Authorization: authHeader(data.token, data.userId),
-        "X-Emby-Token": data.token,
-      },
+      headers: embyHeaders(data.token, data.userId),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -309,13 +298,7 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
       `${normalize(data.serverUrl)}/Items/${encodeURIComponent(data.itemId)}/Refresh?${params}`,
       {
         method: "POST",
-        headers: {
-          "User-Agent": USER_AGENT,
-          "X-RelayMedia-Client": USER_AGENT,
-          "X-Emby-Authorization": authHeader(data.token, data.userId),
-          Authorization: authHeader(data.token, data.userId),
-          "X-Emby-Token": data.token,
-        },
+        headers: embyHeaders(data.token, data.userId),
       }
     );
     if (!res.ok) {

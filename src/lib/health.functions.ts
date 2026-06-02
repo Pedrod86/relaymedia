@@ -5,6 +5,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertSafeExternalUrl } from "./ssrf-guard";
 
+const USER_AGENT = "RelayMedia/1.0";
+
 export type HealthResult =
   | {
       ok: true;
@@ -66,7 +68,11 @@ export const serverHealthCheck = createServerFn({ method: "POST" })
       }
       // Emby / Jellyfin share the same public endpoint.
       const { res, latencyMs } = await timedFetch(`${base}/System/Info/Public`, {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
+        },
       });
       if (!res.ok) {
         return { ok: false, error: `HTTP ${res.status} ${res.statusText}`, latencyMs };
