@@ -66,12 +66,13 @@ export const embyLogin = createServerFn({ method: "POST" })
   });
 
 const sessionSchema = z.object({
-  serverUrl: z.string().url(),
-  token: z.string(),
-  userId: z.string(),
+  serverUrl: z.string().url().max(500),
+  token: z.string().max(2000),
+  userId: z.string().max(200),
 });
 
 async function embyFetch(serverUrl: string, path: string, token: string, userId: string) {
+  await assertSafeExternalUrl(serverUrl);
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
     headers: {
       "X-Emby-Authorization": authHeader(token, userId),
