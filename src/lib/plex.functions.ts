@@ -47,29 +47,49 @@ export const plexLogin = createServerFn({ method: "POST" })
     z.object({
       username: z.string().min(1).max(200),
       password: z.string().min(1).max(500),
+      // Append 2FA code to the password if Plex account requires it.
+      verificationCode: z.string().max(20).optional(),
     })
   )
   .handler(async ({ data }) => {
-    const body = new URLSearchParams({
-      "user[login]": data.username,
-      "user[password]": data.password,
-    });
-    const res = await fetch("https://plex.tv/users/sign_in.json", {
+    // Plex v2 sign-in. 2FA is sent by appending the code to the password.
+    const password = data.verificationCode
+      ? `${data.password}${data.verificationCode}`
+      : data.password;
+    const body = new URLSearchParams({ login: data.username, password });
+    const res = await fetch("https://plex.tv/api/v2/users/signin", {
       method: "POST",
-      headers: { ...plexHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        ...plexHeaders(),
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
       body,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return { ok: false as const, error: `Plex login failed (${res.status}). ${text.slice(0, 200)}` };
+      let msg = `Plex login failed (${res.status}).`;
+      try {
+        const j = JSON.parse(text) as { errors?: { code?: number; message?: string }[] };
+        const first = j.errors?.[0];
+        if (first?.code === 1029)
+          msg = "Plex 2FA is enabled — enter your code in the verification field.";
+        else if (first?.message) msg = `Plex: ${first.message}`;
+      } catch {
+        if (text) msg += ` ${text.slice(0, 200)}`;
+      }
+      return { ok: false as const, error: msg };
     }
-    const json = (await res.json()) as { user?: { authToken?: string; authentication_token?: string; username?: string; title?: string } };
-    const token = json.user?.authToken ?? json.user?.authentication_token;
-    if (!token) return { ok: false as const, error: "Plex did not return a token." };
+    const json = (await res.json()) as {
+      authToken?: string;
+      username?: string;
+      title?: string;
+    };
+    if (!json.authToken) return { ok: false as const, error: "Plex did not return a token." };
     return {
       ok: true as const,
-      token,
-      userName: json.user?.title ?? json.user?.username ?? data.username,
+      token: json.authToken,
+      userName: json.title ?? json.username ?? data.username,
     };
   });
 

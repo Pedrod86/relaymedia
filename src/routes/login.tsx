@@ -38,6 +38,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [plexToken, setPlexToken] = useState("");
   const [usePlexToken, setUsePlexToken] = useState(false);
+  const [plex2fa, setPlex2fa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [health, setHealth] = useState<HealthResult | null>(null);
@@ -92,7 +93,13 @@ function LoginPage() {
         let token = plexToken.trim();
         let userName = username || "Plex user";
         if (!usePlexToken) {
-          const login = await plexLoginFn({ data: { username, password } });
+          const login = await plexLoginFn({
+            data: {
+              username,
+              password,
+              verificationCode: plex2fa.trim() || undefined,
+            },
+          });
           if (!login.ok) {
             setError(login.error);
             return;
@@ -241,6 +248,21 @@ function LoginPage() {
                     required={!usePlexToken}
                   />
                 </div>
+                {isPlex && (
+                  <div className="space-y-2">
+                    <Label htmlFor="plex2fa">
+                      Plex 2FA code <span className="text-muted-foreground">(if enabled)</span>
+                    </Label>
+                    <Input
+                      id="plex2fa"
+                      value={plex2fa}
+                      onChange={(e) => setPlex2fa(e.target.value)}
+                      placeholder="123456"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                )}
               </>
             )}
 
