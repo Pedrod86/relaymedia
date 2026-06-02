@@ -2,6 +2,7 @@
 // functions work for both — the `kind` field is informational only.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 const CLIENT_NAME = "LovableMedia";
 const DEVICE_NAME = "Web Browser";
@@ -32,6 +33,9 @@ export const embyLogin = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
     const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
     const res = await fetch(url, {
       method: "POST",
@@ -62,12 +66,13 @@ export const embyLogin = createServerFn({ method: "POST" })
   });
 
 const sessionSchema = z.object({
-  serverUrl: z.string().url(),
-  token: z.string(),
-  userId: z.string(),
+  serverUrl: z.string().url().max(500),
+  token: z.string().max(2000),
+  userId: z.string().max(200),
 });
 
 async function embyFetch(serverUrl: string, path: string, token: string, userId: string) {
+  await assertSafeExternalUrl(serverUrl);
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
     headers: {
       "X-Emby-Authorization": authHeader(token, userId),
@@ -161,6 +166,9 @@ export const embyGetResume = createServerFn({ method: "POST" })
 export const embyRefreshLibrary = createServerFn({ method: "POST" })
   .inputValidator(sessionSchema)
   .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
       method: "POST",
       headers: {

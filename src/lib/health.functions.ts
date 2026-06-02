@@ -3,6 +3,7 @@
 // reachability before committing credentials.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 export type HealthResult =
   | {
@@ -35,8 +36,14 @@ export const serverHealthCheck = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }): Promise<HealthResult> => {
-    const base = data.serverUrl.replace(/\/+$/, "");
     const started = Date.now();
+    try {
+      await assertSafeExternalUrl(data.serverUrl);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Server URL not allowed";
+      return { ok: false, error: msg, latencyMs: Date.now() - started };
+    }
+    const base = data.serverUrl.replace(/\/+$/, "");
     try {
       if (data.kind === "plex") {
         const { res, latencyMs } = await timedFetch(`${base}/identity`, {

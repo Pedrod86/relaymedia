@@ -8,6 +8,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 const CLIENT_ID = "lovable-media-web";
 const PRODUCT = "LovableMedia";
@@ -34,6 +35,7 @@ function plexHeaders(token?: string) {
 }
 
 async function plexFetch(serverUrl: string, path: string, token: string) {
+  await assertSafeExternalUrl(serverUrl);
   const url = `${normalize(serverUrl)}${path}${path.includes("?") ? "&" : "?"}X-Plex-Token=${encodeURIComponent(token)}`;
   const res = await fetch(url, { headers: plexHeaders(token) });
   if (!res.ok) throw new Error(`Plex request failed: ${res.status} ${res.statusText}`);
@@ -116,8 +118,8 @@ export const plexVerify = createServerFn({ method: "POST" })
   });
 
 const plexSessionSchema = z.object({
-  serverUrl: z.string().url(),
-  token: z.string(),
+  serverUrl: z.string().url().max(500),
+  token: z.string().max(500),
 });
 
 function normalizeMetadata(serverUrl: string, m: any): any {

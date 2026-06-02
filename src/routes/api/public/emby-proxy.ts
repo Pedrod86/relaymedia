@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { assertSafeExternalUrl } from "@/lib/ssrf-guard";
 
 // Streams Emby HTTP content over our HTTPS origin so the browser will load
 // images / HLS / direct video from a non-HTTPS Emby server without
@@ -48,12 +49,10 @@ async function handle(request: Request) {
 
   let targetUrl: URL;
   try {
-    targetUrl = new URL(target);
-  } catch {
-    return new Response("invalid url", { status: 400 });
-  }
-  if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
-    return new Response("unsupported protocol", { status: 400 });
+    targetUrl = await assertSafeExternalUrl(target);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "invalid url";
+    return new Response(msg, { status: 400 });
   }
 
   const headers = new Headers();
@@ -62,11 +61,26 @@ async function handle(request: Request) {
     if (v) headers.set(h, v);
   }
 
-  const upstream = await fetch(targetUrl.toString(), {
-    method: request.method === "HEAD" ? "HEAD" : "GET",
-    headers,
-    redirect: "follow",
-  });
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 30_000);
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl.toString(), {
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      headers,
+      redirect: "manual",
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    clearTimeout(timeout);
+    return new Response("upstream fetch failed", { status: 502 });
+  }
+  clearTimeout(timeout);
+
+  // Don't blindly follow redirects — they could escape into private IP space.
+  if (upstream.status >= 300 && upstream.status < 400) {
+    return new Response("upstream redirected", { status: 502 });
+  }
 
   const outHeaders = new Headers();
   for (const h of PASS_RES_HEADERS) {
@@ -80,6 +94,27 @@ async function handle(request: Request) {
     ct.includes("mpegurl") ||
     targetUrl.pathname.endsWith(".m3u8") ||
     targetUrl.pathname.endsWith(".m3u");
+
+  // Restrict proxied content to media-ish types so the proxy can't be abused
+  // to fetch arbitrary HTML/JSON from third-party origins.
+  const allowedPrefixes = ["image/", "video/", "audio/", "font/"];
+  const allowedExact = new Set([
+    "application/vnd.apple.mpegurl",
+    "application/x-mpegurl",
+    "application/octet-stream",
+    "application/dash+xml",
+    "application/mp4",
+    "text/vtt",
+  ]);
+  const ctBase = ct.split(";")[0].trim();
+  const ctAllowed =
+    !ctBase ||
+    isPlaylist ||
+    allowedExact.has(ctBase) ||
+    allowedPrefixes.some((p) => ctBase.startsWith(p));
+  if (!ctAllowed) {
+    return new Response("content-type not allowed", { status: 415 });
+  }
 
   if (isPlaylist && upstream.ok && request.method !== "HEAD") {
     const text = await upstream.text();
