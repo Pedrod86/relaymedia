@@ -34,6 +34,36 @@ function plexHeaders(token?: string) {
   return h;
 }
 
+function plexLoginErrorMessage(status: number, bodyText: string) {
+  let fallback = `Plex login failed (${status}).`;
+  if (!bodyText) return fallback;
+
+  try {
+    const parsed = JSON.parse(bodyText) as {
+      errors?: { code?: number; message?: string; status?: number }[];
+    };
+    const first = parsed.errors?.[0];
+    const code = first?.code;
+    const message = first?.message ?? "";
+    const errorStatus = first?.status ?? status;
+
+    if (errorStatus === 429 || code === 1003 || /rate limit/i.test(message)) {
+      return "Plex is rate-limiting password sign-ins right now. Wait a bit, or check “I have a Plex token” and connect with your token instead.";
+    }
+    if (code === 1029 || /verification code|two[- ]factor|2fa/i.test(message)) {
+      return "Plex 2FA is enabled — enter your code in the verification field.";
+    }
+    if (message) return `Plex: ${message}`;
+  } catch {
+    if (/rate limit|code=["']?1003|status=["']?429/i.test(bodyText)) {
+      return "Plex is rate-limiting password sign-ins right now. Wait a bit, or check “I have a Plex token” and connect with your token instead.";
+    }
+    fallback += ` ${bodyText.slice(0, 200)}`;
+  }
+
+  return fallback;
+}
+
 async function plexFetch(serverUrl: string, path: string, token: string) {
   await assertSafeExternalUrl(serverUrl);
   const url = `${normalize(serverUrl)}${path}${path.includes("?") ? "&" : "?"}X-Plex-Token=${encodeURIComponent(token)}`;
@@ -55,7 +85,11 @@ export const plexLogin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     // Plex v2 sign-in expects the 2FA code as a separate form field.
-    const body = new URLSearchParams({ login: data.username, password: data.password });
+    const body = new URLSearchParams({
+      login: data.username,
+      password: data.password,
+      rememberMe: "true",
+    });
     if (data.verificationCode) {
       body.set("verificationCode", data.verificationCode);
     }
@@ -70,17 +104,7 @@ export const plexLogin = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      let msg = `Plex login failed (${res.status}).`;
-      try {
-        const j = JSON.parse(text) as { errors?: { code?: number; message?: string }[] };
-        const first = j.errors?.[0];
-        if (first?.code === 1029 || first?.code === 1003)
-          msg = "Plex 2FA is enabled — enter your code in the verification field.";
-        else if (first?.message) msg = `Plex: ${first.message}`;
-      } catch {
-        if (text) msg += ` ${text.slice(0, 200)}`;
-      }
-      return { ok: false as const, error: msg };
+      return { ok: false as const, error: plexLoginErrorMessage(res.status, text) };
     }
     const json = (await res.json()) as {
       authToken?: string;
