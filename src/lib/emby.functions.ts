@@ -108,9 +108,11 @@ export const embyGetItems = createServerFn({ method: "POST" })
       SortBy: data.sortBy,
       SortOrder: "Ascending",
       Limit: String(data.limit),
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear",
+      Fields:
+        "PrimaryImageAspectRatio,Overview,ProductionYear,RunTimeTicks,OfficialRating,CommunityRating,Genres,Studios,SeriesName,SeriesId,SeriesPrimaryImageTag,ParentIndexNumber,IndexNumber,MediaSources,Width,Height,Path,DateCreated",
       ImageTypeLimit: "1",
-      EnableImageTypes: "Primary,Backdrop,Thumb",
+      EnableImageTypes: "Primary,Backdrop,Thumb,Banner,Logo",
+      EnableTotalRecordCount: "true",
     });
     if (data.parentId) params.set("ParentId", data.parentId);
     if (data.includeItemTypes) params.set("IncludeItemTypes", data.includeItemTypes);
