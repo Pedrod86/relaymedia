@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
+import { toast } from "sonner";
+import { embyGetViews, embyGetItems, embyGetResume, embyRefreshLibrary } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume } from "@/lib/plex.functions";
 import {
   listServers,
