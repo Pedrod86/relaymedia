@@ -116,8 +116,9 @@ function LoginPage() {
         <div className="w-full max-w-md rounded-2xl border bg-card/70 p-8 backdrop-blur-xl shadow-2xl">
           <div className="mb-6">
             <h1 className="text-3xl font-semibold tracking-tight">Add a server</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Connect Emby, Jellyfin or Plex. You can add more later.
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+              Connect <ServerLabel kind="emby" />, <ServerLabel kind="jellyfin" /> or{" "}
+              <ServerLabel kind="plex" />. You can add more later.
             </p>
           </div>
 
@@ -130,12 +131,13 @@ function LoginPage() {
                   setKind(k.value);
                   setError(null);
                 }}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   kind === k.value
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
+                <ServerIcon kind={k.value} size={16} />
                 {k.label}
               </button>
             ))}
