@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
-import { plexGetItem } from "@/lib/plex.functions";
+import { toast } from "sonner";
+import { embyGetItem, embyGetItems, embyRefreshItem } from "@/lib/emby.functions";
+import { plexGetItem, plexRefreshItem } from "@/lib/plex.functions";
 import { loadActiveServer, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/item/$id")({
   head: () => ({ meta: [{ title: "Details — Media" }] }),
