@@ -148,7 +148,17 @@ export function proxied(target: string) {
 // (e.g. "/library/metadata/123/thumb/456"). BackdropImageTags[0] holds art.
 export function imageUrl(
   s: MediaServer,
-  item: { Id: string; ImageTags?: Record<string, string>; BackdropImageTags?: string[] },
+  item: {
+    Id: string;
+    ImageTags?: Record<string, string>;
+    BackdropImageTags?: string[];
+    ParentBackdropImageTags?: string[];
+    ParentBackdropItemId?: string;
+    SeriesId?: string;
+    SeriesPrimaryImageTag?: string;
+    ParentThumbItemId?: string;
+    ParentThumbImageTag?: string;
+  },
   type: "Primary" | "Backdrop" | "Thumb" = "Primary",
   opts: { maxWidth?: number } = {}
 ): string | null {
@@ -157,18 +167,38 @@ export function imageUrl(
     if (!path) return null;
     const w = opts.maxWidth ?? 400;
     const h = type === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
-    // Plex photo transcoder is widely supported and returns sensible sizes.
     const target =
       `${normalize(s.serverUrl)}/photo/:/transcode?width=${w}&height=${h}` +
       `&minSize=1&upscale=1&url=${encodeURIComponent(path)}&X-Plex-Token=${encodeURIComponent(s.token)}`;
     return proxied(target);
   }
-  // Emby / Jellyfin
-  const tag = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
+  // Emby / Jellyfin — try item's own image, then fall back to parent/series art
+  // so 4K episodes (which often lack their own Primary tag) still render.
+  let itemId = item.Id;
+  let tag: string | undefined;
+  if (type === "Backdrop") {
+    tag = item.BackdropImageTags?.[0];
+    if (!tag && item.ParentBackdropImageTags?.[0] && item.ParentBackdropItemId) {
+      tag = item.ParentBackdropImageTags[0];
+      itemId = item.ParentBackdropItemId;
+    }
+  } else if (type === "Thumb") {
+    tag = item.ImageTags?.Thumb;
+    if (!tag && item.ParentThumbImageTag && item.ParentThumbItemId) {
+      tag = item.ParentThumbImageTag;
+      itemId = item.ParentThumbItemId;
+    }
+  } else {
+    tag = item.ImageTags?.Primary;
+    if (!tag && item.SeriesPrimaryImageTag && item.SeriesId) {
+      tag = item.SeriesPrimaryImageTag;
+      itemId = item.SeriesId;
+    }
+  }
   if (!tag) return null;
   const params = new URLSearchParams({ quality: "90", tag });
   if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
-  return proxied(`${normalize(s.serverUrl)}/Items/${item.Id}/Images/${type}?${params}`);
+  return proxied(`${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`);
 }
 
 // ── Stream URLs (Emby / Jellyfin only — built client-side) ─────────────────
