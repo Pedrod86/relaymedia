@@ -37,7 +37,7 @@ function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [plexToken, setPlexToken] = useState("");
-  const [usePlexToken, setUsePlexToken] = useState(false);
+  const [usePlexToken, setUsePlexToken] = useState(true);
   const [plex2fa, setPlex2fa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -162,6 +162,7 @@ function LoginPage() {
                 onClick={() => {
                   setKind(k.value);
                   setError(null);
+                  if (k.value === "plex") setUsePlexToken(true);
                 }}
                 className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   kind === k.value
@@ -212,16 +213,23 @@ function LoginPage() {
             </div>
 
             {isPlex && (
-              <div className="flex items-center gap-2 text-sm">
-                <input
-                  id="useToken"
-                  type="checkbox"
-                  checked={usePlexToken}
-                  onChange={(e) => setUsePlexToken(e.target.checked)}
-                />
-                <label htmlFor="useToken" className="text-muted-foreground">
-                  I have a Plex token (skip plex.tv sign-in)
-                </label>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="useToken"
+                    type="checkbox"
+                    checked={!usePlexToken}
+                    onChange={(e) => setUsePlexToken(!e.target.checked)}
+                  />
+                  <label htmlFor="useToken" className="text-muted-foreground">
+                    Use plex.tv username/password instead
+                  </label>
+                </div>
+                {usePlexToken && (
+                  <p className="text-xs text-muted-foreground">
+                    Plex token is recommended because plex.tv password sign-in is often rate-limited.
+                  </p>
+                )}
               </div>
             )}
 
