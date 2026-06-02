@@ -23,6 +23,7 @@ import {
   getLastSync,
   SYNC_INTERVAL_OPTIONS,
 } from "@/lib/sync-schedule";
+import { TraktPanel } from "@/components/trakt-panel";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -132,6 +133,7 @@ function SettingsPage() {
         </section>
 
         <ActiveServerPanel server={active} />
+        <TraktPanel />
         <PlaybackCapabilities />
       </div>
     </main>
