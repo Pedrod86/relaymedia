@@ -118,8 +118,8 @@ export const plexVerify = createServerFn({ method: "POST" })
   });
 
 const plexSessionSchema = z.object({
-  serverUrl: z.string().url(),
-  token: z.string(),
+  serverUrl: z.string().url().max(500),
+  token: z.string().max(500),
 });
 
 function normalizeMetadata(serverUrl: string, m: any): any {
