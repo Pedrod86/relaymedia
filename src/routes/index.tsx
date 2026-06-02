@@ -30,5 +30,9 @@ function IndexFallback() {
     }
     navigate({ to: has ? "/library" : "/login", replace: true });
   }, [navigate]);
-  return null;
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <p className="text-sm text-muted-foreground">Opening media library…</p>
+    </main>
+  );
 }
