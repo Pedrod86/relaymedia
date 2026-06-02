@@ -2,6 +2,7 @@
 // functions work for both — the `kind` field is informational only.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 const CLIENT_NAME = "LovableMedia";
 const DEVICE_NAME = "Web Browser";
