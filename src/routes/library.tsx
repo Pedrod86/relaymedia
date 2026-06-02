@@ -2,8 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
-import { plexGetViews, plexGetItems, plexGetResume } from "@/lib/plex.functions";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
+import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
 import {
   listServers,
   loadActiveServer,
