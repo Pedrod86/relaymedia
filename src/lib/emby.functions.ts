@@ -38,7 +38,7 @@ function embyLoginError(status: number, bodyText: string) {
   const lower = clean.toLowerCase();
 
   if (status === 403 && (lower.includes("error code: 1003") || lower.includes("error 1003"))) {
-    return "Your media server URL is being blocked by Cloudflare/proxy error 1003. Use the real public Emby/Jellyfin hostname, not a Cloudflare IP, and make sure that hostname allows server-to-server access from the published app.";
+    return "Emby/Jellyfin rejected the live app with 403 / 1003. This usually means remote access is disabled for the server or this user, or your proxy/firewall blocks the published app’s outbound request. In Emby, enable remote connections for the server and for this user, then allow RelayMedia/1.0 through your proxy/firewall.";
   }
   if (status === 403 && /not allowed access from this device|deviceaccessdenied/i.test(clean)) {
     return "This Emby/Jellyfin user is not allowed to sign in from this device. Allow this app/device in your server user access settings, then try again.";
@@ -102,6 +102,61 @@ export const embyLogin = createServerFn({ method: "POST" })
     };
   });
 
+export const embyApiKeyLogin = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      serverUrl: z.string().url().max(500),
+      apiKey: z.string().min(8).max(2000),
+      username: z.string().max(200).optional(),
+    })
+  )
+  .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
+    const apiKey = data.apiKey.trim();
+    const wanted = data.username?.trim().toLowerCase();
+    let res: Response;
+    try {
+      res = await fetch(`${normalize(data.serverUrl)}/Users?api_key=${encodeURIComponent(apiKey)}`, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
+          "X-Emby-Token": apiKey,
+          "X-Emby-Authorization": authHeader(apiKey),
+          Authorization: authHeader(apiKey),
+        },
+      });
+    } catch (e) {
+      return { ok: false as const, error: networkLoginError(e) };
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return {
+        ok: false as const,
+        error: `API key login failed (${res.status}). ${text.replace(/<[^>]*>/g, " ").slice(0, 200)}`,
+      };
+    }
+    const users = (await res.json()) as Array<{ Id: string; Name: string; Policy?: { IsDisabled?: boolean } }>;
+    const enabled = users.filter((u) => !u.Policy?.IsDisabled);
+    const user = wanted
+      ? enabled.find((u) => u.Name.toLowerCase() === wanted)
+      : enabled[0];
+    if (!user) {
+      return {
+        ok: false as const,
+        error: wanted ? "API key works, but that username was not found." : "API key works, but no enabled users were returned.",
+      };
+    }
+    return {
+      ok: true as const,
+      token: apiKey,
+      userId: user.Id,
+      userName: user.Name,
+    };
+  });
+
 const sessionSchema = z.object({
   serverUrl: z.string().url().max(500),
   token: z.string().max(2000),
@@ -112,6 +167,9 @@ async function embyFetch(serverUrl: string, path: string, token: string, userId:
   await assertSafeExternalUrl(serverUrl);
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
     headers: {
+      Accept: "application/json",
+      "User-Agent": USER_AGENT,
+      "X-RelayMedia-Client": USER_AGENT,
       "X-Emby-Authorization": authHeader(token, userId),
       Authorization: authHeader(token, userId),
       "X-Emby-Token": token,
@@ -209,6 +267,8 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
       method: "POST",
       headers: {
+        "User-Agent": USER_AGENT,
+        "X-RelayMedia-Client": USER_AGENT,
         "X-Emby-Authorization": authHeader(data.token, data.userId),
         Authorization: authHeader(data.token, data.userId),
         "X-Emby-Token": data.token,
@@ -250,6 +310,8 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
       {
         method: "POST",
         headers: {
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
           "X-Emby-Authorization": authHeader(data.token, data.userId),
           Authorization: authHeader(data.token, data.userId),
           "X-Emby-Token": data.token,
