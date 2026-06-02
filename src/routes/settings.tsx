@@ -234,13 +234,29 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
         : await refreshEmby({
             data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId },
           });
-      if (res.ok) toast.success("Library sync started.");
-      else toast.error(res.error);
+      if (res.ok) {
+        toast.success("Library sync started.");
+        const now = Date.now();
+        setLastSyncState(now);
+      } else {
+        toast.error(res.error);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Refresh failed");
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function formatLast(ts: number | null) {
+    if (!ts) return "Never";
+    const diff = Date.now() - ts;
+    const m = Math.round(diff / 60_000);
+    if (m < 1) return "Just now";
+    if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} hr ago`;
+    return new Date(ts).toLocaleString();
   }
 
   return (
