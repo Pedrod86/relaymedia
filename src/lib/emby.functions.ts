@@ -206,3 +206,46 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     }
     return { ok: true as const, startedAt: new Date().toISOString() };
   });
+
+// Refresh metadata + images for a single item. `replace` controls whether
+// existing data is overwritten or only missing fields filled in.
+export const embyRefreshItem = createServerFn({ method: "POST" })
+  .inputValidator(
+    sessionSchema.extend({
+      itemId: z.string().min(1).max(100),
+      replace: z.boolean().default(false),
+      recursive: z.boolean().default(true),
+    })
+  )
+  .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
+    const params = new URLSearchParams({
+      Recursive: data.recursive ? "true" : "false",
+      MetadataRefreshMode: "FullRefresh",
+      ImageRefreshMode: "FullRefresh",
+      ReplaceAllMetadata: data.replace ? "true" : "false",
+      ReplaceAllImages: data.replace ? "true" : "false",
+    });
+    const res = await fetch(
+      `${normalize(data.serverUrl)}/Items/${encodeURIComponent(data.itemId)}/Refresh?${params}`,
+      {
+        method: "POST",
+        headers: {
+          "X-Emby-Authorization": authHeader(data.token, data.userId),
+          Authorization: authHeader(data.token, data.userId),
+          "X-Emby-Token": data.token,
+        },
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return {
+        ok: false as const,
+        error: `Refresh failed (${res.status}). ${text.slice(0, 200)}`,
+      };
+    }
+    return { ok: true as const, startedAt: new Date().toISOString() };
+  });
+
