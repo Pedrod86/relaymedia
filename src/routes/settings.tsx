@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
+import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -83,8 +84,9 @@ function SettingsPage() {
               <Link to="/login">+ Add server</Link>
             </Button>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Switch between connected Emby, Jellyfin or Plex servers, or remove ones you no longer use.
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+            Switch between connected <ServerLabel kind="emby" />,{" "}
+            <ServerLabel kind="jellyfin" /> or <ServerLabel kind="plex" /> servers, or remove ones you no longer use.
           </p>
           <ul className="mt-4 divide-y">
             {servers.map((s) => {
@@ -94,7 +96,8 @@ function SettingsPage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium">
                       {s.name}{" "}
-                      <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs uppercase text-muted-foreground">
+                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs uppercase text-muted-foreground">
+                        <ServerIcon kind={s.kind} size={12} />
                         {s.kind}
                       </span>
                     </p>
