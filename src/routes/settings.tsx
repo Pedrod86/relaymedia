@@ -16,6 +16,7 @@ import {
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { detectPlaybackSupport } from "@/lib/playback-support";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -125,8 +126,51 @@ function SettingsPage() {
         </section>
 
         <ActiveServerPanel server={active} />
+        <PlaybackCapabilities />
       </div>
     </main>
+  );
+}
+
+function PlaybackCapabilities() {
+  const [support, setSupport] = useState<ReturnType<typeof detectPlaybackSupport> | null>(null);
+  useEffect(() => {
+    setSupport(detectPlaybackSupport());
+  }, []);
+  if (!support) return null;
+  return (
+    <section className="rounded-lg border p-6">
+      <h2 className="text-base font-semibold">Playback capabilities</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        What this browser can decode natively. Anything unsupported is transcoded by your
+        server on the fly when possible.
+      </p>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="font-medium">Video codecs</dt>
+          <dd className="text-muted-foreground">{support.video.join(", ") || "None detected"}</dd>
+        </div>
+        <div>
+          <dt className="font-medium">Audio codecs</dt>
+          <dd className="text-muted-foreground">{support.audio.join(", ") || "None detected"}</dd>
+        </div>
+        <div>
+          <dt className="font-medium">Containers</dt>
+          <dd className="text-muted-foreground">
+            {support.containers.join(", ") || "None detected"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium">HDR display</dt>
+          <dd className="text-muted-foreground">{support.hdr ? "Detected" : "Not detected"}</dd>
+        </div>
+      </dl>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Browser limits: AC-3 / E-AC-3 / DTS / TrueHD, audio passthrough, hardware-decoder
+        selection, and bitmap subtitles (PGS, VobSub) are not exposed to web apps and would
+        require a native client.
+      </p>
+    </section>
   );
 }
 
