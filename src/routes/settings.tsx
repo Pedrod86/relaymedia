@@ -279,6 +279,28 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
             Reload categories
           </Button>
         </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <label htmlFor={`sync-${server.id}`} className="text-sm font-medium">
+              Auto-sync interval
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Last sync: {formatLast(lastSync)}
+            </p>
+            <select
+              id={`sync-${server.id}`}
+              value={interval}
+              onChange={(e) => onChangeInterval(Number(e.target.value))}
+              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              {SYNC_INTERVAL_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-lg border p-6">
