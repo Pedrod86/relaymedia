@@ -248,6 +248,21 @@ function LoginPage() {
                     required={!usePlexToken}
                   />
                 </div>
+                {isPlex && (
+                  <div className="space-y-2">
+                    <Label htmlFor="plex2fa">
+                      Plex 2FA code <span className="text-muted-foreground">(if enabled)</span>
+                    </Label>
+                    <Input
+                      id="plex2fa"
+                      value={plex2fa}
+                      onChange={(e) => setPlex2fa(e.target.value)}
+                      placeholder="123456"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                )}
               </>
             )}
 
