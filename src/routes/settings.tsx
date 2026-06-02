@@ -16,6 +16,7 @@ import {
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
