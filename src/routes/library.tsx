@@ -167,9 +167,23 @@ function LibrarySection({
   });
   if (!q.data || q.data.items.length === 0) return null;
   return (
-    <Section title={view.Name}>
+    <section>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <Link
+          to="/view/$id"
+          params={{ id: view.Id }}
+          className="group inline-flex items-baseline gap-2"
+        >
+          <h2 className="text-xl font-semibold tracking-tight group-hover:text-primary">
+            {view.Name}
+          </h2>
+          <span className="text-sm text-muted-foreground transition group-hover:text-primary">
+            See all →
+          </span>
+        </Link>
+      </div>
       <Row items={q.data.items} server={server} kind="primary" />
-    </Section>
+    </section>
   );
 }
 
