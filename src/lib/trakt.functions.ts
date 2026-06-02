@@ -151,7 +151,7 @@ export const traktTrending = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const items = (await traktGet(
       `/${data.kind}/trending?limit=${data.limit}&extended=full`
-    )) as unknown[];
+    )) as any[];
     return { items };
   });
 
@@ -166,7 +166,7 @@ export const traktRecommended = createServerFn({ method: "POST" })
     const items = (await traktGet(
       `/recommendations/${data.kind}?limit=${data.limit}&extended=full`,
       data.accessToken
-    )) as unknown[];
+    )) as any[];
     return { items };
   });
 
@@ -176,7 +176,7 @@ export const traktWatchlist = createServerFn({ method: "POST" })
     const items = (await traktGet(
       "/sync/watchlist?extended=full",
       data.accessToken
-    )) as unknown[];
+    )) as any[];
     return { items };
   });
 
@@ -186,7 +186,7 @@ export const traktHistory = createServerFn({ method: "POST" })
     const items = (await traktGet(
       `/sync/history?limit=${data.limit}&extended=full`,
       data.accessToken
-    )) as unknown[];
+    )) as any[];
     return { items };
   });
 
@@ -196,7 +196,7 @@ export const traktCollection = createServerFn({ method: "POST" })
     const items = (await traktGet(
       `/sync/collection/${data.kind}?extended=full`,
       data.accessToken
-    )) as unknown[];
+    )) as any[];
     return { items };
   });
 
