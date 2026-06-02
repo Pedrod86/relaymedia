@@ -38,6 +38,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [plexToken, setPlexToken] = useState("");
   const [usePlexToken, setUsePlexToken] = useState(false);
+  const [plex2fa, setPlex2fa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [health, setHealth] = useState<HealthResult | null>(null);
