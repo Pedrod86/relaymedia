@@ -35,6 +35,7 @@ function plexHeaders(token?: string) {
 }
 
 async function plexFetch(serverUrl: string, path: string, token: string) {
+  await assertSafeExternalUrl(serverUrl);
   const url = `${normalize(serverUrl)}${path}${path.includes("?") ? "&" : "?"}X-Plex-Token=${encodeURIComponent(token)}`;
   const res = await fetch(url, { headers: plexHeaders(token) });
   if (!res.ok) throw new Error(`Plex request failed: ${res.status} ${res.statusText}`);
