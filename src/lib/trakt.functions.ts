@@ -5,8 +5,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const API = "https://api.trakt.tv";
-const CLIENT_ID = process.env.TRAKT_CLIENT_ID;
-const CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET;
+const CLIENT_ID = process.env.TRAKT_CLIENT_ID?.trim();
+const CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET?.trim();
 
 function requireKeys() {
   if (!CLIENT_ID || !CLIENT_SECRET) {
@@ -125,7 +125,11 @@ const authSchema = z.object({ accessToken: z.string().min(10).max(500) });
 
 async function traktGet(path: string, token?: string) {
   const res = await fetch(`${API}${path}`, { headers: headers(token) });
-  if (!res.ok) throw new Error(`Trakt ${path} failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error(`[trakt] ${path} → ${res.status} ${res.statusText} ${body.slice(0, 200)}`);
+    throw new Error(`Trakt ${path} failed: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -149,10 +153,14 @@ export const traktTrending = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const items = (await traktGet(
-      `/${data.kind}/trending?limit=${data.limit}&extended=full`
-    )) as any[];
-    return { items };
+    try {
+      const items = (await traktGet(
+        `/${data.kind}/trending?limit=${data.limit}&extended=full`
+      )) as any[];
+      return { ok: true as const, items };
+    } catch (e) {
+      return { ok: false as const, items: [], error: String(e) };
+    }
   });
 
 export const traktRecommended = createServerFn({ method: "POST" })
@@ -163,11 +171,15 @@ export const traktRecommended = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const items = (await traktGet(
-      `/recommendations/${data.kind}?limit=${data.limit}&extended=full`,
-      data.accessToken
-    )) as any[];
-    return { items };
+    try {
+      const items = (await traktGet(
+        `/recommendations/${data.kind}?limit=${data.limit}&extended=full`,
+        data.accessToken
+      )) as any[];
+      return { ok: true as const, items };
+    } catch (e) {
+      return { ok: false as const, items: [], error: String(e) };
+    }
   });
 
 export const traktWatchlist = createServerFn({ method: "POST" })
