@@ -49,7 +49,7 @@ export const plexLogin = createServerFn({ method: "POST" })
     z.object({
       username: z.string().min(1).max(200),
       password: z.string().min(1).max(500),
-      // Append 2FA code to the password if Plex account requires it.
+      // Plex 2FA code, when the account requires it.
       verificationCode: z.string().max(20).optional(),
     })
   )
@@ -57,7 +57,7 @@ export const plexLogin = createServerFn({ method: "POST" })
     // Plex v2 sign-in expects the 2FA code as a separate form field.
     const body = new URLSearchParams({ login: data.username, password: data.password });
     if (data.verificationCode) {
-      body.set("verification_code", data.verificationCode);
+      body.set("verificationCode", data.verificationCode);
     }
     const res = await fetch("https://plex.tv/api/v2/users/signin", {
       method: "POST",
