@@ -133,6 +133,61 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* === Theme: Neon === */
+.theme-neon {
+  --background: oklch(0.13 0.04 290);
+  --foreground: oklch(0.98 0.02 320);
+  --card: oklch(0.18 0.06 290);
+  --card-foreground: oklch(0.98 0.02 320);
+  --popover: oklch(0.18 0.06 290);
+  --popover-foreground: oklch(0.98 0.02 320);
+  --primary: oklch(0.78 0.27 330);
+  --primary-foreground: oklch(0.12 0.04 290);
+  --secondary: oklch(0.25 0.08 290);
+  --secondary-foreground: oklch(0.98 0.02 320);
+  --muted: oklch(0.22 0.06 290);
+  --muted-foreground: oklch(0.78 0.08 320);
+  --accent: oklch(0.78 0.22 200);
+  --accent-foreground: oklch(0.12 0.04 290);
+  --destructive: oklch(0.7 0.27 25);
+  --destructive-foreground: oklch(0.98 0.02 320);
+  --border: oklch(0.78 0.27 330 / 35%);
+  --input: oklch(0.78 0.22 200 / 25%);
+  --ring: oklch(0.78 0.27 330);
+}
+.theme-neon body {
+  background:
+    radial-gradient(ellipse at 20% 0%, oklch(0.78 0.27 330 / 0.18), transparent 55%),
+    radial-gradient(ellipse at 80% 100%, oklch(0.78 0.22 200 / 0.18), transparent 55%),
+    var(--color-background);
+}
+.theme-neon h1, .theme-neon h2 {
+  text-shadow: 0 0 18px oklch(0.78 0.27 330 / 0.55);
+}
+
+/* === Theme: Minimal (no neon) === */
+.theme-minimal {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.18 0.01 270);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 270);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 270);
+  --primary: oklch(0.22 0.01 270);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.95 0.005 270);
+  --secondary-foreground: oklch(0.22 0.01 270);
+  --muted: oklch(0.96 0.005 270);
+  --muted-foreground: oklch(0.5 0.01 270);
+  --accent: oklch(0.94 0.01 270);
+  --accent-foreground: oklch(0.22 0.01 270);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 12%);
+  --ring: oklch(0.22 0.01 270);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
