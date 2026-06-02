@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
 import { plexLogin, plexVerify } from "@/lib/plex.functions";
+import { serverHealthCheck, type HealthResult } from "@/lib/health.functions";
 import { addServer, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ function LoginPage() {
   const embyLoginFn = useServerFn(embyLogin);
   const plexLoginFn = useServerFn(plexLogin);
   const plexVerifyFn = useServerFn(plexVerify);
+  const healthFn = useServerFn(serverHealthCheck);
 
   const [kind, setKind] = useState<ServerKind>("emby");
   const [serverUrl, setServerUrl] = useState("");
@@ -38,6 +40,31 @@ function LoginPage() {
   const [usePlexToken, setUsePlexToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [health, setHealth] = useState<HealthResult | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function onCheck() {
+    setError(null);
+    setHealth(null);
+    const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+    if (!cleanUrl) {
+      setError("Enter a server URL first.");
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await healthFn({ data: { kind, serverUrl: cleanUrl } });
+      setHealth(res);
+    } catch (e) {
+      setHealth({
+        ok: false,
+        error: e instanceof Error ? e.message : "Network error",
+        latencyMs: 0,
+      });
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -151,6 +178,30 @@ function LoginPage() {
                 required
                 autoComplete="url"
               />
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={checking}
+                  onClick={onCheck}
+                >
+                  {checking ? "Checking…" : "Test connection"}
+                </Button>
+                {health && health.ok && (
+                  <span className="text-xs text-emerald-500">
+                    ✓ {health.product ?? health.kind}
+                    {health.version ? ` ${health.version}` : ""}
+                    {health.serverName ? ` · ${health.serverName}` : ""}
+                    {` · ${health.latencyMs}ms`}
+                  </span>
+                )}
+                {health && !health.ok && (
+                  <span className="text-xs text-destructive">
+                    ✗ {health.error}
+                  </span>
+                )}
+              </div>
             </div>
 
             {isPlex && (
