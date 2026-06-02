@@ -8,6 +8,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 const CLIENT_ID = "lovable-media-web";
 const PRODUCT = "LovableMedia";
