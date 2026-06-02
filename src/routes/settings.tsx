@@ -16,6 +16,7 @@ import {
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -118,9 +119,54 @@ function SettingsPage() {
           </ul>
         </section>
 
+        <ThemePanel />
+
         <ActiveServerPanel server={active} />
       </div>
     </main>
+  );
+}
+
+function ThemePanel() {
+  const [theme, setTheme] = useState<ThemeName>("default");
+  useEffect(() => setTheme(loadTheme()), []);
+
+  const options: { id: ThemeName; label: string; desc: string }[] = [
+    { id: "default", label: "Cinematic", desc: "Default dark theme tuned for video." },
+    { id: "neon", label: "Neon", desc: "Magenta & cyan glow, cyberpunk vibes." },
+    { id: "minimal", label: "Minimal", desc: "Clean light theme, no neon." },
+  ];
+
+  function pick(t: ThemeName) {
+    setTheme(t);
+    saveTheme(t);
+  }
+
+  return (
+    <section className="rounded-lg border p-6">
+      <h2 className="text-base font-semibold">Theme</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Choose how the app looks. Saved on this device.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {options.map((o) => {
+          const active = theme === o.id;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => pick(o.id)}
+              className={`rounded-lg border p-4 text-left transition ${
+                active ? "border-primary ring-2 ring-primary/50" : "hover:bg-accent"
+              }`}
+            >
+              <p className="font-medium">{o.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{o.desc}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
