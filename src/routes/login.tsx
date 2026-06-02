@@ -261,3 +261,96 @@ function LoginPage() {
     </main>
   );
 }
+
+function LoginErrorAlert({ message }: { message: string }) {
+  const lower = message.toLowerCase();
+  const isProxy1003 =
+    lower.includes("1003") ||
+    lower.includes("cloudflare") ||
+    lower.includes("proxy");
+  const isDeviceDenied = lower.includes("device access");
+  const isMaxSessions = lower.includes("maximum") && lower.includes("session");
+
+  if (!isProxy1003 && !isDeviceDenied && !isMaxSessions) {
+    return (
+      <p className="text-sm text-destructive" role="alert">
+        {message}
+      </p>
+    );
+  }
+
+  return (
+    <div
+      role="alert"
+      className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm space-y-3"
+    >
+      <div className="flex items-start gap-2">
+        <span aria-hidden className="text-destructive font-semibold">!</span>
+        <div className="space-y-1">
+          <p className="font-medium text-destructive">
+            {isProxy1003
+              ? "Your server URL is being blocked by Cloudflare (error 1003)"
+              : isDeviceDenied
+                ? "This device is not allowed to sign in"
+                : "Your server has hit its session limit"}
+          </p>
+          <p className="text-muted-foreground">{message}</p>
+        </div>
+      </div>
+
+      {isProxy1003 && (
+        <div className="space-y-2 pl-6">
+          <p className="font-medium text-foreground">How to fix it:</p>
+          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            <li>
+              Use the <strong>real public hostname</strong> of your media server
+              (e.g. <code className="text-foreground">https://emby.yourdomain.com</code>),
+              not a raw Cloudflare IP or a shared <code>*.lovable.app</code> URL.
+            </li>
+            <li>
+              In Cloudflare → <strong>Security → WAF</strong>, make sure the
+              hostname is not blocking server-to-server traffic. Add a rule to
+              allow requests with <code>User-Agent: RelayMedia/1.0</code> if
+              needed.
+            </li>
+            <li>
+              Confirm the URL loads in a private browser window with no login
+              prompt from Cloudflare Access.
+            </li>
+            <li>
+              Use <strong>https://</strong> with a valid certificate — self-signed
+              certs will also fail.
+            </li>
+          </ol>
+        </div>
+      )}
+
+      {isDeviceDenied && (
+        <div className="space-y-2 pl-6">
+          <p className="font-medium text-foreground">How to fix it:</p>
+          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            <li>Open your media server admin dashboard.</li>
+            <li>
+              Go to <strong>Devices</strong> and approve / unblock this device,
+              or disable "Require approval for new devices".
+            </li>
+            <li>Try signing in again.</li>
+          </ol>
+        </div>
+      )}
+
+      {isMaxSessions && (
+        <div className="space-y-2 pl-6">
+          <p className="font-medium text-foreground">How to fix it:</p>
+          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            <li>Stop one of your active streams on another device.</li>
+            <li>
+              Or raise the user's session limit in{" "}
+              <strong>Dashboard → Users → [user] → Max sessions</strong>.
+            </li>
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
