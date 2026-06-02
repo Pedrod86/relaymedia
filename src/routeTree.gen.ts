@@ -15,6 +15,7 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
+import { Route as ApiPublicEmbyWebhookRouteImport } from './routes/api/public/emby-webhook'
 import { Route as ApiPublicEmbyProxyRouteImport } from './routes/api/public/emby-proxy'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -47,6 +48,11 @@ const ItemIdRoute = ItemIdRouteImport.update({
   path: '/item/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEmbyWebhookRoute = ApiPublicEmbyWebhookRouteImport.update({
+  id: '/api/public/emby-webhook',
+  path: '/api/public/emby-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEmbyProxyRoute = ApiPublicEmbyProxyRouteImport.update({
   id: '/api/public/emby-proxy',
   path: '/api/public/emby-proxy',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/emby-webhook': typeof ApiPublicEmbyWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/emby-webhook': typeof ApiPublicEmbyWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/item/$id': typeof ItemIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/emby-webhook': typeof ApiPublicEmbyWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
+    | '/api/public/emby-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
+    | '/api/public/emby-webhook'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/watch/$id'
     | '/api/public/emby-proxy'
+    | '/api/public/emby-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   ItemIdRoute: typeof ItemIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicEmbyProxyRoute: typeof ApiPublicEmbyProxyRoute
+  ApiPublicEmbyWebhookRoute: typeof ApiPublicEmbyWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/emby-webhook': {
+      id: '/api/public/emby-webhook'
+      path: '/api/public/emby-webhook'
+      fullPath: '/api/public/emby-webhook'
+      preLoaderRoute: typeof ApiPublicEmbyWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/emby-proxy': {
       id: '/api/public/emby-proxy'
       path: '/api/public/emby-proxy'
@@ -183,7 +203,18 @@ const rootRouteChildren: RootRouteChildren = {
   ItemIdRoute: ItemIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicEmbyProxyRoute: ApiPublicEmbyProxyRoute,
+  ApiPublicEmbyWebhookRoute: ApiPublicEmbyWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
