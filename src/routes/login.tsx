@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
-import { plexLogin, plexVerify } from "@/lib/plex.functions";
+import { plexVerify } from "@/lib/plex.functions";
 import { serverHealthCheck, type HealthResult } from "@/lib/health.functions";
 import { addServer, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
 function LoginPage() {
   const navigate = useNavigate();
   const embyLoginFn = useServerFn(embyLogin);
-  const plexLoginFn = useServerFn(plexLogin);
   const plexVerifyFn = useServerFn(plexVerify);
   const healthFn = useServerFn(serverHealthCheck);
 
@@ -37,8 +36,6 @@ function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [plexToken, setPlexToken] = useState("");
-  const [usePlexToken, setUsePlexToken] = useState(true);
-  const [plex2fa, setPlex2fa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [health, setHealth] = useState<HealthResult | null>(null);
@@ -166,7 +163,6 @@ function LoginPage() {
                 onClick={() => {
                   setKind(k.value);
                   setError(null);
-                  if (k.value === "plex") setUsePlexToken(true);
                 }}
                 className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   kind === k.value
