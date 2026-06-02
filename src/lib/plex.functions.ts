@@ -282,3 +282,28 @@ export const plexGetStreamInfo = createServerFn({ method: "POST" })
     if (!part?.key) return { ok: false as const, error: "No playable media on this item." };
     return { ok: true as const, partKey: part.key as string, container: (part.container as string) ?? "mp4" };
   });
+
+// Refresh metadata for a single Plex item. `replace` forces re-pull of all
+// fields, otherwise Plex only fills in missing ones.
+export const plexRefreshItem = createServerFn({ method: "POST" })
+  .inputValidator(
+    plexSessionSchema.extend({
+      itemId: z.string().min(1).max(100),
+      replace: z.boolean().default(false),
+    })
+  )
+  .handler(async ({ data }) => {
+    try {
+      const url =
+        `${normalize(data.serverUrl)}/library/metadata/${encodeURIComponent(data.itemId)}/refresh` +
+        `?force=${data.replace ? "1" : "0"}&X-Plex-Token=${encodeURIComponent(data.token)}`;
+      const res = await fetch(url, { method: "PUT", headers: plexHeaders(data.token) });
+      if (!res.ok) {
+        return { ok: false as const, error: `Refresh failed (${res.status})` };
+      }
+      return { ok: true as const, startedAt: new Date().toISOString() };
+    } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Refresh failed" };
+    }
+  });
+
