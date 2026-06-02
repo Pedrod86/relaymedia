@@ -251,11 +251,7 @@ function LoginPage() {
               </div>
             )}
 
-            {error && (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            )}
+            {error && <LoginErrorAlert message={error} />}
             <Button type="submit" disabled={busy} className="w-full">
               {busy ? "Connecting…" : "Connect server"}
             </Button>
