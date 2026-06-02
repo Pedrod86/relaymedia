@@ -54,11 +54,11 @@ export const plexLogin = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    // Plex v2 sign-in. 2FA is sent by appending the code to the password.
-    const password = data.verificationCode
-      ? `${data.password}${data.verificationCode}`
-      : data.password;
-    const body = new URLSearchParams({ login: data.username, password });
+    // Plex v2 sign-in expects the 2FA code as a separate form field.
+    const body = new URLSearchParams({ login: data.username, password: data.password });
+    if (data.verificationCode) {
+      body.set("verification_code", data.verificationCode);
+    }
     const res = await fetch("https://plex.tv/api/v2/users/signin", {
       method: "POST",
       headers: {
@@ -74,7 +74,7 @@ export const plexLogin = createServerFn({ method: "POST" })
       try {
         const j = JSON.parse(text) as { errors?: { code?: number; message?: string }[] };
         const first = j.errors?.[0];
-        if (first?.code === 1029)
+        if (first?.code === 1029 || first?.code === 1003)
           msg = "Plex 2FA is enabled — enter your code in the verification field.";
         else if (first?.message) msg = `Plex: ${first.message}`;
       } catch {
