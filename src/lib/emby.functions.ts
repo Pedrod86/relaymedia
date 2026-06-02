@@ -38,7 +38,7 @@ function embyLoginError(status: number, bodyText: string) {
   const lower = clean.toLowerCase();
 
   if (status === 403 && (lower.includes("error code: 1003") || lower.includes("error 1003"))) {
-    return "Your media server URL is being blocked by Cloudflare/proxy error 1003. Use the real public Emby/Jellyfin hostname, not a Cloudflare IP, and make sure that hostname allows server-to-server access from the published app.";
+    return "Emby/Jellyfin rejected the live app with 403 / 1003. This usually means remote access is disabled for the server or this user, or your proxy/firewall blocks the published app’s outbound request. In Emby, enable remote connections for the server and for this user, then allow RelayMedia/1.0 through your proxy/firewall.";
   }
   if (status === 403 && /not allowed access from this device|deviceaccessdenied/i.test(clean)) {
     return "This Emby/Jellyfin user is not allowed to sign in from this device. Allow this app/device in your server user access settings, then try again.";
@@ -112,6 +112,9 @@ async function embyFetch(serverUrl: string, path: string, token: string, userId:
   await assertSafeExternalUrl(serverUrl);
   const res = await fetch(`${normalize(serverUrl)}${path}`, {
     headers: {
+      Accept: "application/json",
+      "User-Agent": USER_AGENT,
+      "X-RelayMedia-Client": USER_AGENT,
       "X-Emby-Authorization": authHeader(token, userId),
       Authorization: authHeader(token, userId),
       "X-Emby-Token": token,
@@ -209,6 +212,8 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
       method: "POST",
       headers: {
+        "User-Agent": USER_AGENT,
+        "X-RelayMedia-Client": USER_AGENT,
         "X-Emby-Authorization": authHeader(data.token, data.userId),
         Authorization: authHeader(data.token, data.userId),
         "X-Emby-Token": data.token,
@@ -250,6 +255,8 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
       {
         method: "POST",
         headers: {
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
           "X-Emby-Authorization": authHeader(data.token, data.userId),
           Authorization: authHeader(data.token, data.userId),
           "X-Emby-Token": data.token,
