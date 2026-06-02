@@ -174,6 +174,9 @@ export function imageUrl(
   }
   // Emby / Jellyfin — try item's own image, then fall back to parent/series art
   // so 4K episodes (which often lack their own Primary tag) still render.
+  // For folders/playlists without an explicit tag, still attempt the image URL —
+  // Emby will return an auto-generated collage from child items, or 404 (the
+  // <img> onError handler in the UI hides broken images).
   let itemId = item.Id;
   let tag: string | undefined;
   if (type === "Backdrop") {
@@ -195,10 +198,13 @@ export function imageUrl(
       itemId = item.SeriesId;
     }
   }
-  if (!tag) return null;
-  const params = new URLSearchParams({ quality: "90", tag });
+  // Backdrop without any tag = no fallback worth trying.
+  if (!tag && type === "Backdrop") return null;
+  const params = new URLSearchParams({ quality: "90" });
+  if (tag) params.set("tag", tag);
   if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
   return proxied(`${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`);
+
 }
 
 // ── Stream URLs (Emby / Jellyfin only — built client-side) ─────────────────

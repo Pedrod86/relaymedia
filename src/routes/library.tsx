@@ -215,20 +215,23 @@ function Row({
             style={{ width: portrait ? 160 : 280 }}
           >
             <div
-              className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
+              className="relative overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
               style={{ aspectRatio: portrait ? "2/3" : "16/9" }}
             >
-              {src ? (
+              <div className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                {it.Name}
+              </div>
+              {src && (
                 <img
                   src={src}
                   alt={it.Name}
                   loading="lazy"
-                  className="h-full w-full object-cover transition group-hover:scale-105"
+                  onError={(e) => {
+                    // Hide the broken image so the name placeholder underneath shows.
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                  className="relative h-full w-full object-cover transition group-hover:scale-105"
                 />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                  {it.Name}
-                </div>
               )}
             </div>
             <p className="mt-2 line-clamp-1 text-sm font-medium">{it.Name}</p>
@@ -241,3 +244,4 @@ function Row({
     </div>
   );
 }
+
