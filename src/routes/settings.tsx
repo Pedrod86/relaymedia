@@ -16,6 +16,7 @@ import {
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { detectPlaybackSupport } from "@/lib/playback-support";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
