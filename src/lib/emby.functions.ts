@@ -26,6 +26,7 @@ function embyHeaders(token?: string, userId?: string, contentType?: string) {
     Accept: "application/json",
     "User-Agent": USER_AGENT,
     "X-RelayMedia-Client": USER_AGENT,
+    Authorization: authHeader(token, userId),
     "X-Emby-Authorization": authHeader(token, userId),
     "X-MediaBrowser-Authorization": authHeader(token, userId),
   };
