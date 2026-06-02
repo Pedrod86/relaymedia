@@ -17,6 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { detectPlaybackSupport } from "@/lib/playback-support";
+import {
+  getSyncInterval,
+  setSyncInterval,
+  getLastSync,
+  SYNC_INTERVAL_OPTIONS,
+} from "@/lib/sync-schedule";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -193,10 +199,24 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
 
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
   const [refreshing, setRefreshing] = useState(false);
+  const [interval, setIntervalMin] = useState<number>(() => getSyncInterval(server.id));
+  const [lastSync, setLastSyncState] = useState<number | null>(() => getLastSync(server.id));
 
   useEffect(() => {
     setHidden(new Set(loadHiddenViews(server.id)));
+    setIntervalMin(getSyncInterval(server.id));
+    setLastSyncState(getLastSync(server.id));
   }, [server.id]);
+
+  function onChangeInterval(minutes: number) {
+    setIntervalMin(minutes);
+    setSyncInterval(server.id, minutes);
+    toast.success(
+      minutes === 0
+        ? "Auto-sync turned off"
+        : `Auto-sync set to ${SYNC_INTERVAL_OPTIONS.find((o) => o.value === minutes)?.label.toLowerCase()}`
+    );
+  }
 
   function toggle(id: string, hide: boolean) {
     const next = new Set(hidden);
@@ -214,13 +234,29 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
         : await refreshEmby({
             data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId },
           });
-      if (res.ok) toast.success("Library sync started.");
-      else toast.error(res.error);
+      if (res.ok) {
+        toast.success("Library sync started.");
+        const now = Date.now();
+        setLastSyncState(now);
+      } else {
+        toast.error(res.error);
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Refresh failed");
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function formatLast(ts: number | null) {
+    if (!ts) return "Never";
+    const diff = Date.now() - ts;
+    const m = Math.round(diff / 60_000);
+    if (m < 1) return "Just now";
+    if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} hr ago`;
+    return new Date(ts).toLocaleString();
   }
 
   return (
@@ -242,6 +278,28 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           >
             Reload categories
           </Button>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <label htmlFor={`sync-${server.id}`} className="text-sm font-medium">
+              Auto-sync interval
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Last sync: {formatLast(lastSync)}
+            </p>
+            <select
+              id={`sync-${server.id}`}
+              value={interval}
+              onChange={(e) => onChangeInterval(Number(e.target.value))}
+              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              {SYNC_INTERVAL_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
