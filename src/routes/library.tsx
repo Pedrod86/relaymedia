@@ -270,3 +270,83 @@ function Row({
     </div>
   );
 }
+
+function BackdropHero({
+  items,
+  server,
+}: {
+  items: any[];
+  server: MediaServer;
+}) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (items.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % items.length), 6000);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  const current = items[idx] ?? items[0];
+  const src = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
+  if (!src) return null;
+
+  return (
+    <div className="relative h-[42vh] min-h-[280px] w-full overflow-hidden">
+      {items.map((it, i) => {
+        const s = imageUrl(server, it, "Backdrop", { maxWidth: 1600 });
+        if (!s) return null;
+        return (
+          <img
+            key={it.Id ?? i}
+            src={s}
+            alt=""
+            aria-hidden={i !== idx}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+              i === idx ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        );
+      })}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.6) 40%, transparent 75%), linear-gradient(to right, hsl(var(--background) / 0.7), transparent 55%)",
+        }}
+      />
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-8">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">
+          Recently added
+        </p>
+        <h2 className="mt-1 text-3xl font-semibold tracking-tight drop-shadow-lg sm:text-4xl">
+          {current.Name}
+        </h2>
+        {current.ProductionYear && (
+          <p className="mt-1 text-sm text-muted-foreground">{current.ProductionYear}</p>
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <Button asChild>
+            <Link to="/item/$id" params={{ id: String(current.Id) }}>
+              View details
+            </Link>
+          </Button>
+          {items.length > 1 && (
+            <div className="flex gap-1.5">
+              {items.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Show item ${i + 1}`}
+                  onClick={() => setIdx(i)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/50"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
