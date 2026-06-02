@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
+import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
