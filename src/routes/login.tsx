@@ -267,7 +267,8 @@ function LoginErrorAlert({ message }: { message: string }) {
   const isProxy1003 =
     lower.includes("1003") ||
     lower.includes("cloudflare") ||
-    lower.includes("proxy");
+    lower.includes("proxy") ||
+    lower.includes("remote access");
   const isDeviceDenied = lower.includes("device access");
   const isMaxSessions = lower.includes("maximum") && lower.includes("session");
 
@@ -289,7 +290,7 @@ function LoginErrorAlert({ message }: { message: string }) {
         <div className="space-y-1">
           <p className="font-medium text-destructive">
             {isProxy1003
-              ? "Your server URL is being blocked by Cloudflare (error 1003)"
+              ? "Emby/Jellyfin is rejecting the live app connection (403/1003)"
               : isDeviceDenied
                 ? "This device is not allowed to sign in"
                 : "Your server has hit its session limit"}
@@ -303,23 +304,19 @@ function LoginErrorAlert({ message }: { message: string }) {
           <p className="font-medium text-foreground">How to fix it:</p>
           <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
             <li>
-              Use the <strong>real public hostname</strong> of your media server
-              (e.g. <code className="text-foreground">https://emby.yourdomain.com</code>),
-              not a raw Cloudflare IP or a shared <code>*.lovable.app</code> URL.
+              In Emby/Jellyfin server settings, enable <strong>remote connections</strong>.
             </li>
             <li>
-              In Cloudflare → <strong>Security → WAF</strong>, make sure the
-              hostname is not blocking server-to-server traffic. Add a rule to
-              allow requests with <code>User-Agent: RelayMedia/1.0</code> if
-              needed.
+              In that user’s settings, allow <strong>remote access</strong> for the account you are signing in with.
             </li>
             <li>
-              Confirm the URL loads in a private browser window with no login
-              prompt from Cloudflare Access.
+              Use the real public media-server URL, ideally <code className="text-foreground">https://emby.yourdomain.com</code>, not an admin/proxy-only URL.
             </li>
             <li>
-              Use <strong>https://</strong> with a valid certificate — self-signed
-              certs will also fail.
+              If you use Cloudflare, Nginx Proxy Manager, Authelia, or a firewall, allow server-to-server requests with <code>User-Agent: RelayMedia/1.0</code>.
+            </li>
+            <li>
+              Confirm <code className="text-foreground">/System/Info/Public</code> and <code className="text-foreground">/Users/AuthenticateByName</code> are reachable from outside your home network.
             </li>
           </ol>
         </div>
