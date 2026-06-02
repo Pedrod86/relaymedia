@@ -154,13 +154,42 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
               {item.Overview && (
                 <p className="mt-4 max-w-2xl text-muted-foreground">{item.Overview}</p>
               )}
-              {!isFolder && (
-                <Button size="lg" asChild className="mt-6">
-                  <Link to="/watch/$id" params={{ id: item.Id }}>
-                    ▶ Play
-                  </Link>
+              <div className="mt-6 flex flex-wrap items-center gap-2">
+                {!isFolder && (
+                  <Button size="lg" asChild>
+                    <Link to="/watch/$id" params={{ id: item.Id }}>
+                      ▶ Play
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => onRefreshMetadata(false)}
+                  disabled={refreshing}
+                  title="Ask the server to re-scan and fill in missing metadata + artwork"
+                >
+                  {refreshing ? "Refreshing…" : "↻ Refresh metadata"}
                 </Button>
-              )}
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Replace ALL existing metadata and artwork for this item? This overwrites any manual edits."
+                      )
+                    ) {
+                      onRefreshMetadata(true);
+                    }
+                  }}
+                  disabled={refreshing}
+                  title="Force-replace all metadata and artwork (overwrites manual edits)"
+                >
+                  Replace all
+                </Button>
+              </div>
+
             </div>
           </div>
         </div>
