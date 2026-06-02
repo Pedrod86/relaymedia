@@ -146,6 +146,15 @@ function LibraryContent({
                 ))}
               </select>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSync}
+              disabled={syncing || isPlex}
+              title={isPlex ? "Plex scans from its own server settings" : "Trigger Emby library scan to fetch missing artwork & metadata"}
+            >
+              {syncing ? "Syncing…" : "Sync server"}
+            </Button>
             <Button variant="ghost" asChild>
               <Link to="/settings">Settings</Link>
             </Button>
