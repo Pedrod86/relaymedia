@@ -9,8 +9,10 @@ import {
   loadActiveServer,
   type MediaServer,
 } from "@/lib/media-client";
-import { plexGetStreamInfo } from "@/lib/plex.functions";
+import { plexGetStreamInfo, plexGetItem } from "@/lib/plex.functions";
+import { embyGetItem } from "@/lib/emby.functions";
 import { detectPlaybackSupport, type PlaybackSupport } from "@/lib/playback-support";
+import { attachScrobble, type ScrobbleTarget } from "@/lib/trakt-scrobble";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — Media" }] }),
