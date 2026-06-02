@@ -131,10 +131,20 @@ function LibraryContent({
         </div>
       </header>
 
+      {backdropItems.length > 0 && (
+        <BackdropHero items={backdropItems} server={server} />
+      )}
+
       <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
         {resume.data && resume.data.items.length > 0 && (
           <Section title="Continue watching">
             <Row items={resume.data.items} server={server} kind="thumb" />
+          </Section>
+        )}
+
+        {latest.data && latest.data.items.length > 0 && (
+          <Section title="Recently added">
+            <Row items={latest.data.items} server={server} kind="primary" />
           </Section>
         )}
 
