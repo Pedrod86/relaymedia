@@ -214,17 +214,51 @@ function LoginPage() {
                     autoComplete="username"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
+                <div className="flex items-start gap-2 rounded-md border border-border/70 bg-muted/20 p-3">
+                  <input
+                    id="useEmbyApiKey"
+                    type="checkbox"
+                    checked={useEmbyApiKey}
+                    onChange={(e) => {
+                      setUseEmbyApiKey(e.target.checked);
+                      setError(null);
+                    }}
+                    className="mt-1"
                   />
+                  <Label htmlFor="useEmbyApiKey" className="text-sm leading-relaxed">
+                    Use an Emby/Jellyfin API key instead of password login
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Use this if password login returns 403/1003. Create one in your server dashboard under API Keys.
+                    </span>
+                  </Label>
                 </div>
+                {!useEmbyApiKey ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="embyApiKey">API key</Label>
+                    <Input
+                      id="embyApiKey"
+                      value={embyApiKey}
+                      onChange={(e) => setEmbyApiKey(e.target.value)}
+                      placeholder="Paste server API key"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Emby: Dashboard → Advanced → API Keys. Jellyfin: Dashboard → API Keys.
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
