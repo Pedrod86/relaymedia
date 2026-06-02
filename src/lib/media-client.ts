@@ -200,9 +200,12 @@ export function imageUrl(
   }
   // Backdrop without any tag = no fallback worth trying.
   if (!tag && type === "Backdrop") return null;
-  const params = new URLSearchParams({ quality: "90" });
+  // Default to a reasonable width so Emby returns a downsized image rather
+  // than the full-size original — keeps bandwidth + API load down, and the
+  // browser then caches the tag-keyed URL for a year (see emby-proxy.ts).
+  const width = opts.maxWidth ?? (type === "Backdrop" ? 1280 : 400);
+  const params = new URLSearchParams({ quality: "90", maxWidth: String(width) });
   if (tag) params.set("tag", tag);
-  if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
   return proxied(`${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`);
 
 }
