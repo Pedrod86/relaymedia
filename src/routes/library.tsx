@@ -40,7 +40,13 @@ function LibraryPage() {
     setServer(active);
   }, [navigate]);
 
-  if (!server) return null;
+  if (!server) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-6">
+        <p className="text-sm text-muted-foreground">Loading library…</p>
+      </main>
+    );
+  }
   return (
     <LibraryContent
       server={server}

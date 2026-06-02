@@ -43,7 +43,13 @@ function SettingsPage() {
     setActive(loadActiveServer());
   }, [navigate, tick]);
 
-  if (!active) return null;
+  if (!active) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-6">
+        <p className="text-sm text-muted-foreground">Loading settings…</p>
+      </main>
+    );
+  }
 
   function onSwitch(id: string) {
     setActiveServerId(id);
