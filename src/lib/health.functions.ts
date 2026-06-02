@@ -3,6 +3,7 @@
 // reachability before committing credentials.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assertSafeExternalUrl } from "./ssrf-guard";
 
 export type HealthResult =
   | {
