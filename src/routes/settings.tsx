@@ -24,6 +24,7 @@ import {
   SYNC_INTERVAL_OPTIONS,
 } from "@/lib/sync-schedule";
 import { TraktPanel } from "@/components/trakt-panel";
+import { THEMES, applyTheme, loadThemeId, type ThemeId } from "@/lib/themes";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -133,10 +134,63 @@ function SettingsPage() {
         </section>
 
         <ActiveServerPanel server={active} />
+        <ThemePanel />
         <TraktPanel />
         <PlaybackCapabilities />
       </div>
     </main>
+  );
+}
+
+function ThemePanel() {
+  const [current, setCurrent] = useState<ThemeId>("cinematic");
+  useEffect(() => {
+    setCurrent(loadThemeId());
+  }, []);
+
+  function pick(id: ThemeId) {
+    setCurrent(id);
+    applyTheme(id);
+    toast.success(`Theme: ${THEMES.find((t) => t.id === id)?.name}`);
+  }
+
+  return (
+    <section className="rounded-lg border p-6">
+      <h2 className="text-base font-semibold">Appearance</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick a theme. Applies instantly and is remembered on this device.
+      </p>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {THEMES.map((t) => {
+          const active = t.id === current;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => pick(t.id)}
+              className={
+                "group flex flex-col gap-3 rounded-lg border p-3 text-left transition " +
+                (active
+                  ? "border-primary ring-2 ring-primary/40"
+                  : "border-border hover:border-primary/50")
+              }
+            >
+              <div className="flex h-10 overflow-hidden rounded-md">
+                {t.swatch.map((c, i) => (
+                  <div key={i} className="flex-1" style={{ backgroundColor: c }} />
+                ))}
+              </div>
+              <div>
+                <p className="text-sm font-medium">{t.name}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                  {t.description}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
