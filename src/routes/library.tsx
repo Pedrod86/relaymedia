@@ -13,6 +13,7 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
+import { TraktRails } from "@/components/trakt-rails";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -138,6 +139,8 @@ function LibraryContent({
         {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
           <LibrarySection key={v.Id} view={v} server={server} />
         ))}
+
+        <TraktRails />
       </div>
     </main>
   );
