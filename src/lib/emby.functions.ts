@@ -24,6 +24,26 @@ function normalize(url: string) {
   return url.replace(/\/+$/, "");
 }
 
+function embyLoginError(status: number, bodyText: string) {
+  const clean = bodyText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const lower = clean.toLowerCase();
+
+  if (status === 403 && (lower.includes("error code: 1003") || lower.includes("error 1003"))) {
+    return "Your media server URL is being blocked by Cloudflare/proxy error 1003. Use the real public Emby/Jellyfin hostname, not a Cloudflare IP, and make sure that hostname allows server-to-server access from the published app.";
+  }
+  if (status === 403 && /not allowed access from this device|deviceaccessdenied/i.test(clean)) {
+    return "This Emby/Jellyfin user is not allowed to sign in from this device. Allow this app/device in your server user access settings, then try again.";
+  }
+  if (status === 403 && /maximum number of sessions|maxconcurrentsessions/i.test(clean)) {
+    return "This Emby/Jellyfin user has reached the maximum number of sessions. Remove an old session/device in your server dashboard, then try again.";
+  }
+  if (status === 401 || /invalid username or password|invalidusernameorpassword/i.test(clean)) {
+    return "Invalid Emby/Jellyfin username or password.";
+  }
+
+  return `Login failed (${status}). ${clean.slice(0, 200)}`;
+}
+
 export const embyLogin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -49,7 +69,7 @@ export const embyLogin = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return { ok: false as const, error: `Login failed (${res.status}). ${text.slice(0, 200)}` };
+      return { ok: false as const, error: embyLoginError(res.status, text) };
     }
     const json = (await res.json()) as {
       AccessToken: string;
