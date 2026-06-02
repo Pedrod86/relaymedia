@@ -74,7 +74,9 @@ function LoginPage() {
     try {
       const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
       if (kind === "emby" || kind === "jellyfin") {
-        const res = await embyLoginFn({ data: { serverUrl: cleanUrl, username, password } });
+        const res = useEmbyApiKey
+          ? await embyApiKeyLoginFn({ data: { serverUrl: cleanUrl, apiKey: embyApiKey, username: username.trim() || undefined } })
+          : await embyLoginFn({ data: { serverUrl: cleanUrl, username, password } });
         if (!res.ok) {
           setError(res.error);
           return;
