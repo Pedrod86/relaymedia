@@ -80,8 +80,22 @@ export function loadActiveServer(): MediaServer | null {
 
 export function addServer(s: Omit<MediaServer, "id">): MediaServer {
   const servers = listServers();
+  const cleanUrl = s.serverUrl.replace(/\/+$/, "");
+  // Dedupe: same kind + URL + userId is the same connection. Update token /
+  // name in place rather than creating a duplicate entry.
+  const existing = servers.find(
+    (x) => x.kind === s.kind && x.serverUrl === cleanUrl && x.userId === s.userId
+  );
+  if (existing) {
+    existing.token = s.token;
+    existing.userName = s.userName;
+    existing.name = s.name;
+    localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
+    localStorage.setItem(ACTIVE_KEY, existing.id);
+    return existing;
+  }
   const id = `srv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  const next: MediaServer = { ...s, id, serverUrl: s.serverUrl.replace(/\/+$/, "") };
+  const next: MediaServer = { ...s, id, serverUrl: cleanUrl };
   servers.push(next);
   localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
   localStorage.setItem(ACTIVE_KEY, id);
