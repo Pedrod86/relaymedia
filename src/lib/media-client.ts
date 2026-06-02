@@ -69,6 +69,9 @@ export function setActiveServerId(id: string) {
 }
 
 export function loadActiveServer(): MediaServer | null {
+  // SSR-safe: localStorage is unavailable on the server. Always return null
+  // there so callers render a loading fallback and re-check after hydration.
+  if (typeof window === "undefined") return null;
   const servers = listServers();
   if (servers.length === 0) return null;
   const id = getActiveServerId();
