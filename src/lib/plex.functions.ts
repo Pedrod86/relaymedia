@@ -204,6 +204,22 @@ export const plexGetResume = createServerFn({ method: "POST" })
     return { items: items.map((m) => normalizeMetadata(data.serverUrl, m)) };
   });
 
+export const plexGetLatest = createServerFn({ method: "POST" })
+  .inputValidator(plexSessionSchema)
+  .handler(async ({ data }) => {
+    const json = await plexFetch(
+      data.serverUrl,
+      "/library/recentlyAdded?X-Plex-Container-Size=24",
+      data.token
+    );
+    const items = (json.MediaContainer?.Metadata ?? []) as any[];
+    // Prefer movies and shows; collapse episodes up to their show.
+    const mapped = items
+      .filter((m) => m.type === "movie" || m.type === "show" || m.type === "season" || m.type === "episode")
+      .map((m) => normalizeMetadata(data.serverUrl, m));
+    return { items: mapped };
+  });
+
 // Trigger a full library refresh across all sections.
 export const plexRefreshLibrary = createServerFn({ method: "POST" })
   .inputValidator(plexSessionSchema)
