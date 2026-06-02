@@ -146,14 +146,6 @@ function LibraryContent({
   );
 }
 
-// (intentionally left blank — closing tags handled above)
-function _unused() {
-  return null;
-      </div>
-    </main>
-  );
-}
-
 function LibrarySection({
   view,
   server,
