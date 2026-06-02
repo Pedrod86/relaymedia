@@ -69,8 +69,10 @@ function LibraryContent({
 
   const getViewsEmby = useServerFn(embyGetViews);
   const getResumeEmby = useServerFn(embyGetResume);
+  const getLatestEmby = useServerFn(embyGetLatest);
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
+  const getLatestPlex = useServerFn(plexGetLatest);
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
@@ -84,6 +86,18 @@ function LibraryContent({
     queryFn: () =>
       isPlex ? getResumePlex({ data: plexArg }) : getResumeEmby({ data: embyArg }),
   });
+  const latest = useQuery({
+    queryKey: ["latest", server.id],
+    queryFn: () =>
+      isPlex ? getLatestPlex({ data: plexArg }) : getLatestEmby({ data: embyArg }),
+  });
+
+  const backdropItems = useMemo(() => {
+    const pool = latest.data?.items ?? [];
+    return pool
+      .filter((it: any) => imageUrl(server, it, "Backdrop", { maxWidth: 1600 }))
+      .slice(0, 5);
+  }, [latest.data, server]);
 
   return (
     <main className="min-h-screen bg-background">
