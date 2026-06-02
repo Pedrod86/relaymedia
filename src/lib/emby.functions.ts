@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertSafeExternalUrl } from "./ssrf-guard";
 
-const CLIENT_NAME = "LovableMedia";
+const CLIENT_NAME = "RelayMedia";
 const DEVICE_NAME = "Web Browser";
 const APP_VERSION = "1.0.0";
 const USER_AGENT = "RelayMedia/1.0";
@@ -51,7 +51,10 @@ function networkLoginError(error: unknown) {
 }
 
 function embyLoginError(status: number, bodyText: string) {
-  const clean = bodyText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const clean = bodyText
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const lower = clean.toLowerCase();
 
   if (status === 403 && (lower.includes("error code: 1003") || lower.includes("error 1003"))) {
@@ -76,10 +79,12 @@ export const embyLogin = createServerFn({ method: "POST" })
       serverUrl: z.string().url().max(500),
       username: z.string().min(1).max(200),
       password: z.string().max(500),
-    })
+    }),
   )
   .handler(async ({ data }) => {
-    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+    try {
+      await assertSafeExternalUrl(data.serverUrl);
+    } catch (e: any) {
       return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
     }
     const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
@@ -117,10 +122,12 @@ export const embyApiKeyLogin = createServerFn({ method: "POST" })
       serverUrl: z.string().url().max(500),
       apiKey: z.string().min(8).max(2000),
       username: z.string().max(200).optional(),
-    })
+    }),
   )
   .handler(async ({ data }) => {
-    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+    try {
+      await assertSafeExternalUrl(data.serverUrl);
+    } catch (e: any) {
       return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
     }
     const apiKey = data.apiKey.trim();
@@ -142,13 +149,13 @@ export const embyApiKeyLogin = createServerFn({ method: "POST" })
     }
     const users = (await res.json()) as Array<{ Id: string; Name: string; Policy?: { IsDisabled?: boolean } }>;
     const enabled = users.filter((u) => !u.Policy?.IsDisabled);
-    const user = wanted
-      ? enabled.find((u) => u.Name.toLowerCase() === wanted)
-      : enabled[0];
+    const user = wanted ? enabled.find((u) => u.Name.toLowerCase() === wanted) : enabled[0];
     if (!user) {
       return {
         ok: false as const,
-        error: wanted ? "API key works, but that username was not found." : "API key works, but no enabled users were returned.",
+        error: wanted
+          ? "API key works, but that username was not found."
+          : "API key works, but no enabled users were returned.",
       };
     }
     return {
@@ -179,12 +186,9 @@ async function embyFetch(serverUrl: string, path: string, token: string, userId:
 export const embyGetViews = createServerFn({ method: "POST" })
   .inputValidator(sessionSchema)
   .handler(async ({ data }) => {
-    const json = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Views`,
-      data.token,
-      data.userId
-    )) as { Items: Array<{ Id: string; Name: string; CollectionType?: string; ImageTags?: Record<string, string> }> };
+    const json = (await embyFetch(data.serverUrl, `/Users/${data.userId}/Views`, data.token, data.userId)) as {
+      Items: Array<{ Id: string; Name: string; CollectionType?: string; ImageTags?: Record<string, string> }>;
+    };
     return { views: json.Items ?? [] };
   });
 
@@ -196,7 +200,7 @@ export const embyGetItems = createServerFn({ method: "POST" })
       limit: z.number().int().min(1).max(200).default(60),
       sortBy: z.string().default("SortName"),
       recursive: z.boolean().default(false),
-    })
+    }),
   )
   .handler(async ({ data }) => {
     const params = new URLSearchParams({
@@ -216,7 +220,7 @@ export const embyGetItems = createServerFn({ method: "POST" })
       data.serverUrl,
       `/Users/${data.userId}/Items?${params}`,
       data.token,
-      data.userId
+      data.userId,
     )) as { Items: any[]; TotalRecordCount: number };
     return { items: json.Items ?? [], total: json.TotalRecordCount ?? 0 };
   });
@@ -228,7 +232,7 @@ export const embyGetItem = createServerFn({ method: "POST" })
       data.serverUrl,
       `/Users/${data.userId}/Items/${data.itemId}`,
       data.token,
-      data.userId
+      data.userId,
     )) as any;
     return { item };
   });
@@ -248,7 +252,7 @@ export const embyGetResume = createServerFn({ method: "POST" })
       data.serverUrl,
       `/Users/${data.userId}/Items/Resume?${params}`,
       data.token,
-      data.userId
+      data.userId,
     )) as { Items: any[] };
     return { items: json.Items ?? [] };
   });
@@ -256,7 +260,9 @@ export const embyGetResume = createServerFn({ method: "POST" })
 export const embyRefreshLibrary = createServerFn({ method: "POST" })
   .inputValidator(sessionSchema)
   .handler(async ({ data }) => {
-    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+    try {
+      await assertSafeExternalUrl(data.serverUrl);
+    } catch (e: any) {
       return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
     }
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
@@ -281,10 +287,12 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
       itemId: z.string().min(1).max(100),
       replace: z.boolean().default(false),
       recursive: z.boolean().default(true),
-    })
+    }),
   )
   .handler(async ({ data }) => {
-    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+    try {
+      await assertSafeExternalUrl(data.serverUrl);
+    } catch (e: any) {
       return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
     }
     const params = new URLSearchParams({
@@ -294,13 +302,10 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
       ReplaceAllMetadata: data.replace ? "true" : "false",
       ReplaceAllImages: data.replace ? "true" : "false",
     });
-    const res = await fetch(
-      `${normalize(data.serverUrl)}/Items/${encodeURIComponent(data.itemId)}/Refresh?${params}`,
-      {
-        method: "POST",
-        headers: embyHeaders(data.token, data.userId),
-      }
-    );
+    const res = await fetch(`${normalize(data.serverUrl)}/Items/${encodeURIComponent(data.itemId)}/Refresh?${params}`, {
+      method: "POST",
+      headers: embyHeaders(data.token, data.userId),
+    });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return {
@@ -310,4 +315,3 @@ export const embyRefreshItem = createServerFn({ method: "POST" })
     }
     return { ok: true as const, startedAt: new Date().toISOString() };
   });
-
