@@ -155,6 +155,27 @@ export const embyGetResume = createServerFn({ method: "POST" })
     return { items: json.Items ?? [] };
   });
 
+export const embyGetLatest = createServerFn({ method: "POST" })
+  .inputValidator(sessionSchema)
+  .handler(async ({ data }) => {
+    const params = new URLSearchParams({
+      Limit: "24",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags",
+      IncludeItemTypes: "Movie,Series",
+      ImageTypeLimit: "1",
+      EnableImageTypes: "Primary,Backdrop,Thumb",
+      GroupItems: "true",
+    });
+    const json = (await embyFetch(
+      data.serverUrl,
+      `/Users/${data.userId}/Items/Latest?${params}`,
+      data.token,
+      data.userId
+    )) as any[] | { Items: any[] };
+    const items = Array.isArray(json) ? json : (json.Items ?? []);
+    return { items };
+  });
+
 export const embyRefreshLibrary = createServerFn({ method: "POST" })
   .inputValidator(sessionSchema)
   .handler(async ({ data }) => {
