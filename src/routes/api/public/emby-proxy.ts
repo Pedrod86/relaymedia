@@ -89,6 +89,21 @@ async function handle(request: Request) {
   }
   outHeaders.set("Access-Control-Allow-Origin", "*");
 
+  // Images from Emby/Jellyfin are tag-keyed (URL changes when artwork
+  // changes), so they're safe to cache aggressively. This stops the browser
+  // from re-hitting the Emby API every time a poster scrolls back into view.
+  const ctForCache = (upstream.headers.get("content-type") ?? "").toLowerCase();
+  const isImage = ctForCache.startsWith("image/");
+  const hasTag = targetUrl.searchParams.has("tag");
+  if (isImage && upstream.ok) {
+    outHeaders.set(
+      "cache-control",
+      hasTag
+        ? "public, max-age=31536000, immutable"
+        : "public, max-age=3600",
+    );
+  }
+
   const ct = (upstream.headers.get("content-type") ?? "").toLowerCase();
   const isPlaylist =
     ct.includes("mpegurl") ||
