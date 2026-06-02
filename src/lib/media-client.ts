@@ -69,9 +69,6 @@ export function setActiveServerId(id: string) {
 }
 
 export function loadActiveServer(): MediaServer | null {
-  // SSR-safe: localStorage is unavailable on the server. Always return null
-  // there so callers render a loading fallback and re-check after hydration.
-  if (typeof window === "undefined") return null;
   const servers = listServers();
   if (servers.length === 0) return null;
   const id = getActiveServerId();
@@ -80,22 +77,8 @@ export function loadActiveServer(): MediaServer | null {
 
 export function addServer(s: Omit<MediaServer, "id">): MediaServer {
   const servers = listServers();
-  const cleanUrl = s.serverUrl.replace(/\/+$/, "");
-  // Dedupe: same kind + URL + userId is the same connection. Update token /
-  // name in place rather than creating a duplicate entry.
-  const existing = servers.find(
-    (x) => x.kind === s.kind && x.serverUrl === cleanUrl && x.userId === s.userId
-  );
-  if (existing) {
-    existing.token = s.token;
-    existing.userName = s.userName;
-    existing.name = s.name;
-    localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
-    localStorage.setItem(ACTIVE_KEY, existing.id);
-    return existing;
-  }
   const id = `srv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  const next: MediaServer = { ...s, id, serverUrl: cleanUrl };
+  const next: MediaServer = { ...s, id, serverUrl: s.serverUrl.replace(/\/+$/, "") };
   servers.push(next);
   localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
   localStorage.setItem(ACTIVE_KEY, id);
@@ -148,17 +131,7 @@ export function proxied(target: string) {
 // (e.g. "/library/metadata/123/thumb/456"). BackdropImageTags[0] holds art.
 export function imageUrl(
   s: MediaServer,
-  item: {
-    Id: string;
-    ImageTags?: Record<string, string>;
-    BackdropImageTags?: string[];
-    ParentBackdropImageTags?: string[];
-    ParentBackdropItemId?: string;
-    SeriesId?: string;
-    SeriesPrimaryImageTag?: string;
-    ParentThumbItemId?: string;
-    ParentThumbImageTag?: string;
-  },
+  item: { Id: string; ImageTags?: Record<string, string>; BackdropImageTags?: string[] },
   type: "Primary" | "Backdrop" | "Thumb" = "Primary",
   opts: { maxWidth?: number } = {}
 ): string | null {
@@ -167,47 +140,18 @@ export function imageUrl(
     if (!path) return null;
     const w = opts.maxWidth ?? 400;
     const h = type === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
+    // Plex photo transcoder is widely supported and returns sensible sizes.
     const target =
       `${normalize(s.serverUrl)}/photo/:/transcode?width=${w}&height=${h}` +
       `&minSize=1&upscale=1&url=${encodeURIComponent(path)}&X-Plex-Token=${encodeURIComponent(s.token)}`;
     return proxied(target);
   }
-  // Emby / Jellyfin — try item's own image, then fall back to parent/series art
-  // so 4K episodes (which often lack their own Primary tag) still render.
-  // For folders/playlists without an explicit tag, still attempt the image URL —
-  // Emby will return an auto-generated collage from child items, or 404 (the
-  // <img> onError handler in the UI hides broken images).
-  let itemId = item.Id;
-  let tag: string | undefined;
-  if (type === "Backdrop") {
-    tag = item.BackdropImageTags?.[0];
-    if (!tag && item.ParentBackdropImageTags?.[0] && item.ParentBackdropItemId) {
-      tag = item.ParentBackdropImageTags[0];
-      itemId = item.ParentBackdropItemId;
-    }
-  } else if (type === "Thumb") {
-    tag = item.ImageTags?.Thumb;
-    if (!tag && item.ParentThumbImageTag && item.ParentThumbItemId) {
-      tag = item.ParentThumbImageTag;
-      itemId = item.ParentThumbItemId;
-    }
-  } else {
-    tag = item.ImageTags?.Primary;
-    if (!tag && item.SeriesPrimaryImageTag && item.SeriesId) {
-      tag = item.SeriesPrimaryImageTag;
-      itemId = item.SeriesId;
-    }
-  }
-  // Backdrop without any tag = no fallback worth trying.
-  if (!tag && type === "Backdrop") return null;
-  // Default to a reasonable width so Emby returns a downsized image rather
-  // than the full-size original — keeps bandwidth + API load down, and the
-  // browser then caches the tag-keyed URL for a year (see emby-proxy.ts).
-  const width = opts.maxWidth ?? (type === "Backdrop" ? 1280 : 400);
-  const params = new URLSearchParams({ quality: "90", maxWidth: String(width) });
-  if (tag) params.set("tag", tag);
-  return proxied(`${normalize(s.serverUrl)}/Items/${itemId}/Images/${type}?${params}`);
-
+  // Emby / Jellyfin
+  const tag = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
+  if (!tag) return null;
+  const params = new URLSearchParams({ quality: "90", tag });
+  if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
+  return proxied(`${normalize(s.serverUrl)}/Items/${item.Id}/Images/${type}?${params}`);
 }
 
 // ── Stream URLs (Emby / Jellyfin only — built client-side) ─────────────────

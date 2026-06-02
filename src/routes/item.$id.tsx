@@ -1,13 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { embyGetItem, embyGetItems, embyRefreshItem } from "@/lib/emby.functions";
-import { plexGetItem, plexRefreshItem } from "@/lib/plex.functions";
+import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
+import { plexGetItem } from "@/lib/plex.functions";
 import { loadActiveServer, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
-
 
 export const Route = createFileRoute("/item/$id")({
   head: () => ({ meta: [{ title: "Details — Media" }] }),
@@ -24,13 +22,7 @@ function ItemPage() {
     else setServer(s);
   }, [navigate]);
 
-  if (!server) {
-    return (
-      <main className="min-h-screen bg-background p-8 text-muted-foreground">
-        Loading…
-      </main>
-    );
-  }
+  if (!server) return null;
   return <Detail server={server} id={id} />;
 }
 
@@ -39,10 +31,6 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const getItemEmby = useServerFn(embyGetItem);
   const getItemsEmby = useServerFn(embyGetItems);
   const getItemPlex = useServerFn(plexGetItem);
-  const refreshEmby = useServerFn(embyRefreshItem);
-  const refreshPlex = useServerFn(plexRefreshItem);
-  const queryClient = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
 
   const itemQ = useQuery({
     queryKey: ["item", server.id, id],
@@ -51,46 +39,6 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         ? getItemPlex({ data: { serverUrl: server.serverUrl, token: server.token, itemId: id } })
         : getItemEmby({ data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId, itemId: id } }),
   });
-
-  async function onRefreshMetadata(replace: boolean) {
-    setRefreshing(true);
-    try {
-      const res = isPlex
-        ? await refreshPlex({
-            data: { serverUrl: server.serverUrl, token: server.token, itemId: id, replace },
-          })
-        : await refreshEmby({
-            data: {
-              serverUrl: server.serverUrl,
-              token: server.token,
-              userId: server.userId,
-              itemId: id,
-              replace,
-              recursive: true,
-            },
-          });
-      if (res.ok) {
-        toast.success(
-          replace
-            ? "Replacing metadata. New data shows up shortly."
-            : "Refreshing metadata. New data shows up shortly."
-        );
-        // Re-fetch this item and its children after a short delay so the
-        // server has time to pull new data.
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["item", server.id, id] });
-          queryClient.invalidateQueries({ queryKey: ["children", server.id, id] });
-        }, 3000);
-      } else {
-        toast.error(res.error);
-      }
-    } catch (e: any) {
-      toast.error(e?.message ?? "Refresh failed");
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
 
   const item = itemQ.data?.item;
   const isFolder = item?.IsFolder || item?.Type === "Series" || item?.Type === "Season";
@@ -154,42 +102,11 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
               {item.Overview && (
                 <p className="mt-4 max-w-2xl text-muted-foreground">{item.Overview}</p>
               )}
-              <div className="mt-6 flex flex-wrap items-center gap-2">
-                {!isFolder && (
-                  <Button size="lg" asChild>
-                    <Link to="/watch/$id" params={{ id: item.Id }}>
-                      ▶ Play
-                    </Link>
-                  </Button>
-                )}
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => onRefreshMetadata(false)}
-                  disabled={refreshing}
-                  title="Ask the server to re-scan and fill in missing metadata + artwork"
-                >
-                  {refreshing ? "Refreshing…" : "↻ Refresh metadata"}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Replace ALL existing metadata and artwork for this item? This overwrites any manual edits."
-                      )
-                    ) {
-                      onRefreshMetadata(true);
-                    }
-                  }}
-                  disabled={refreshing}
-                  title="Force-replace all metadata and artwork (overwrites manual edits)"
-                >
-                  Replace all
-                </Button>
-              </div>
-
+              {!isFolder && (
+                <Link to="/watch/$id" params={{ id: item.Id }} className="mt-6 inline-block">
+                  <Button size="lg">▶ Play</Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

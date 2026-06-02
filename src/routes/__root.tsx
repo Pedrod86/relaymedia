@@ -12,8 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
-import { useSyncScheduler } from "@/lib/sync-schedule";
-import { applyTheme, loadThemeId } from "@/lib/themes";
 
 function NotFoundComponent() {
   return (
@@ -122,10 +120,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useSyncScheduler();
-  useEffect(() => {
-    applyTheme(loadThemeId());
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

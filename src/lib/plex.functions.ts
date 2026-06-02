@@ -8,7 +8,6 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { assertSafeExternalUrl } from "./ssrf-guard";
 
 const CLIENT_ID = "lovable-media-web";
 const PRODUCT = "LovableMedia";
@@ -34,38 +33,7 @@ function plexHeaders(token?: string) {
   return h;
 }
 
-function plexLoginErrorMessage(status: number, bodyText: string) {
-  let fallback = `Plex login failed (${status}).`;
-  if (!bodyText) return fallback;
-
-  try {
-    const parsed = JSON.parse(bodyText) as {
-      errors?: { code?: number; message?: string; status?: number }[];
-    };
-    const first = parsed.errors?.[0];
-    const code = first?.code;
-    const message = first?.message ?? "";
-    const errorStatus = first?.status ?? status;
-
-    if (errorStatus === 429 || code === 1003 || /rate limit/i.test(message)) {
-      return "Plex is rate-limiting password sign-ins right now. Wait a bit, or check “I have a Plex token” and connect with your token instead.";
-    }
-    if (code === 1029 || /verification code|two[- ]factor|2fa/i.test(message)) {
-      return "Plex 2FA is enabled — enter your code in the verification field.";
-    }
-    if (message) return `Plex: ${message}`;
-  } catch {
-    if (/rate limit|code=["']?1003|status=["']?429/i.test(bodyText)) {
-      return "Plex is rate-limiting password sign-ins right now. Wait a bit, or check “I have a Plex token” and connect with your token instead.";
-    }
-    fallback += ` ${bodyText.slice(0, 200)}`;
-  }
-
-  return fallback;
-}
-
 async function plexFetch(serverUrl: string, path: string, token: string) {
-  await assertSafeExternalUrl(serverUrl);
   const url = `${normalize(serverUrl)}${path}${path.includes("?") ? "&" : "?"}X-Plex-Token=${encodeURIComponent(token)}`;
   const res = await fetch(url, { headers: plexHeaders(token) });
   if (!res.ok) throw new Error(`Plex request failed: ${res.status} ${res.statusText}`);
@@ -79,43 +47,29 @@ export const plexLogin = createServerFn({ method: "POST" })
     z.object({
       username: z.string().min(1).max(200),
       password: z.string().min(1).max(500),
-      // Plex 2FA code, when the account requires it.
-      verificationCode: z.string().max(20).optional(),
     })
   )
   .handler(async ({ data }) => {
-    // Plex v2 sign-in expects the 2FA code as a separate form field.
     const body = new URLSearchParams({
-      login: data.username,
-      password: data.password,
-      rememberMe: "true",
+      "user[login]": data.username,
+      "user[password]": data.password,
     });
-    if (data.verificationCode) {
-      body.set("verificationCode", data.verificationCode);
-    }
-    const res = await fetch("https://plex.tv/api/v2/users/signin", {
+    const res = await fetch("https://plex.tv/users/sign_in.json", {
       method: "POST",
-      headers: {
-        ...plexHeaders(),
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
+      headers: { ...plexHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
       body,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return { ok: false as const, error: plexLoginErrorMessage(res.status, text) };
+      return { ok: false as const, error: `Plex login failed (${res.status}). ${text.slice(0, 200)}` };
     }
-    const json = (await res.json()) as {
-      authToken?: string;
-      username?: string;
-      title?: string;
-    };
-    if (!json.authToken) return { ok: false as const, error: "Plex did not return a token." };
+    const json = (await res.json()) as { user?: { authToken?: string; authentication_token?: string; username?: string; title?: string } };
+    const token = json.user?.authToken ?? json.user?.authentication_token;
+    if (!token) return { ok: false as const, error: "Plex did not return a token." };
     return {
       ok: true as const,
-      token: json.authToken,
-      userName: json.title ?? json.username ?? data.username,
+      token,
+      userName: json.user?.title ?? json.user?.username ?? data.username,
     };
   });
 
@@ -142,8 +96,8 @@ export const plexVerify = createServerFn({ method: "POST" })
   });
 
 const plexSessionSchema = z.object({
-  serverUrl: z.string().url().max(500),
-  token: z.string().max(500),
+  serverUrl: z.string().url(),
+  token: z.string(),
 });
 
 function normalizeMetadata(serverUrl: string, m: any): any {
@@ -282,28 +236,3 @@ export const plexGetStreamInfo = createServerFn({ method: "POST" })
     if (!part?.key) return { ok: false as const, error: "No playable media on this item." };
     return { ok: true as const, partKey: part.key as string, container: (part.container as string) ?? "mp4" };
   });
-
-// Refresh metadata for a single Plex item. `replace` forces re-pull of all
-// fields, otherwise Plex only fills in missing ones.
-export const plexRefreshItem = createServerFn({ method: "POST" })
-  .inputValidator(
-    plexSessionSchema.extend({
-      itemId: z.string().min(1).max(100),
-      replace: z.boolean().default(false),
-    })
-  )
-  .handler(async ({ data }) => {
-    try {
-      const url =
-        `${normalize(data.serverUrl)}/library/metadata/${encodeURIComponent(data.itemId)}/refresh` +
-        `?force=${data.replace ? "1" : "0"}&X-Plex-Token=${encodeURIComponent(data.token)}`;
-      const res = await fetch(url, { method: "PUT", headers: plexHeaders(data.token) });
-      if (!res.ok) {
-        return { ok: false as const, error: `Refresh failed (${res.status})` };
-      }
-      return { ok: true as const, startedAt: new Date().toISOString() };
-    } catch (e: any) {
-      return { ok: false as const, error: e?.message ?? "Refresh failed" };
-    }
-  });
-

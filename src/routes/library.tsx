@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { embyGetViews, embyGetItems, embyGetResume, embyRefreshLibrary } from "@/lib/emby.functions";
+import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume } from "@/lib/plex.functions";
 import {
   listServers,
@@ -14,7 +13,6 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
-import { TraktRails } from "@/components/trakt-rails";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -42,13 +40,7 @@ function LibraryPage() {
     setServer(active);
   }, [navigate]);
 
-  if (!server) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-6">
-        <p className="text-sm text-muted-foreground">Loading library…</p>
-      </main>
-    );
-  }
+  if (!server) return null;
   return (
     <LibraryContent
       server={server}
@@ -79,34 +71,6 @@ function LibraryContent({
   const getResumeEmby = useServerFn(embyGetResume);
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
-  const refreshLibraryEmby = useServerFn(embyRefreshLibrary);
-  const queryClient = useQueryClient();
-  const [syncing, setSyncing] = useState(false);
-
-  async function onSync() {
-    if (isPlex) {
-      toast.info("Library sync is Emby/Jellyfin only — Plex scans from its own server settings.");
-      return;
-    }
-    setSyncing(true);
-    try {
-      const res = await refreshLibraryEmby({ data: embyArg });
-      if (res.ok) {
-        toast.success("Sync started on server. Refreshing in 10s…");
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["views", server.id] });
-          queryClient.invalidateQueries({ queryKey: ["resume", server.id] });
-          queryClient.invalidateQueries({ queryKey: ["items", server.id] });
-        }, 10_000);
-      } else {
-        toast.error(res.error);
-      }
-    } catch (e: any) {
-      toast.error(e?.message ?? "Sync failed");
-    } finally {
-      setSyncing(false);
-    }
-  }
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
@@ -146,15 +110,6 @@ function LibraryContent({
                 ))}
               </select>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSync}
-              disabled={syncing || isPlex}
-              title={isPlex ? "Plex scans from its own server settings" : "Trigger Emby library scan to fetch missing artwork & metadata"}
-            >
-              {syncing ? "Syncing…" : "Sync server"}
-            </Button>
             <Button variant="ghost" asChild>
               <Link to="/settings">Settings</Link>
             </Button>
@@ -177,8 +132,6 @@ function LibraryContent({
         {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
           <LibrarySection key={v.Id} view={v} server={server} />
         ))}
-
-        <TraktRails />
       </div>
     </main>
   );
@@ -253,23 +206,20 @@ function Row({
             style={{ width: portrait ? 160 : 280 }}
           >
             <div
-              className="relative overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
+              className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
               style={{ aspectRatio: portrait ? "2/3" : "16/9" }}
             >
-              <div className="absolute inset-0 flex items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                {it.Name}
-              </div>
-              {src && (
+              {src ? (
                 <img
                   src={src}
                   alt={it.Name}
                   loading="lazy"
-                  onError={(e) => {
-                    // Hide the broken image so the name placeholder underneath shows.
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                  className="relative h-full w-full object-cover transition group-hover:scale-105"
+                  className="h-full w-full object-cover transition group-hover:scale-105"
                 />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                  {it.Name}
+                </div>
               )}
             </div>
             <p className="mt-2 line-clamp-1 text-sm font-medium">{it.Name}</p>
@@ -282,4 +232,3 @@ function Row({
     </div>
   );
 }
-
