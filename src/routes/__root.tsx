@@ -123,6 +123,9 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useSyncScheduler();
+  useEffect(() => {
+    applyTheme(loadThemeId());
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
