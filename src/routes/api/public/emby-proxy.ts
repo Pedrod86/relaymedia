@@ -95,6 +95,27 @@ async function handle(request: Request) {
     targetUrl.pathname.endsWith(".m3u8") ||
     targetUrl.pathname.endsWith(".m3u");
 
+  // Restrict proxied content to media-ish types so the proxy can't be abused
+  // to fetch arbitrary HTML/JSON from third-party origins.
+  const allowedPrefixes = ["image/", "video/", "audio/", "font/"];
+  const allowedExact = new Set([
+    "application/vnd.apple.mpegurl",
+    "application/x-mpegurl",
+    "application/octet-stream",
+    "application/dash+xml",
+    "application/mp4",
+    "text/vtt",
+  ]);
+  const ctBase = ct.split(";")[0].trim();
+  const ctAllowed =
+    !ctBase ||
+    isPlaylist ||
+    allowedExact.has(ctBase) ||
+    allowedPrefixes.some((p) => ctBase.startsWith(p));
+  if (!ctAllowed) {
+    return new Response("content-type not allowed", { status: 415 });
+  }
+
   if (isPlaylist && upstream.ok && request.method !== "HEAD") {
     const text = await upstream.text();
     // Path-only proxy base so the browser resolves segment URLs against the
