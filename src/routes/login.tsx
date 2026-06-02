@@ -111,6 +111,10 @@ function LoginPage() {
           setError("Plex token is required.");
           return;
         }
+        if (!/^[A-Za-z0-9_-]{10,}$/.test(token)) {
+          setError("That Plex token does not look valid. Paste only the X-Plex-Token value, not the full URL or article text.");
+          return;
+        }
         const verify = await plexVerifyFn({ data: { serverUrl: cleanUrl, token } });
         if (!verify.ok) {
           setError(verify.error);
