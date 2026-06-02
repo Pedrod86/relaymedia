@@ -178,6 +178,30 @@ function LoginPage() {
                 required
                 autoComplete="url"
               />
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={checking}
+                  onClick={onCheck}
+                >
+                  {checking ? "Checking…" : "Test connection"}
+                </Button>
+                {health && health.ok && (
+                  <span className="text-xs text-emerald-500">
+                    ✓ {health.product ?? health.kind}
+                    {health.version ? ` ${health.version}` : ""}
+                    {health.serverName ? ` · ${health.serverName}` : ""}
+                    {` · ${health.latencyMs}ms`}
+                  </span>
+                )}
+                {health && !health.ok && (
+                  <span className="text-xs text-destructive">
+                    ✗ {health.error}
+                  </span>
+                )}
+              </div>
             </div>
 
             {isPlex && (
