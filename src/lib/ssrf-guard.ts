@@ -3,20 +3,11 @@
 import { promises as dns } from "node:dns";
 import net from "node:net";
 
-type SsrfGuardOptions = {
-  allowPrivateNetworks?: boolean;
-};
-
-function ipIsBlocked(ip: string, options: SsrfGuardOptions = {}): boolean {
+function ipIsBlocked(ip: string): boolean {
   if (!ip) return true;
   const v = net.isIP(ip);
   if (v === 4) {
     const [a, b] = ip.split(".").map(Number);
-    if (options.allowPrivateNetworks) {
-      if (a === 10) return false;
-      if (a === 172 && b >= 16 && b <= 31) return false;
-      if (a === 192 && b === 168) return false;
-    }
     if (a === 10) return true;
     if (a === 127) return true;
     if (a === 0) return true;
@@ -40,7 +31,7 @@ function ipIsBlocked(ip: string, options: SsrfGuardOptions = {}): boolean {
   return true;
 }
 
-export async function assertSafeExternalUrl(rawUrl: string, options: SsrfGuardOptions = {}): Promise<URL> {
+export async function assertSafeExternalUrl(rawUrl: string): Promise<URL> {
   let u: URL;
   try {
     u = new URL(rawUrl);
@@ -75,7 +66,7 @@ export async function assertSafeExternalUrl(rawUrl: string, options: SsrfGuardOp
     }
   }
   for (const ip of ips) {
-    if (ipIsBlocked(ip, options)) {
+    if (ipIsBlocked(ip)) {
       throw new Error("Target resolves to a blocked network");
     }
   }
