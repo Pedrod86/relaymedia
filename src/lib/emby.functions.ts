@@ -33,6 +33,9 @@ export const embyLogin = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
     const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
     const res = await fetch(url, {
       method: "POST",
