@@ -79,6 +79,34 @@ function LibraryContent({
   const getResumeEmby = useServerFn(embyGetResume);
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
+  const refreshLibraryEmby = useServerFn(embyRefreshLibrary);
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+
+  async function onSync() {
+    if (isPlex) {
+      toast.info("Library sync is Emby/Jellyfin only — Plex scans from its own server settings.");
+      return;
+    }
+    setSyncing(true);
+    try {
+      const res = await refreshLibraryEmby({ data: embyArg });
+      if (res.ok) {
+        toast.success("Sync started on server. Refreshing in 10s…");
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["views", server.id] });
+          queryClient.invalidateQueries({ queryKey: ["resume", server.id] });
+          queryClient.invalidateQueries({ queryKey: ["items", server.id] });
+        }, 10_000);
+      } else {
+        toast.error(res.error);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
