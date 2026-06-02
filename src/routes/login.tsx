@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
-import { embyLogin } from "@/lib/emby.functions";
+import { embyApiKeyLogin, embyLogin } from "@/lib/emby.functions";
 import { plexVerify } from "@/lib/plex.functions";
 import { serverHealthCheck, type HealthResult } from "@/lib/health.functions";
 import { addServer, type ServerKind } from "@/lib/media-client";
@@ -28,6 +28,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
 function LoginPage() {
   const navigate = useNavigate();
   const embyLoginFn = useServerFn(embyLogin);
+  const embyApiKeyLoginFn = useServerFn(embyApiKeyLogin);
   const plexVerifyFn = useServerFn(plexVerify);
   const healthFn = useServerFn(serverHealthCheck);
 
@@ -35,6 +36,8 @@ function LoginPage() {
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [useEmbyApiKey, setUseEmbyApiKey] = useState(false);
+  const [embyApiKey, setEmbyApiKey] = useState("");
   const [plexToken, setPlexToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
