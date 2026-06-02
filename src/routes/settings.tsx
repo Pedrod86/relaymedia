@@ -24,6 +24,7 @@ import {
   SYNC_INTERVAL_OPTIONS,
 } from "@/lib/sync-schedule";
 import { TraktPanel } from "@/components/trakt-panel";
+import { THEMES, applyTheme, loadThemeId, type ThemeId } from "@/lib/themes";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
