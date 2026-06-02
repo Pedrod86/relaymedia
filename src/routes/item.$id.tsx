@@ -109,9 +109,11 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                 <p className="mt-4 max-w-2xl text-muted-foreground">{item.Overview}</p>
               )}
               {!isFolder && (
-                <Link to="/watch/$id" params={{ id: item.Id }} className="mt-6 inline-block">
-                  <Button size="lg">▶ Play</Button>
-                </Link>
+                <Button size="lg" asChild className="mt-6">
+                  <Link to="/watch/$id" params={{ id: item.Id }}>
+                    ▶ Play
+                  </Link>
+                </Button>
               )}
             </div>
           </div>
