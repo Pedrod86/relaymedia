@@ -7,6 +7,7 @@ import { assertSafeExternalUrl } from "./ssrf-guard";
 const CLIENT_NAME = "LovableMedia";
 const DEVICE_NAME = "Web Browser";
 const APP_VERSION = "1.0.0";
+const USER_AGENT = "RelayMedia/1.0";
 
 function authHeader(token?: string, userId?: string, deviceId = "lovable-media-web") {
   const parts = [
@@ -22,6 +23,14 @@ function authHeader(token?: string, userId?: string, deviceId = "lovable-media-w
 
 function normalize(url: string) {
   return url.replace(/\/+$/, "");
+}
+
+function networkLoginError(error: unknown) {
+  const message = error instanceof Error ? error.message : "fetch failed";
+  if (/fetch failed|network|timed out|abort/i.test(message)) {
+    return "The app can’t reach your Emby/Jellyfin server from the live site. Use a real public HTTPS hostname for your media server and allow requests from RelayMedia/1.0 in your proxy/firewall.";
+  }
+  return message;
 }
 
 function embyLoginError(status: number, bodyText: string) {
@@ -57,16 +66,24 @@ export const embyLogin = createServerFn({ method: "POST" })
       return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
     }
     const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Emby-Authorization": authHeader(),
-        // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
-        Authorization: authHeader(),
-      },
-      body: JSON.stringify({ Username: data.username, Pw: data.password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "User-Agent": USER_AGENT,
+          "X-RelayMedia-Client": USER_AGENT,
+          "X-Emby-Authorization": authHeader(),
+          // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
+          Authorization: authHeader(),
+        },
+        body: JSON.stringify({ Username: data.username, Pw: data.password }),
+      });
+    } catch (e) {
+      return { ok: false as const, error: networkLoginError(e) };
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return { ok: false as const, error: embyLoginError(res.status, text) };
