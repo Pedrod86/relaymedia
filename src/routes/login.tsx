@@ -73,10 +73,15 @@ function LoginPage() {
     setBusy(true);
     try {
       const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+      if (!cleanUrl) {
+        setError("Enter your server URL.");
+        return;
+      }
       if (kind === "emby" || kind === "jellyfin") {
+        const cleanUsername = username.trim();
         const res = useEmbyApiKey
-          ? await embyApiKeyLoginFn({ data: { serverUrl: cleanUrl, apiKey: embyApiKey, username: username.trim() || undefined } })
-          : await embyLoginFn({ data: { serverUrl: cleanUrl, username, password } });
+          ? await embyApiKeyLoginFn({ data: { serverUrl: cleanUrl, apiKey: embyApiKey.trim(), username: cleanUsername || undefined } })
+          : await embyLoginFn({ data: { serverUrl: cleanUrl, username: cleanUsername, password } });
         if (!res.ok) {
           setError(res.error);
           return;
@@ -210,7 +215,7 @@ function LoginPage() {
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    required
+                    required={!useEmbyApiKey}
                     autoComplete="username"
                   />
                 </div>
