@@ -39,6 +39,10 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const getItemEmby = useServerFn(embyGetItem);
   const getItemsEmby = useServerFn(embyGetItems);
   const getItemPlex = useServerFn(plexGetItem);
+  const refreshEmby = useServerFn(embyRefreshItem);
+  const refreshPlex = useServerFn(plexRefreshItem);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   const itemQ = useQuery({
     queryKey: ["item", server.id, id],
@@ -47,6 +51,46 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         ? getItemPlex({ data: { serverUrl: server.serverUrl, token: server.token, itemId: id } })
         : getItemEmby({ data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId, itemId: id } }),
   });
+
+  async function onRefreshMetadata(replace: boolean) {
+    setRefreshing(true);
+    try {
+      const res = isPlex
+        ? await refreshPlex({
+            data: { serverUrl: server.serverUrl, token: server.token, itemId: id, replace },
+          })
+        : await refreshEmby({
+            data: {
+              serverUrl: server.serverUrl,
+              token: server.token,
+              userId: server.userId,
+              itemId: id,
+              replace,
+              recursive: true,
+            },
+          });
+      if (res.ok) {
+        toast.success(
+          replace
+            ? "Replacing metadata. New data shows up shortly."
+            : "Refreshing metadata. New data shows up shortly."
+        );
+        // Re-fetch this item and its children after a short delay so the
+        // server has time to pull new data.
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["item", server.id, id] });
+          queryClient.invalidateQueries({ queryKey: ["children", server.id, id] });
+        }, 3000);
+      } else {
+        toast.error(res.error);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
 
   const item = itemQ.data?.item;
   const isFolder = item?.IsFolder || item?.Type === "Series" || item?.Type === "Season";
