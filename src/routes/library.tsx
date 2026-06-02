@@ -2,8 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume } from "@/lib/emby.functions";
-import { plexGetViews, plexGetItems, plexGetResume } from "@/lib/plex.functions";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
+import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
 import {
   listServers,
   loadActiveServer,
@@ -69,8 +69,10 @@ function LibraryContent({
 
   const getViewsEmby = useServerFn(embyGetViews);
   const getResumeEmby = useServerFn(embyGetResume);
+  const getLatestEmby = useServerFn(embyGetLatest);
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
+  const getLatestPlex = useServerFn(plexGetLatest);
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
@@ -84,6 +86,18 @@ function LibraryContent({
     queryFn: () =>
       isPlex ? getResumePlex({ data: plexArg }) : getResumeEmby({ data: embyArg }),
   });
+  const latest = useQuery({
+    queryKey: ["latest", server.id],
+    queryFn: () =>
+      isPlex ? getLatestPlex({ data: plexArg }) : getLatestEmby({ data: embyArg }),
+  });
+
+  const backdropItems = useMemo(() => {
+    const pool = latest.data?.items ?? [];
+    return pool
+      .filter((it: any) => imageUrl(server, it, "Backdrop", { maxWidth: 1600 }))
+      .slice(0, 5);
+  }, [latest.data, server]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -117,10 +131,20 @@ function LibraryContent({
         </div>
       </header>
 
+      {backdropItems.length > 0 && (
+        <BackdropHero items={backdropItems} server={server} />
+      )}
+
       <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
         {resume.data && resume.data.items.length > 0 && (
           <Section title="Continue watching">
             <Row items={resume.data.items} server={server} kind="thumb" />
+          </Section>
+        )}
+
+        {latest.data && latest.data.items.length > 0 && (
+          <Section title="Recently added">
+            <Row items={latest.data.items} server={server} kind="primary" />
           </Section>
         )}
 
@@ -243,6 +267,86 @@ function Row({
           </Link>
         );
       })}
+    </div>
+  );
+}
+
+function BackdropHero({
+  items,
+  server,
+}: {
+  items: any[];
+  server: MediaServer;
+}) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (items.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % items.length), 6000);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  const current = items[idx] ?? items[0];
+  const src = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
+  if (!src) return null;
+
+  return (
+    <div className="relative h-[42vh] min-h-[280px] w-full overflow-hidden">
+      {items.map((it, i) => {
+        const s = imageUrl(server, it, "Backdrop", { maxWidth: 1600 });
+        if (!s) return null;
+        return (
+          <img
+            key={it.Id ?? i}
+            src={s}
+            alt=""
+            aria-hidden={i !== idx}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+              i === idx ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        );
+      })}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-r from-background/70 to-transparent"
+      />
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-8">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">
+          Recently added
+        </p>
+        <h2 className="mt-1 text-3xl font-semibold tracking-tight drop-shadow-lg sm:text-4xl">
+          {current.Name}
+        </h2>
+        {current.ProductionYear && (
+          <p className="mt-1 text-sm text-muted-foreground">{current.ProductionYear}</p>
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <Button asChild>
+            <Link to="/item/$id" params={{ id: String(current.Id) }}>
+              View details
+            </Link>
+          </Button>
+          {items.length > 1 && (
+            <div className="flex gap-1.5">
+              {items.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Show item ${i + 1}`}
+                  onClick={() => setIdx(i)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/50"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
