@@ -17,6 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { detectPlaybackSupport } from "@/lib/playback-support";
+import {
+  getSyncInterval,
+  setSyncInterval,
+  getLastSync,
+  SYNC_INTERVAL_OPTIONS,
+} from "@/lib/sync-schedule";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
