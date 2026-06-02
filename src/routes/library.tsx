@@ -308,11 +308,11 @@ function BackdropHero({
       })}
       <div
         aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.6) 40%, transparent 75%), linear-gradient(to right, hsl(var(--background) / 0.7), transparent 55%)",
-        }}
+        className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-r from-background/70 to-transparent"
       />
       <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-8">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
