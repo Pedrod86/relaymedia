@@ -7,6 +7,7 @@ import { addServer, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
