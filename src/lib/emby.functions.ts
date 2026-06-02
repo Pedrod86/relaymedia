@@ -143,10 +143,11 @@ export const embyGetResume = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const params = new URLSearchParams({
       Limit: "20",
-      Fields: "PrimaryImageAspectRatio,Overview",
+      Fields:
+        "PrimaryImageAspectRatio,Overview,ProductionYear,RunTimeTicks,SeriesName,SeriesId,SeriesPrimaryImageTag,ParentIndexNumber,IndexNumber,Width,Height",
       MediaTypes: "Video",
       ImageTypeLimit: "1",
-      EnableImageTypes: "Primary,Backdrop,Thumb",
+      EnableImageTypes: "Primary,Backdrop,Thumb,Banner,Logo",
     });
     const json = (await embyFetch(
       data.serverUrl,
