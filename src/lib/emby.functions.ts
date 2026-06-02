@@ -166,6 +166,9 @@ export const embyGetResume = createServerFn({ method: "POST" })
 export const embyRefreshLibrary = createServerFn({ method: "POST" })
   .inputValidator(sessionSchema)
   .handler(async ({ data }) => {
+    try { await assertSafeExternalUrl(data.serverUrl); } catch (e: any) {
+      return { ok: false as const, error: e?.message ?? "Server URL not allowed" };
+    }
     const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
       method: "POST",
       headers: {
