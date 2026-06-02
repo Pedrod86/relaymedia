@@ -92,7 +92,13 @@ function LoginPage() {
         let token = plexToken.trim();
         let userName = username || "Plex user";
         if (!usePlexToken) {
-          const login = await plexLoginFn({ data: { username, password } });
+          const login = await plexLoginFn({
+            data: {
+              username,
+              password,
+              verificationCode: plex2fa.trim() || undefined,
+            },
+          });
           if (!login.ok) {
             setError(login.error);
             return;
