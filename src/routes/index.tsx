@@ -1,38 +1,44 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: () => {
-    // On the server we can't read localStorage, so default to /login.
-    // The client component below re-checks and redirects to /library
-    // if a server has already been configured.
-    if (typeof window === "undefined") {
-      throw redirect({ to: "/login" });
-    }
-    const servers = localStorage.getItem("media_servers_v1");
-    const legacy = localStorage.getItem("emby_session_v1");
-    const has =
-      (servers && (() => { try { return JSON.parse(servers).length > 0; } catch { return false; } })()) ||
-      !!legacy;
-    throw redirect({ to: has ? "/library" : "/login" });
-  },
-  component: IndexFallback,
+  component: IndexRedirect,
 });
 
-function IndexFallback() {
+function IndexRedirect() {
   const navigate = useNavigate();
+  const [decided, setDecided] = useState(false);
+
   useEffect(() => {
     const servers = localStorage.getItem("media_servers_v1");
     const legacy = localStorage.getItem("emby_session_v1");
     let has = !!legacy;
     if (!has && servers) {
-      try { has = JSON.parse(servers).length > 0; } catch { /* ignore */ }
+      try {
+        has = JSON.parse(servers).length > 0;
+      } catch {
+        /* ignore */
+      }
     }
+    setDecided(true);
     navigate({ to: has ? "/library" : "/login", replace: true });
   }, [navigate]);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
-      <p className="text-sm text-muted-foreground">Opening media library…</p>
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground">
+          {decided ? "Redirecting…" : "Opening RelayMedia…"}
+        </p>
+        <noscript>
+          <p className="mt-4 text-sm">
+            <a href="/login" className="underline">
+              Go to login
+            </a>
+          </p>
+        </noscript>
+        <meta httpEquiv="refresh" content="1;url=/login" />
+      </div>
     </main>
   );
 }
