@@ -87,23 +87,8 @@ function LoginPage() {
         navigate({ to: "/library" });
       } else {
         // Plex
-        let token = plexToken.trim();
-        let userName = username || "Plex user";
-        if (!usePlexToken) {
-          const login = await plexLoginFn({
-            data: {
-              username,
-              password,
-              verificationCode: plex2fa.trim() || undefined,
-            },
-          });
-          if (!login.ok) {
-            setError(login.error);
-            return;
-          }
-          token = login.token;
-          userName = login.userName;
-        }
+        const token = plexToken.trim();
+        const userName = "Plex user";
         if (!token) {
           setError("Plex token is required.");
           return;
@@ -212,36 +197,15 @@ function LoginPage() {
               </div>
             </div>
 
-            {isPlex && (
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <input
-                    id="useToken"
-                    type="checkbox"
-                    checked={!usePlexToken}
-                    onChange={(e) => setUsePlexToken(!e.target.checked)}
-                  />
-                  <label htmlFor="useToken" className="text-muted-foreground">
-                    Use plex.tv username/password instead
-                  </label>
-                </div>
-                {usePlexToken && (
-                  <p className="text-xs text-muted-foreground">
-                    Plex token is recommended because plex.tv password sign-in is often rate-limited.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {(!isPlex || !usePlexToken) && (
+            {!isPlex && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username{isPlex ? " (plex.tv)" : ""}</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    required={!usePlexToken}
+                    required
                     autoComplete="username"
                   />
                 </div>
@@ -253,28 +217,13 @@ function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    required={!usePlexToken}
+                    required
                   />
                 </div>
-                {isPlex && (
-                  <div className="space-y-2">
-                    <Label htmlFor="plex2fa">
-                      Plex 2FA code <span className="text-muted-foreground">(if enabled)</span>
-                    </Label>
-                    <Input
-                      id="plex2fa"
-                      value={plex2fa}
-                      onChange={(e) => setPlex2fa(e.target.value)}
-                      placeholder="123456"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                    />
-                  </div>
-                )}
               </>
             )}
 
-            {isPlex && usePlexToken && (
+            {isPlex && (
               <div className="space-y-2">
                 <Label htmlFor="plexToken">Plex token</Label>
                 <Input
@@ -284,6 +233,9 @@ function LoginPage() {
                   placeholder="X-Plex-Token"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Plex password sign-in is currently blocked by Plex rate limits, so token login is required.
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Get yours from{" "}
                   <a
