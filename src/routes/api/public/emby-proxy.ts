@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { assertSafeExternalUrl } from "@/lib/ssrf-guard";
 
 // Streams Emby HTTP content over our HTTPS origin so the browser will load
 // images / HLS / direct video from a non-HTTPS Emby server without
