@@ -194,6 +194,18 @@ export function plexDirectStreamUrl(s: MediaServer, partKey: string) {
   return proxied(`${normalize(s.serverUrl)}${path}?X-Plex-Token=${encodeURIComponent(s.token)}`);
 }
 
+// Emby/Jellyfin subtitle stream as VTT (browser-friendly).
+export function embySubtitleUrl(
+  s: MediaServer,
+  itemId: string,
+  mediaSourceId: string,
+  streamIndex: number,
+) {
+  return proxied(
+    `${normalize(s.serverUrl)}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.vtt?api_key=${encodeURIComponent(s.token)}`,
+  );
+}
+
 export function ticksToTime(ticks?: number) {
   if (!ticks) return "";
   const totalSec = Math.floor(ticks / 10_000_000);
