@@ -106,7 +106,26 @@ export function PlayerSettingsPanel() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6">
+        <p className="text-sm font-medium">HDR10 &amp; Dolby Vision</p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          {HDR.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => update({ hdr: o.id })}
+              className={`rounded-lg border p-3 text-left transition ${
+                prefs.hdr === o.id ? "border-primary ring-2 ring-primary/50" : "hover:bg-accent"
+              }`}
+            >
+              <p className="text-sm font-medium">{o.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{o.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="font-medium">Quality cap</span>
           <select
@@ -115,6 +134,20 @@ export function PlayerSettingsPanel() {
             className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
           >
             {BITRATE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="font-medium">Max resolution</span>
+          <select
+            value={prefs.maxHeight}
+            onChange={(e) => update({ maxHeight: Number(e.target.value) })}
+            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            {RESOLUTION_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -137,12 +170,32 @@ export function PlayerSettingsPanel() {
 
       <div className="mt-6 rounded-lg bg-muted/50 p-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium">Codec support on this device</p>
-          <Button size="sm" variant="outline" onClick={() => probeCodecs().then(setCaps)}>
+          <p className="text-sm font-medium">Codec &amp; HDR support on this device</p>
+          <Button size="sm" variant="outline" onClick={retest}>
             Re-test
           </Button>
         </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {[
+            { label: "HDR display", ok: hdr.hdrDisplay },
+            { label: "HDR10", ok: hdr.hdr10 },
+            { label: "HLG", ok: hdr.hlg },
+            { label: "Dolby Vision", ok: hdr.dolbyVision },
+            { label: "HEVC Main10", ok: hdr.hevcMain10 },
+            { label: "4K hardware", ok: hdr.uhdHardware },
+          ].map((b) => (
+            <span
+              key={b.label}
+              className={`rounded-full border px-2.5 py-1 ${
+                b.ok ? "border-emerald-500/40 text-emerald-500" : "text-muted-foreground"
+              }`}
+            >
+              {b.label} {b.ok ? "✓" : "✗"}
+            </span>
+          ))}
+        </div>
         {!caps && <p className="mt-2 text-xs text-muted-foreground">Testing…</p>}
+
         {caps && (
           <div className="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-2">
             {caps.map((c) => (
