@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { useProAccess } from "@/lib/use-pro";
 import { embyGetItem } from "@/lib/emby.functions";
 import {
   allowedCodecs,
@@ -59,6 +60,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
+  const { isPro } = useProAccess();
   const [showPanel, setShowPanel] = useState(false);
   const getItemEmby = useServerFn(embyGetItem);
 
