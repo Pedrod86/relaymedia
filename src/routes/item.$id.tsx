@@ -313,11 +313,18 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   {[
                     (s.Codec || "").toUpperCase(),
                     s.Width && s.Height ? `${s.Width}×${s.Height}` : null,
-                    s.VideoRange && s.VideoRange !== "SDR" ? s.VideoRange : null,
+                    Number(s.Width ?? 0) >= 3400 ? "4K" : null,
+                    s.DvProfile || String(s.VideoRangeType ?? "").toUpperCase().includes("DOVI")
+                      ? `Dolby Vision${s.DvProfile ? ` p${s.DvProfile}` : ""}`
+                      : (s.VideoRangeType ?? s.VideoRange) && (s.VideoRangeType ?? s.VideoRange) !== "SDR"
+                        ? s.VideoRangeType ?? s.VideoRange
+                        : null,
+                    s.BitDepth ? `${s.BitDepth}-bit` : null,
                     s.AverageFrameRate ? `${Math.round(s.AverageFrameRate)}fps` : null,
                   ]
                     .filter(Boolean)
                     .join(" • ")}
+
                 </p>
               ))}
               {source?.Container && (
