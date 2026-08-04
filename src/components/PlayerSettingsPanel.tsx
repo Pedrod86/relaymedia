@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import {
   BITRATE_OPTIONS,
   DEFAULT_PREFS,
+  NO_HDR,
+  RESOLUTION_OPTIONS,
   loadPlayerPrefs,
   probeCodecs,
+  probeHdr,
   savePlayerPrefs,
   type CodecCap,
   type DecodeMode,
+  type HdrMode,
+  type HdrSupport,
   type PlaybackMode,
   type PlayerPrefs,
 } from "@/lib/player-prefs";
@@ -25,9 +30,24 @@ const PLAYBACK: { id: PlaybackMode; label: string; desc: string }[] = [
   { id: "direct", label: "Direct", desc: "Always stream the original file. Best quality, needs codec support." },
 ];
 
+const HDR: { id: HdrMode; label: string; desc: string }[] = [
+  { id: "auto", label: "Auto", desc: "Pass HDR10/Dolby Vision through on HDR displays, tone-map otherwise." },
+  { id: "passthrough", label: "Passthrough", desc: "Always send the original 4K HDR10 / Dolby Vision grade." },
+  { id: "sdr", label: "Tone-map to SDR", desc: "Convert HDR to SDR (BT.2390) for standard displays." },
+];
+
 export function PlayerSettingsPanel() {
   const [prefs, setPrefs] = useState<PlayerPrefs>(DEFAULT_PREFS);
   const [caps, setCaps] = useState<CodecCap[] | null>(null);
+  const [hdr, setHdr] = useState<HdrSupport>(NO_HDR);
+
+  function retest() {
+    void probeCodecs().then((c) => {
+      setCaps(c);
+      void probeHdr(c).then(setHdr);
+    });
+  }
+
 
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
