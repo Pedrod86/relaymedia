@@ -10,19 +10,28 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as UpgradeRouteImport } from './routes/upgrade'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -43,6 +52,16 @@ const SearchRoute = SearchRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpgradeRoute = UpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemIdRoute = ItemIdRouteImport.update({
@@ -70,94 +89,128 @@ const ApiPublicStreamRoute = ApiPublicStreamRouteImport.update({
   path: '/api/public/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/upgrade': typeof UpgradeRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/upgrade': typeof UpgradeRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/upgrade': typeof UpgradeRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/library'
     | '/login'
     | '/search'
     | '/settings'
+    | '/upgrade'
+    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
     | '/api/public/stream'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/library'
     | '/login'
     | '/search'
     | '/settings'
+    | '/upgrade'
+    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
     | '/api/public/stream'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/library'
     | '/login'
     | '/search'
     | '/settings'
+    | '/upgrade'
+    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
     | '/api/public/stream'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  UpgradeRoute: typeof UpgradeRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   ItemIdRoute: typeof ItemIdRoute
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -167,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -195,6 +255,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upgrade': {
+      id: '/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof UpgradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/item/$id': {
@@ -232,20 +306,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  UpgradeRoute: UpgradeRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   ItemIdRoute: ItemIdRoute,
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
