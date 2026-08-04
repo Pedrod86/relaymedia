@@ -255,6 +255,22 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                     {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
                   </span>
                 )}
+                {check && (check.is4K || check.isHdr) && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      check.hdrPassthrough ? "bg-sky-500/15 text-sky-500" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {[
+                      check.is4K ? "4K" : null,
+                      check.isDolbyVision ? "Dolby Vision" : check.isHdr ? check.videoRange : null,
+                      check.isHdr ? (check.hdrPassthrough ? "passthrough" : "tone-mapped") : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </span>
+                )}
+
                 <Link to="/settings" className="text-xs text-muted-foreground underline">
                   Player settings
                 </Link>
