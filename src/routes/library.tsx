@@ -271,7 +271,14 @@ function TVLayout({
             Sections
           </p>
           <nav className="space-y-1" aria-label="TV sections">
+            <Link
+              to="/search"
+              className="tv-sidebar-item block w-full rounded-lg px-3 py-3 text-left text-sm font-semibold outline-none"
+            >
+              🔍 Search
+            </Link>
             {sections.map((s) => (
+
               <button
                 key={s.id}
                 type="button"
