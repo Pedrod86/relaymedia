@@ -373,6 +373,20 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 .join(" • ")}
             </span>
           )}
+          {prefs.afr !== "off" && afr.sourceFps && (
+            <span
+              className={`rounded px-2 py-1 ${
+                afr.exact ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-200"
+              }`}
+              title={afr.note}
+            >
+              AFR {Math.round(afr.sourceFps * 1000) / 1000}fps
+              {afr.displayHz ? ` → ${afr.displayHz}Hz` : ""}
+              {afr.cadence ? ` • ${afr.cadence}:1` : ""}
+            </span>
+          )}
+
+
 
           {isEmbyFamily && textSubs.length > 0 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
