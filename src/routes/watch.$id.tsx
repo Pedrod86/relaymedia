@@ -66,8 +66,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
-    void probeCodecs().then(setCaps);
+    void probeCodecs().then((c) => {
+      setCaps(c);
+      void probeHdr(c).then(setHdr);
+    });
   }, []);
+
 
   function update(patch: Partial<PlayerPrefs>) {
     const next = { ...prefs, ...patch };
