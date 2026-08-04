@@ -2,6 +2,8 @@
 //
 // Stored in localStorage — these are non-sensitive UI/playback preferences only.
 
+import type { AfrMode } from "./afr";
+
 export type DecodeMode = "auto" | "hardware" | "software";
 export type PlaybackMode = "auto" | "hls" | "direct";
 /** How to handle HDR10 / HLG / Dolby Vision sources. */
@@ -24,6 +26,13 @@ export type PlayerPrefs = {
   hdr: HdrMode;
   /** Vertical resolution ceiling (2160 = 4K). */
   maxHeight: number;
+  /**
+   * Automatic frame rate matching.
+   * off    — leave cadence alone
+   * auto   — preserve source fps, correct only when it would judder
+   * strict — always align the source cadence to the display refresh rate
+   */
+  afr: AfrMode;
 };
 
 export const DEFAULT_PREFS: PlayerPrefs = {
@@ -33,6 +42,7 @@ export const DEFAULT_PREFS: PlayerPrefs = {
   autoSubtitles: false,
   hdr: "auto",
   maxHeight: 2160,
+  afr: "auto",
 };
 
 const KEY = "media_player_prefs_v1";
