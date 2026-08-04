@@ -73,13 +73,35 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const item = itemQ.data?.item as any;
   const isFolder = item?.IsFolder || item?.Type === "Series" || item?.Type === "Season";
 
+  const isSeries = item?.Type === "Series";
+
+  // Emby/Jellyfin: a Series gets its full flat episode list (recursive) so a
+  // single Play button can start at episode 1; a Season lists its own children.
   const childrenQ = useQuery({
     enabled: !!item && isFolder && !isPlex,
-    queryKey: ["children", server.id, id],
+    queryKey: ["children", server.id, id, isSeries],
     queryFn: () =>
       getItemsEmby({
-        data: { serverId: server.id, parentId: id, limit: 100, sortBy: "SortName" },
+        data: isSeries
+          ? {
+              serverId: server.id,
+              parentId: id,
+              limit: 200,
+              recursive: true,
+              includeItemTypes: "Episode",
+              sortBy: "ParentIndexNumber,IndexNumber,SortName",
+            }
+          : { serverId: server.id, parentId: id, limit: 200, sortBy: "IndexNumber,SortName" },
       }),
+  });
+
+  // Plex: children of a show are seasons, so drill one level for a playable episode.
+  const plexChildren: any[] = isPlex ? (item?._children ?? []) : [];
+  const firstPlexFolder = plexChildren.find((c) => c.IsFolder);
+  const plexGrandChildrenQ = useQuery({
+    enabled: isPlex && !!firstPlexFolder && !plexChildren.some((c) => !c.IsFolder),
+    queryKey: ["plex-children", server.id, firstPlexFolder?.Id],
+    queryFn: () => getItemPlex({ data: { serverId: server.id, itemId: firstPlexFolder!.Id } }),
   });
 
   const check = useMemo(
@@ -91,7 +113,21 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
 
   const backdrop = imageUrl(server, item, "Backdrop", { maxWidth: 1920 });
   const poster = imageUrl(server, item, "Primary", { maxWidth: 400 });
-  const children: any[] = isPlex ? item._children ?? [] : childrenQ.data?.items ?? [];
+  const children: any[] = isPlex ? plexChildren : (childrenQ.data?.items ?? []);
+  const childrenLoading = isPlex ? false : childrenQ.isLoading;
+
+  // First playable episode: prefer a partially-watched one, else the first.
+  const episodePool: any[] = isPlex
+    ? (plexChildren.some((c) => !c.IsFolder)
+        ? plexChildren
+        : ((plexGrandChildrenQ.data?.item as any)?._children ?? []))
+    : children;
+  const playable = episodePool.filter((c: any) => !c.IsFolder);
+  const nextUp =
+    playable.find((c: any) => (c.UserData?.PlaybackPositionTicks ?? 0) > 0) ??
+    playable.find((c: any) => !c.UserData?.Played) ??
+    playable[0];
+
 
   const genres: string[] = item.Genres ?? [];
   const studios: string[] = (item.Studios ?? []).map((s: any) => s?.Name ?? s).filter(Boolean);
