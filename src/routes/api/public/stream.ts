@@ -38,6 +38,11 @@ const querySchema = z.object({
   hdr: z.enum(["passthrough", "tonemap"]).default("tonemap"),
   /** Vertical resolution ceiling — 2160 keeps 4K intact. */
   maxHeight: z.coerce.number().int().min(360).max(4320).default(2160),
+  /**
+   * Frame-rate ceiling. AFR sends the source fps here so the server copies the
+   * original cadence instead of converting to a fixed 30/60 fps.
+   */
+  maxFps: z.coerce.number().min(1).max(300).optional(),
 });
 
 const DEVICE_ID = "lovable-media-web";
