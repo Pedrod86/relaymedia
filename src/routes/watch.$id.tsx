@@ -540,6 +540,14 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             {hdr.hlg ? "✓" : "✗"} • Dolby Vision {hdr.dolbyVision ? "✓" : "✗"} • 4K hardware{" "}
             {hdr.uhdHardware ? "✓" : "✗"}
           </p>
+          <p className="mt-1 opacity-60">
+            {afr.note}
+            {displayHz ? ` • measured ${displayHz} Hz` : " • measuring refresh rate…"}
+            {frames && frames.decoded > 0
+              ? ` • ${frames.dropped} dropped / ${frames.decoded} frames`
+              : ""}
+          </p>
+
 
         </div>
       )}
