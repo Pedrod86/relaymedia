@@ -151,6 +151,9 @@ function LibraryContent({
               ))}
             </select>
           )}
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/search">🔍 Search</Link>
+          </Button>
           <Button
             variant={tvMode ? "default" : "outline"}
             size="sm"
@@ -164,6 +167,7 @@ function LibraryContent({
           <Button variant="ghost" asChild>
             <Link to="/settings">Settings</Link>
           </Button>
+
         </div>
       </div>
     </header>
@@ -267,7 +271,14 @@ function TVLayout({
             Sections
           </p>
           <nav className="space-y-1" aria-label="TV sections">
+            <Link
+              to="/search"
+              className="tv-sidebar-item block w-full rounded-lg px-3 py-3 text-left text-sm font-semibold outline-none"
+            >
+              🔍 Search
+            </Link>
             {sections.map((s) => (
+
               <button
                 key={s.id}
                 type="button"

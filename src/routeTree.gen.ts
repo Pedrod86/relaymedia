@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
@@ -32,6 +33,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/search'
     | '/settings'
     | '/item/$id'
     | '/view/$id'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/search'
     | '/settings'
     | '/item/$id'
     | '/view/$id'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/library'
     | '/login'
+    | '/search'
     | '/settings'
     | '/item/$id'
     | '/view/$id'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ItemIdRoute: typeof ItemIdRoute
   ViewIdRoute: typeof ViewIdRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ItemIdRoute: ItemIdRoute,
   ViewIdRoute: ViewIdRoute,
