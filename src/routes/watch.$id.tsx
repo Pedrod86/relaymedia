@@ -229,6 +229,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       session: sessionId,
       hdr: hdrParam,
       maxHeight: prefs.maxHeight,
+      // AFR: keep the transcode at the source cadence instead of 30/60 fps.
+      maxFps: prefs.afr !== "off" ? sourceFps : undefined,
     });
 
 
