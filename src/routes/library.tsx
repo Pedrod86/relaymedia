@@ -151,6 +151,9 @@ function LibraryContent({
               ))}
             </select>
           )}
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/search">🔍 Search</Link>
+          </Button>
           <Button
             variant={tvMode ? "default" : "outline"}
             size="sm"
@@ -164,6 +167,7 @@ function LibraryContent({
           <Button variant="ghost" asChild>
             <Link to="/settings">Settings</Link>
           </Button>
+
         </div>
       </div>
     </header>
