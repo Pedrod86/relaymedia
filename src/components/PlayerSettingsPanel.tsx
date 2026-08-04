@@ -51,8 +51,9 @@ export function PlayerSettingsPanel() {
 
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
-    void probeCodecs().then(setCaps);
+    retest();
   }, []);
+
 
   function update(patch: Partial<PlayerPrefs>) {
     const next = { ...prefs, ...patch };
