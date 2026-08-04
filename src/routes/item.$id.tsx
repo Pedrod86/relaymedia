@@ -114,9 +114,13 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   });
 
   const check = useMemo(
-    () => (!isPlex && item && !isFolder && caps.length ? checkItemPlayback(item, caps, prefs) : null),
-    [item, caps, prefs, isPlex, isFolder],
+    () =>
+      !isPlex && item && !isFolder && caps.length
+        ? checkItemPlayback(item, caps, prefs, hdrSupport)
+        : null,
+    [item, caps, prefs, isPlex, isFolder, hdrSupport],
   );
+
 
   if (!item) return <div className="p-8 text-muted-foreground">Loading…</div>;
 
