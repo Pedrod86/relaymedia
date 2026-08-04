@@ -9,52 +9,14 @@ import { createFileRoute } from "@tanstack/react-router";
 // credential server-side. Because the target host comes from the sealed cookie
 // (not from the query string), this endpoint cannot be pointed at an arbitrary
 // host — no open proxy / SSRF.
-
-const PASS_REQ_HEADERS = ["range", "accept", "accept-language", "if-range"];
-const PASS_RES_HEADERS = [
-  "content-type",
-  "content-length",
-  "content-range",
-  "accept-ranges",
-  "cache-control",
-  "etag",
-  "last-modified",
-];
+//
+// PERFORMANCE: range/conditional headers are forwarded, bodies are streamed
+// without buffering (backpressure preserved), client aborts cancel the upstream
+// request, and segments/images get a private immutable cache policy. See
+// src/lib/stream-proxy.server.ts.
 
 function proxyHref(base: string, sid: string, path: string) {
   return `${base}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
-}
-
-/** Convert an upstream URI (relative or absolute) to a path on the upstream server. */
-function toUpstreamPath(uri: string, sourceUrl: URL): string | null {
-  try {
-    const abs = new URL(uri, sourceUrl);
-    // Only rewrite references that stay on the same upstream origin; anything
-    // else would have to be fetched directly and is not proxied.
-    if (abs.origin !== sourceUrl.origin) return null;
-    return `${abs.pathname}${abs.search}`;
-  } catch {
-    return null;
-  }
-}
-
-function rewritePlaylist(text: string, proxyBase: string, sid: string, sourceUrl: URL) {
-  return text
-    .split(/\r?\n/)
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return line;
-      if (trimmed.startsWith("#")) {
-        // Rewrite URI="..." inside tags (e.g. EXT-X-KEY, EXT-X-MEDIA).
-        return line.replace(/URI="([^"]+)"/g, (m, uri) => {
-          const path = toUpstreamPath(uri, sourceUrl);
-          return path ? `URI="${proxyHref(proxyBase, sid, path)}"` : m;
-        });
-      }
-      const path = toUpstreamPath(trimmed, sourceUrl);
-      return path ? proxyHref(proxyBase, sid, path) : line;
-    })
-    .join("\n");
 }
 
 async function handle(request: Request) {
@@ -79,11 +41,15 @@ async function handle(request: Request) {
     return new Response("invalid path", { status: 400 });
   }
 
-  const headers = new Headers();
-  for (const h of PASS_REQ_HEADERS) {
-    const v = request.headers.get(h);
-    if (v) headers.set(h, v);
-  }
+  const {
+    forwardRequestHeaders,
+    fetchUpstream,
+    buildResponse,
+    classify,
+    rewritePlaylist,
+  } = await import("@/lib/stream-proxy.server");
+
+  const headers = forwardRequestHeaders(request);
   // Attach credentials server-side.
   if (cred.kind === "plex") {
     headers.set("X-Plex-Token", cred.token);
@@ -97,37 +63,33 @@ async function handle(request: Request) {
     headers.set("Authorization", `MediaBrowser Token="${cred.token}"`);
   }
 
-  const upstream = await fetch(targetUrl.toString(), {
-    method: request.method === "HEAD" ? "HEAD" : "GET",
-    headers,
-    redirect: "follow",
-  });
-
-  const outHeaders = new Headers();
-  for (const h of PASS_RES_HEADERS) {
-    const v = upstream.headers.get(h);
-    if (v) outHeaders.set(h, v);
+  let upstream: Response;
+  try {
+    upstream = await fetchUpstream(targetUrl.toString(), {
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      headers,
+      signal: request.signal,
+    });
+  } catch (e: any) {
+    if (e?.name === "AbortError") return new Response(null, { status: 499 });
+    return new Response("upstream unreachable", { status: 502 });
   }
-  // Responses are user-specific; never let a shared cache hold them.
-  outHeaders.set("cache-control", "private, max-age=0, no-store");
 
-  const ct = (upstream.headers.get("content-type") ?? "").toLowerCase();
-  const isPlaylist =
-    ct.includes("mpegurl") ||
-    targetUrl.pathname.endsWith(".m3u8") ||
-    targetUrl.pathname.endsWith(".m3u");
+  const kind = classify(targetUrl.pathname, upstream.headers.get("content-type") ?? "");
 
-  if (isPlaylist && upstream.ok && request.method !== "HEAD") {
+  if (kind === "playlist" && upstream.ok && request.method !== "HEAD") {
     const text = await upstream.text();
     // Path-only proxy base so the browser resolves segment URLs against the
     // public origin the playlist was fetched from.
-    const rewritten = rewritePlaylist(text, url.pathname, sid, targetUrl);
+    const rewritten = rewritePlaylist(text, targetUrl, (p) => proxyHref(url.pathname, sid, p));
+    const res = buildResponse(new Response(null, { status: upstream.status }), "playlist", request);
+    const outHeaders = new Headers(res.headers);
     outHeaders.set("content-type", "application/vnd.apple.mpegurl");
     outHeaders.delete("content-length");
     return new Response(rewritten, { status: upstream.status, headers: outHeaders });
   }
 
-  return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
+  return buildResponse(upstream, kind, request);
 }
 
 export const Route = createFileRoute("/api/public/media-proxy")({
