@@ -119,7 +119,44 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       : "tonemap";
 
 
-  // Decide the mode once capabilities and item info are known.
+  // ── AFR: source cadence, display cadence, and the correction between them ──
+  const sourceFps = useMemo(
+    () => (isEmbyFamily && itemQ.data?.item ? sourceFrameRate(itemQ.data.item) : undefined),
+    [itemQ.data, isEmbyFamily],
+  );
+  const afr = useMemo(
+    () => (isPro ? planFrameRate(prefs.afr, sourceFps, displayHz) : AFR_OFF),
+    [prefs.afr, sourceFps, displayHz, isPro],
+  );
+
+  // Apply the cadence correction to the element, and keep it applied across
+  // seeks / source swaps (browsers reset playbackRate on some src changes).
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const apply = () => {
+      if (Math.abs(video.playbackRate - afr.playbackRate) > 0.0005) {
+        video.playbackRate = afr.playbackRate;
+      }
+    };
+    apply();
+    video.addEventListener("loadedmetadata", apply);
+    video.addEventListener("seeked", apply);
+    return () => {
+      video.removeEventListener("loadedmetadata", apply);
+      video.removeEventListener("seeked", apply);
+    };
+  }, [afr.playbackRate, mode]);
+
+  // Surface dropped frames so cadence problems are visible, not guessed at.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const t = window.setInterval(() => setFrames(readFrameStats(video)), 2000);
+    return () => window.clearInterval(t);
+  }, [mode]);
+
+
   useEffect(() => {
     if (!isEmbyFamily) {
       setMode("direct");
