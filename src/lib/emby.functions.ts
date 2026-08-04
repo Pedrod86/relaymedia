@@ -162,3 +162,23 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     }
     return { ok: true as const, startedAt: new Date().toISOString() };
   });
+
+export const embySearch = createServerFn({ method: "POST" })
+  .inputValidator(serverRef.extend({ query: z.string().max(200) }))
+  .handler(async ({ data }) => {
+    const q = data.query.trim();
+    if (!q) return { items: [] as any[] };
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const params = new URLSearchParams({
+      SearchTerm: q,
+      Recursive: "true",
+      Limit: "48",
+      IncludeItemTypes: "Movie,Series,Episode",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber",
+      ImageTypeLimit: "1",
+      EnableImageTypes: "Primary,Backdrop,Thumb",
+    });
+    const json = (await embyFetch(c, `/Users/${c.userId}/Items?${params}`)) as { Items: any[] };
+    return { items: json.Items ?? [] };
+  });

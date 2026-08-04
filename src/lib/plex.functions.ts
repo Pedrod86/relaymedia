@@ -243,3 +243,22 @@ export const plexGetStreamInfo = createServerFn({ method: "POST" })
     if (!part?.key) return { ok: false as const, error: "No playable media on this item." };
     return { ok: true as const, partKey: part.key as string, container: (part.container as string) ?? "mp4" };
   });
+
+export const plexSearch = createServerFn({ method: "POST" })
+  .inputValidator(serverRef.extend({ query: z.string().max(200) }))
+  .handler(async ({ data }) => {
+    const q = data.query.trim();
+    if (!q) return { items: [] as any[] };
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const json = await plexFetch(
+      c,
+      `/search?query=${encodeURIComponent(q)}&X-Plex-Container-Size=48`,
+    );
+    const items = (json.MediaContainer?.Metadata ?? []) as any[];
+    return {
+      items: items
+        .filter((m) => m.type === "movie" || m.type === "show" || m.type === "episode")
+        .map((m) => normalizeMetadata(m)),
+    };
+  });
