@@ -1,104 +1,56 @@
-// Multi-server session storage + URL helpers for Emby / Jellyfin / Plex.
-// Browser-side only. Persists in localStorage.
+// Browser-side helpers for Emby / Jellyfin / Plex.
+//
+// SECURITY: no access token is ever stored or built into a URL here. Tokens
+// live in an encrypted httpOnly cookie that page JavaScript cannot read; every
+// media request goes through /api/public/media-proxy, which attaches the
+// credential server-side using the opaque server id.
+//
+// localStorage is used only for non-sensitive UI preferences (which server is
+// active, which categories are hidden).
 
 export type ServerKind = "emby" | "jellyfin" | "plex";
 
+/** Public server metadata as returned by the server — contains no token. */
 export type MediaServer = {
   id: string;
   kind: ServerKind;
   name: string;
   serverUrl: string;
-  token: string;
-  userId: string; // Plex doesn't really need this — store machineIdentifier or ""
+  userId: string;
   userName: string;
 };
 
-const SERVERS_KEY = "media_servers_v1";
 const ACTIVE_KEY = "media_active_server_v1";
 const HIDDEN_KEY_PREFIX = "media_hidden_views_v1:";
 
-// Legacy keys we migrate from.
-const LEGACY_EMBY = "emby_session_v1";
-const LEGACY_HIDDEN = "emby_hidden_views_v1";
+// Keys that used to hold access tokens in localStorage. Purge them on load so
+// previously stored credentials stop lingering in browser storage.
+const LEGACY_TOKEN_KEYS = ["media_servers_v1", "emby_session_v1"];
 
-function migrate() {
+export function purgeLegacyTokenStorage() {
   if (typeof window === "undefined") return;
-  if (localStorage.getItem(SERVERS_KEY)) return;
-  const legacy = localStorage.getItem(LEGACY_EMBY);
-  if (!legacy) return;
-  try {
-    const s = JSON.parse(legacy) as { serverUrl: string; token: string; userId: string; userName: string };
-    const id = `srv_${Date.now().toString(36)}`;
-    const server: MediaServer = {
-      id,
-      kind: "emby",
-      name: new URL(s.serverUrl).host,
-      serverUrl: s.serverUrl.replace(/\/+$/, ""),
-      token: s.token,
-      userId: s.userId,
-      userName: s.userName,
-    };
-    localStorage.setItem(SERVERS_KEY, JSON.stringify([server]));
-    localStorage.setItem(ACTIVE_KEY, id);
-    const legacyHidden = localStorage.getItem(LEGACY_HIDDEN);
-    if (legacyHidden) localStorage.setItem(HIDDEN_KEY_PREFIX + id, legacyHidden);
-  } catch {
-    /* ignore */
-  }
-}
-
-export function listServers(): MediaServer[] {
-  if (typeof window === "undefined") return [];
-  migrate();
-  try {
-    const raw = localStorage.getItem(SERVERS_KEY);
-    return raw ? (JSON.parse(raw) as MediaServer[]) : [];
-  } catch {
-    return [];
-  }
+  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
 }
 
 export function getActiveServerId(): string | null {
   if (typeof window === "undefined") return null;
-  migrate();
   return localStorage.getItem(ACTIVE_KEY);
 }
 
 export function setActiveServerId(id: string) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(ACTIVE_KEY, id);
 }
 
-export function loadActiveServer(): MediaServer | null {
-  const servers = listServers();
+export function clearActiveServerId() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ACTIVE_KEY);
+}
+
+export function pickActiveServer(servers: MediaServer[]): MediaServer | null {
   if (servers.length === 0) return null;
   const id = getActiveServerId();
   return servers.find((s) => s.id === id) ?? servers[0];
-}
-
-export function addServer(s: Omit<MediaServer, "id">): MediaServer {
-  const servers = listServers();
-  const id = `srv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  const next: MediaServer = { ...s, id, serverUrl: s.serverUrl.replace(/\/+$/, "") };
-  servers.push(next);
-  localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
-  localStorage.setItem(ACTIVE_KEY, id);
-  return next;
-}
-
-export function removeServer(id: string) {
-  const servers = listServers().filter((s) => s.id !== id);
-  localStorage.setItem(SERVERS_KEY, JSON.stringify(servers));
-  localStorage.removeItem(HIDDEN_KEY_PREFIX + id);
-  const active = getActiveServerId();
-  if (active === id) {
-    if (servers[0]) localStorage.setItem(ACTIVE_KEY, servers[0].id);
-    else localStorage.removeItem(ACTIVE_KEY);
-  }
-}
-
-export function clearAllServers() {
-  localStorage.removeItem(SERVERS_KEY);
-  localStorage.removeItem(ACTIVE_KEY);
 }
 
 export function loadHiddenViews(serverId: string): string[] {
@@ -110,18 +62,27 @@ export function loadHiddenViews(serverId: string): string[] {
     return [];
   }
 }
+
 export function saveHiddenViews(serverId: string, ids: string[]) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(HIDDEN_KEY_PREFIX + serverId, JSON.stringify(ids));
 }
 
-function normalize(url: string) {
-  return url.replace(/\/+$/, "");
+export function clearHiddenViews(serverId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(HIDDEN_KEY_PREFIX + serverId);
 }
 
-// Wrap any upstream URL in our same-origin HTTPS proxy so http:// servers
-// don't get blocked as mixed content.
-export function proxied(target: string) {
-  return `/api/public/emby-proxy?u=${encodeURIComponent(target)}`;
+// ── Media proxy URLs ───────────────────────────────────────────────────────
+// `p` is a path (plus query) on the upstream server. The proxy resolves the
+// server's base URL and token from the httpOnly cookie, so nothing secret is
+// present in these URLs.
+
+export const MEDIA_PROXY_PATH = "/api/public/media-proxy";
+
+export function proxiedPath(serverId: string, path: string) {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(serverId)}&p=${encodeURIComponent(p)}`;
 }
 
 // ── Unified image URL ──────────────────────────────────────────────────────
@@ -133,7 +94,7 @@ export function imageUrl(
   s: MediaServer,
   item: { Id: string; ImageTags?: Record<string, string>; BackdropImageTags?: string[] },
   type: "Primary" | "Backdrop" | "Thumb" = "Primary",
-  opts: { maxWidth?: number } = {}
+  opts: { maxWidth?: number } = {},
 ): string | null {
   if (s.kind === "plex") {
     const path = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
@@ -141,28 +102,29 @@ export function imageUrl(
     const w = opts.maxWidth ?? 400;
     const h = type === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
     // Plex photo transcoder is widely supported and returns sensible sizes.
-    const target =
-      `${normalize(s.serverUrl)}/photo/:/transcode?width=${w}&height=${h}` +
-      `&minSize=1&upscale=1&url=${encodeURIComponent(path)}&X-Plex-Token=${encodeURIComponent(s.token)}`;
-    return proxied(target);
+    return proxiedPath(
+      s.id,
+      `/photo/:/transcode?width=${w}&height=${h}&minSize=1&upscale=1&url=${encodeURIComponent(path)}`,
+    );
   }
   // Emby / Jellyfin
   const tag = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
   if (!tag) return null;
   const params = new URLSearchParams({ quality: "90", tag });
   if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
-  return proxied(`${normalize(s.serverUrl)}/Items/${item.Id}/Images/${type}?${params}`);
+  return proxiedPath(s.id, `/Items/${item.Id}/Images/${type}?${params}`);
 }
 
 // ── Stream URLs (Emby / Jellyfin only — built client-side) ─────────────────
 // Plex needs an extra round-trip to resolve Media.Part.key; that lives in
 // plex.functions.ts.
 
+const DEVICE_ID = "lovable-media-web";
+
 export function embyHlsStreamUrl(s: MediaServer, itemId: string) {
   const params = new URLSearchParams();
   params.set("UserId", s.userId);
-  params.set("DeviceId", "lovable-media-web");
-  params.set("api_key", s.token);
+  params.set("DeviceId", DEVICE_ID);
   params.set("PlaySessionId", `lovable-${itemId}-${Date.now()}`);
   params.set("VideoCodec", "h264,hevc");
   params.set("AudioCodec", "aac,mp3");
@@ -176,22 +138,20 @@ export function embyHlsStreamUrl(s: MediaServer, itemId: string) {
   params.set("BreakOnNonKeyFrames", "True");
   params.set("h264-profile", "high,main,baseline");
   params.set("h264-level", "51");
-  return proxied(`${normalize(s.serverUrl)}/Videos/${itemId}/master.m3u8?${params}`);
+  return proxiedPath(s.id, `/Videos/${itemId}/master.m3u8?${params}`);
 }
 
 export function embyDirectStreamUrl(s: MediaServer, itemId: string, container = "mp4") {
   const params = new URLSearchParams({
     UserId: s.userId,
-    DeviceId: "lovable-media-web",
-    api_key: s.token,
+    DeviceId: DEVICE_ID,
     Static: "true",
   });
-  return proxied(`${normalize(s.serverUrl)}/Videos/${itemId}/stream.${container}?${params}`);
+  return proxiedPath(s.id, `/Videos/${itemId}/stream.${container}?${params}`);
 }
 
 export function plexDirectStreamUrl(s: MediaServer, partKey: string) {
-  const path = partKey.startsWith("/") ? partKey : `/${partKey}`;
-  return proxied(`${normalize(s.serverUrl)}${path}?X-Plex-Token=${encodeURIComponent(s.token)}`);
+  return proxiedPath(s.id, partKey);
 }
 
 // Emby/Jellyfin subtitle stream as VTT (browser-friendly).
@@ -201,8 +161,9 @@ export function embySubtitleUrl(
   mediaSourceId: string,
   streamIndex: number,
 ) {
-  return proxied(
-    `${normalize(s.serverUrl)}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.vtt?api_key=${encodeURIComponent(s.token)}`,
+  return proxiedPath(
+    s.id,
+    `/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.vtt`,
   );
 }
 

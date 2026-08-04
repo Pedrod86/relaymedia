@@ -8,9 +8,9 @@ import {
   embyDirectStreamUrl,
   embySubtitleUrl,
   plexDirectStreamUrl,
-  loadActiveServer,
   type MediaServer,
 } from "@/lib/media-client";
+import { useMediaServers } from "@/lib/use-servers";
 import { embyGetItem } from "@/lib/emby.functions";
 import { plexGetStreamInfo } from "@/lib/plex.functions";
 
@@ -22,14 +22,14 @@ export const Route = createFileRoute("/watch/$id")({
 function WatchPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
-  const [server, setServer] = useState<MediaServer | null>(null);
+  const { active, isLoading } = useMediaServers();
+
   useEffect(() => {
-    const s = loadActiveServer();
-    if (!s) navigate({ to: "/login" });
-    else setServer(s);
-  }, [navigate]);
-  if (!server) return null;
-  return <Player server={server} itemId={id} />;
+    if (!isLoading && !active) navigate({ to: "/login" });
+  }, [isLoading, active, navigate]);
+
+  if (!active) return null;
+  return <Player key={active.id} server={active} itemId={id} />;
 }
 
 type SubTrack = {
@@ -55,16 +55,9 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const itemQ = useQuery({
     enabled: isEmbyFamily,
     queryKey: ["watch-item", server.id, itemId],
-    queryFn: () =>
-      getItemEmby({
-        data: {
-          serverUrl: server.serverUrl,
-          token: server.token,
-          userId: server.userId,
-          itemId,
-        },
-      }),
+    queryFn: () => getItemEmby({ data: { serverId: server.id, itemId } }),
   });
+
 
   const subtitles: SubTrack[] = useMemo(() => {
     if (!isEmbyFamily) return [];
@@ -101,9 +94,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       if (!video) return;
 
       if (server.kind === "plex") {
-        const res = await getPlexStream({
-          data: { serverUrl: server.serverUrl, token: server.token, itemId },
-        });
+        const res = await getPlexStream({ data: { serverId: server.id, itemId } });
         if (cancelled) return;
         if (!res.ok) {
           setError(res.error);

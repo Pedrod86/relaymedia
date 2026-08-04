@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
-import { plexLogin, plexVerify } from "@/lib/plex.functions";
-import { addServer, type ServerKind } from "@/lib/media-client";
+import { plexAddServer } from "@/lib/plex.functions";
+import { setActiveServerId, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,8 +28,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
 function LoginPage() {
   const navigate = useNavigate();
   const embyLoginFn = useServerFn(embyLogin);
-  const plexLoginFn = useServerFn(plexLogin);
-  const plexVerifyFn = useServerFn(plexVerify);
+  const plexAddServerFn = useServerFn(plexAddServer);
 
   const [kind, setKind] = useState<ServerKind>("emby");
   const [serverUrl, setServerUrl] = useState("");
@@ -46,51 +45,30 @@ function LoginPage() {
     setBusy(true);
     try {
       const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+      // Credentials are posted to the server, which stores the resulting
+      // access token in an encrypted httpOnly cookie. Nothing secret comes
+      // back to this page.
       if (kind === "emby" || kind === "jellyfin") {
-        const res = await embyLoginFn({ data: { serverUrl: cleanUrl, username, password } });
+        const res = await embyLoginFn({
+          data: { kind, serverUrl: cleanUrl, username, password },
+        });
         if (!res.ok) {
           setError(res.error);
           return;
         }
-        addServer({
-          kind,
-          name: new URL(cleanUrl).host,
-          serverUrl: cleanUrl,
-          token: res.token,
-          userId: res.userId,
-          userName: res.userName,
-        });
+        setActiveServerId(res.server.id);
         navigate({ to: "/library" });
       } else {
-        // Plex
-        let token = plexToken.trim();
-        let userName = username || "Plex user";
-        if (!usePlexToken) {
-          const login = await plexLoginFn({ data: { username, password } });
-          if (!login.ok) {
-            setError(login.error);
-            return;
-          }
-          token = login.token;
-          userName = login.userName;
-        }
-        if (!token) {
-          setError("Plex token is required.");
-          return;
-        }
-        const verify = await plexVerifyFn({ data: { serverUrl: cleanUrl, token } });
-        if (!verify.ok) {
-          setError(verify.error);
-          return;
-        }
-        addServer({
-          kind: "plex",
-          name: verify.friendlyName,
-          serverUrl: cleanUrl,
-          token,
-          userId: verify.machineId,
-          userName,
+        const res = await plexAddServerFn({
+          data: usePlexToken
+            ? { serverUrl: cleanUrl, token: plexToken.trim() }
+            : { serverUrl: cleanUrl, username, password },
         });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        setActiveServerId(res.server.id);
         navigate({ to: "/library" });
       }
     } catch (err) {
@@ -99,6 +77,7 @@ function LoginPage() {
       setBusy(false);
     }
   }
+
 
   const isPlex = kind === "plex";
 

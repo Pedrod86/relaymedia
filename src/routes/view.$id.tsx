@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { embyGetItems, embyGetViews } from "@/lib/emby.functions";
 import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
-import { loadActiveServer, imageUrl, type MediaServer } from "@/lib/media-client";
+import { imageUrl, type MediaServer } from "@/lib/media-client";
+import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/view/$id")({
@@ -17,16 +18,14 @@ export const Route = createFileRoute("/view/$id")({
 function ViewPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [server, setServer] = useState<MediaServer | null>(null);
+  const { active, isLoading } = useMediaServers();
 
   useEffect(() => {
-    const s = loadActiveServer();
-    if (!s) navigate({ to: "/login" });
-    else setServer(s);
-  }, [navigate]);
+    if (!isLoading && !active) navigate({ to: "/login" });
+  }, [isLoading, active, navigate]);
 
-  if (!server) return null;
-  return <ViewContent server={server} viewId={id} />;
+  if (!active) return null;
+  return <ViewContent key={active.id} server={active} viewId={id} />;
 }
 
 function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }) {
@@ -40,10 +39,8 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
     queryKey: ["views", server.id],
     queryFn: () =>
       isPlex
-        ? getViewsPlex({ data: { serverUrl: server.serverUrl, token: server.token } })
-        : getViewsEmby({
-            data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId },
-          }),
+        ? getViewsPlex({ data: { serverId: server.id } })
+        : getViewsEmby({ data: { serverId: server.id } }),
   });
 
   const view = views.data?.views.find((v) => v.Id === viewId);
@@ -54,8 +51,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
       isPlex
         ? getItemsPlex({
             data: {
-              serverUrl: server.serverUrl,
-              token: server.token,
+              serverId: server.id,
               parentId: viewId,
               limit: 200,
               sortBy: "titleSort",
@@ -63,9 +59,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
           })
         : getItemsEmby({
             data: {
-              serverUrl: server.serverUrl,
-              token: server.token,
-              userId: server.userId,
+              serverId: server.id,
               parentId: viewId,
               limit: 200,
               sortBy: "SortName",
@@ -73,6 +67,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
             },
           }),
   });
+
 
   return (
     <main className="min-h-screen bg-background">
