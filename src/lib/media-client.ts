@@ -210,3 +210,25 @@ export function ticksToTime(ticks?: number) {
   const s = totalSec % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m ${s.toString().padStart(2, "0")}s`;
 }
+
+// ── Name cleaning ──────────────────────────────────────────────────────────
+// Some servers / metadata plugins append IMDb/TMDb IDs to titles. Strip them
+// so the UI shows clean, readable names everywhere.
+
+const IMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:IMDb|IMDB|imdb)\s*[:\s]\s*(tt\d{5,})\s*[\]\)\}]?/gi;
+const TMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:TMDb|Tmdb|TMDB|tmdb)\s*[:\s]\s*(\d{4,})\s*[\]\)\}]?/gi;
+const TRAILING_ID_RE = /\s*[\[\(\{]\s*(tt\d{5,}|\d{6,})\s*[\]\)\}]/gi;
+const LONE_ID_RE = /\s*[-–—]\s*(tt\d{5,}|\d{6,})\b/gi;
+
+export function cleanName(name?: string | null): string {
+  if (!name) return "";
+  return name
+    .replace(IMDB_ID_RE, "")
+    .replace(TMDB_ID_RE, "")
+    .replace(TRAILING_ID_RE, "")
+    .replace(LONE_ID_RE, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s[-–—]\s*$/, "")
+    .trim();
+}
+
