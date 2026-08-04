@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
 import { loadHiddenViews, imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
@@ -17,6 +17,26 @@ export const Route = createFileRoute("/library")({
   }),
   component: LibraryPage,
 });
+
+const TV_MODE_KEY = "media:tv-mode";
+
+function loadTvMode(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(TV_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveTvMode(value: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TV_MODE_KEY, value ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
 
 function LibraryPage() {
   const navigate = useNavigate();
@@ -46,9 +66,18 @@ function LibraryContent({
   servers: MediaServer[];
   onSwitch: (id: string) => void;
 }) {
+  const [tvMode, setTvMode] = useState(false);
+  useEffect(() => {
+    setTvMode(loadTvMode());
+  }, []);
+
+  const toggleTv = () => {
+    const next = !tvMode;
+    setTvMode(next);
+    saveTvMode(next);
+  };
+
   const isPlex = server.kind === "plex";
-  // Only the opaque server id crosses the wire — the token is resolved
-  // server-side from the encrypted cookie vault.
   const arg = { serverId: server.id };
 
   const getViewsEmby = useServerFn(embyGetViews);
@@ -73,7 +102,6 @@ function LibraryContent({
     queryFn: () => (isPlex ? getLatestPlex({ data: arg }) : getLatestEmby({ data: arg })),
   });
 
-
   const backdropItems = useMemo(() => {
     const pool = latest.data?.items ?? [];
     return pool
@@ -81,37 +109,80 @@ function LibraryContent({
       .slice(0, 5);
   }, [latest.data, server]);
 
+  const sections = useMemo(() => {
+    const list: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[] = [];
+    if (resume.data?.items.length) {
+      list.push({ id: "resume", title: "Continue watching", items: resume.data.items, kind: "thumb" });
+    }
+    if (latest.data?.items.length) {
+      list.push({ id: "latest", title: "Recently added", items: latest.data.items, kind: "primary" });
+    }
+    if (views.data) {
+      views.data.views
+        .filter((v) => !hidden.has(v.Id))
+        .forEach((v) => {
+          list.push({ id: v.Id, title: v.Name, items: [], kind: "primary" });
+        });
+    }
+    return list;
+  }, [resume.data, latest.data, views.data, hidden]);
+
+  const topNav = (
+    <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">
+            {server.kind} · {server.name}
+          </p>
+          <h1 className="text-lg font-semibold">Hi, {server.userName}</h1>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {servers.length > 1 && (
+            <select
+              value={server.id}
+              onChange={(e) => onSwitch(e.target.value)}
+              className="rounded-md border bg-background px-2 py-1 text-sm"
+              aria-label="Switch server"
+            >
+              {servers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.kind})
+                </option>
+              ))}
+            </select>
+          )}
+          <Button
+            variant={tvMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleTv}
+            aria-pressed={tvMode}
+            aria-label={tvMode ? "Exit TV mode" : "Enter TV mode"}
+          >
+            <span className="mr-1">📺</span>
+            {tvMode ? "Exit TV" : "TV mode"}
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link to="/settings">Settings</Link>
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+
+  if (tvMode) {
+    return (
+      <TVLayout
+        server={server}
+        topNav={topNav}
+        sections={sections}
+        backdropItems={backdropItems}
+      />
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {server.kind} · {server.name}
-            </p>
-            <h1 className="text-lg font-semibold">Hi, {server.userName}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {servers.length > 1 && (
-              <select
-                value={server.id}
-                onChange={(e) => onSwitch(e.target.value)}
-                className="rounded-md border bg-background px-2 py-1 text-sm"
-                aria-label="Switch server"
-              >
-                {servers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.kind})
-                  </option>
-                ))}
-              </select>
-            )}
-            <Button variant="ghost" asChild>
-              <Link to="/settings">Settings</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      {topNav}
 
       {backdropItems.length > 0 && (
         <BackdropHero items={backdropItems} server={server} />
@@ -140,6 +211,284 @@ function LibraryContent({
         ))}
       </div>
     </main>
+  );
+}
+
+function TVLayout({
+  server,
+  topNav,
+  sections,
+  backdropItems,
+}: {
+  server: MediaServer;
+  topNav: React.ReactNode;
+  sections: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[];
+  backdropItems: any[];
+}) {
+  const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "resume");
+  const rowsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const mainRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (sections.length && !sections.find((s) => s.id === activeSectionId)) {
+      setActiveSectionId(sections[0].id);
+    }
+  }, [sections, activeSectionId]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const idx = sections.findIndex((s) => s.id === activeSectionId);
+        const nextIdx = e.key === "ArrowDown" ? Math.min(idx + 1, sections.length - 1) : Math.max(idx - 1, 0);
+        const nextId = sections[nextIdx]?.id;
+        if (nextId && nextId !== activeSectionId) {
+          setActiveSectionId(nextId);
+          const row = rowsRef.current[nextId];
+          const card = row?.querySelector<HTMLElement>("[data-tv-card]");
+          card?.focus();
+          row?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeSectionId, sections]);
+
+  const hero = backdropItems[0];
+
+  return (
+    <main className="flex h-screen flex-col overflow-hidden bg-background" ref={mainRef}>
+      {topNav}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r bg-card/50 p-4 lg:flex">
+          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Sections
+          </p>
+          <nav className="space-y-1" aria-label="TV sections">
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                data-focus={s.id === activeSectionId}
+                className="tv-sidebar-item w-full rounded-lg px-3 py-3 text-left text-sm font-medium transition"
+                onClick={() => {
+                  setActiveSectionId(s.id);
+                  rowsRef.current[s.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                {s.title}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main scrollable area */}
+        <div className="tv-scroll flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+          {hero && (
+            <div className="relative mb-8 h-[32vh] min-h-[220px] w-full overflow-hidden rounded-2xl">
+              <img
+                src={imageUrl(server, hero, "Backdrop", { maxWidth: 1600 })}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+              <div className="absolute inset-0 flex flex-col justify-end p-8">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">Featured</p>
+                <h2 className="mt-1 max-w-2xl text-3xl font-semibold tracking-tight lg:text-4xl">
+                  {cleanName(hero.Name)}
+                </h2>
+                {hero.ProductionYear && (
+                  <p className="mt-1 text-sm text-muted-foreground">{hero.ProductionYear}</p>
+                )}
+                <div className="mt-4">
+                  <Button asChild>
+                    <Link to="/item/$id" params={{ id: String(hero.Id) }}>
+                      View details
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {sections.map((s) =>
+            s.id === "resume" || s.id === "latest" ? (
+              <TVSection
+                key={s.id}
+                id={s.id}
+                title={s.title}
+                items={s.items}
+                server={server}
+                kind={s.kind}
+                isActive={s.id === activeSectionId}
+                onRowRef={(el) => (rowsRef.current[s.id] = el)}
+              />
+            ) : (
+              <TVLibrarySection
+                key={s.id}
+                id={s.id}
+                title={s.title}
+                server={server}
+                isActive={s.id === activeSectionId}
+                onRowRef={(el) => (rowsRef.current[s.id] = el)}
+              />
+            )
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function TVSection({
+  id,
+  title,
+  items,
+  server,
+  kind,
+  isActive,
+  onRowRef,
+}: {
+  id: string;
+  title: string;
+  items: any[];
+  server: MediaServer;
+  kind: "primary" | "thumb";
+  isActive: boolean;
+  onRowRef: (el: HTMLDivElement | null) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    onRowRef(rowRef.current);
+  }, [onRowRef]);
+
+  return (
+    <section className="mb-10">
+      <h2 className="mb-4 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
+      <div
+        ref={rowRef}
+        data-section-id={id}
+        className="tv-scroll flex gap-5 overflow-x-auto pb-4"
+        data-active={isActive}
+      >
+        {items.map((it) => (
+          <TVCard key={it.Id} item={it} server={server} kind={kind} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TVLibrarySection({
+  id,
+  title,
+  server,
+  isActive,
+  onRowRef,
+}: {
+  id: string;
+  title: string;
+  server: MediaServer;
+  isActive: boolean;
+  onRowRef: (el: HTMLDivElement | null) => void;
+}) {
+  const isPlex = server.kind === "plex";
+  const getItemsEmby = useServerFn(embyGetItems);
+  const getItemsPlex = useServerFn(plexGetItems);
+  const q = useQuery({
+    queryKey: ["items", server.id, id],
+    queryFn: () =>
+      isPlex
+        ? getItemsPlex({
+            data: { serverId: server.id, parentId: id, limit: 30, sortBy: "addedAt:desc" },
+          })
+        : getItemsEmby({
+            data: {
+              serverId: server.id,
+              parentId: id,
+              limit: 30,
+              sortBy: "DateCreated,SortName",
+            },
+          }),
+  });
+
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    onRowRef(rowRef.current);
+  }, [onRowRef]);
+
+  if (!q.data || q.data.items.length === 0) return null;
+
+  return (
+    <section className="mb-10">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
+        <Link
+          to="/view/$id"
+          params={{ id }}
+          className="text-sm text-muted-foreground hover:text-primary"
+        >
+          See all →
+        </Link>
+      </div>
+      <div
+        ref={rowRef}
+        data-section-id={id}
+        className="tv-scroll flex gap-5 overflow-x-auto pb-4"
+        data-active={isActive}
+      >
+        {q.data.items.map((it) => (
+          <TVCard key={it.Id} item={it} server={server} kind="primary" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TVCard({
+  item,
+  server,
+  kind,
+}: {
+  item: any;
+  server: MediaServer;
+  kind: "primary" | "thumb";
+}) {
+  const portrait = kind === "primary";
+  const src = imageUrl(server, item, portrait ? "Primary" : "Thumb", { maxWidth: 500 });
+  const width = portrait ? 200 : 340;
+
+  return (
+    <Link
+      to="/item/$id"
+      params={{ id: item.Id }}
+      data-tv-card
+      tabIndex={0}
+      className="tv-card group relative flex-shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border"
+      style={{ width, aspectRatio: portrait ? "2/3" : "16/9" }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt={cleanName(item.Name)}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+          {cleanName(item.Name)}
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
+        <p className="truncate text-sm font-semibold text-white">{cleanName(item.Name)}</p>
+        {item.ProductionYear && (
+          <p className="text-xs text-white/80">{item.ProductionYear}</p>
+        )}
+      </div>
+    </Link>
   );
 }
 
