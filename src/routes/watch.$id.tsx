@@ -75,12 +75,16 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
   const isEmbyFamily = server.kind !== "plex";
 
+  const [displayHz, setDisplayHz] = useState<number | undefined>(undefined);
+  const [frames, setFrames] = useState<FrameStats | undefined>(undefined);
+
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
     void probeCodecs().then((c) => {
       setCaps(c);
       void probeHdr(c).then(setHdr);
     });
+    void measureRefreshRate().then(setDisplayHz);
   }, []);
 
 
