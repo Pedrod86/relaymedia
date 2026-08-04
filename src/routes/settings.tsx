@@ -152,6 +152,10 @@ function SettingsPage() {
           </div>
         </section>
 
+        <DevicesPanel />
+
+
+
 
         <PlayerSettingsPanel />
 
