@@ -111,6 +111,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     params.set("Framerate", fps);
   }
 
+  if (hdrPass) {
     // Preserve the grade: never tone-map, and use fMP4 so 10-bit/DV survives.
     params.set("SegmentContainer", "mp4");
     params.set("EnableTonemapping", "false");
