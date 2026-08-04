@@ -251,7 +251,19 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
         video.load();
       }
     };
-  }, [server, itemId, mode, caps.length, videoCodecs, audioCodecs, prefs.maxBitrate, sessionId]);
+  }, [
+    server,
+    itemId,
+    mode,
+    caps.length,
+    videoCodecs,
+    audioCodecs,
+    prefs.maxBitrate,
+    prefs.maxHeight,
+    hdrParam,
+    sessionId,
+  ]);
+
 
 
   // Force the chosen <track> to "showing" — browsers default to "disabled".
