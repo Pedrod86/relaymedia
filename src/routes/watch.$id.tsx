@@ -346,23 +346,38 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
       {showPanel && (
         <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="mb-2 font-medium">Decoding</p>
-              <div className="flex gap-1">
-                {decodeOptions.map((o) => (
-                  <button
-                    key={o.id}
-                    onClick={() => update({ decode: o.id })}
-                    className={`rounded px-2 py-1 ${
-                      prefs.decode === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
+          {!isPro && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2">
+              <span>
+                Decoder control, 4K/HDR passthrough and quality caps are part of Relay Pro.
+              </span>
+              <Link
+                to="/upgrade"
+                className="rounded bg-primary px-2 py-1 font-medium text-primary-foreground"
+              >
+                Unlock for $15
+              </Link>
             </div>
+          )}
+          <div className="grid gap-4 sm:grid-cols-3">
+            {isPro && (
+              <div>
+                <p className="mb-2 font-medium">Decoding</p>
+                <div className="flex gap-1">
+                  {decodeOptions.map((o) => (
+                    <button
+                      key={o.id}
+                      onClick={() => update({ decode: o.id })}
+                      className={`rounded px-2 py-1 ${
+                        prefs.decode === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <p className="mb-2 font-medium">Stream</p>
               <div className="flex gap-1">
@@ -379,55 +394,60 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 ))}
               </div>
             </div>
-            <div>
-              <p className="mb-2 font-medium">Quality cap</p>
-              <select
-                value={prefs.maxBitrate}
-                onChange={(e) => update({ maxBitrate: Number(e.target.value) })}
-                className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
-              >
-                {[4, 8, 20, 40, 80, 120].map((mbps) => (
-                  <option key={mbps} value={mbps * 1_000_000}>
-                    {mbps === 120 ? "Unlimited" : `${mbps} Mbps`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <p className="mb-2 font-medium">HDR / Dolby Vision</p>
-              <div className="flex gap-1">
-                {([
-                  { id: "auto", label: "Auto" },
-                  { id: "passthrough", label: "Passthrough" },
-                  { id: "sdr", label: "Tone-map" },
-                ] as { id: HdrMode; label: string }[]).map((o) => (
-                  <button
-                    key={o.id}
-                    onClick={() => update({ hdr: o.id })}
-                    className={`rounded px-2 py-1 ${
-                      prefs.hdr === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
-                    }`}
+            {isPro && (
+              <>
+                <div>
+                  <p className="mb-2 font-medium">Quality cap</p>
+                  <select
+                    value={prefs.maxBitrate}
+                    onChange={(e) => update({ maxBitrate: Number(e.target.value) })}
+                    className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
                   >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="mb-2 font-medium">Max resolution</p>
-              <select
-                value={prefs.maxHeight}
-                onChange={(e) => update({ maxHeight: Number(e.target.value) })}
-                className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
-              >
-                {[720, 1080, 1440, 2160].map((h) => (
-                  <option key={h} value={h}>
-                    {h === 2160 ? "4K (2160p)" : `${h}p`}
-                  </option>
-                ))}
-              </select>
-            </div>
+                    {[4, 8, 20, 40, 80, 120].map((mbps) => (
+                      <option key={mbps} value={mbps * 1_000_000}>
+                        {mbps === 120 ? "Unlimited" : `${mbps} Mbps`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="mb-2 font-medium">HDR / Dolby Vision</p>
+                  <div className="flex gap-1">
+                    {([
+                      { id: "auto", label: "Auto" },
+                      { id: "passthrough", label: "Passthrough" },
+                      { id: "sdr", label: "Tone-map" },
+                    ] as { id: HdrMode; label: string }[]).map((o) => (
+                      <button
+                        key={o.id}
+                        onClick={() => update({ hdr: o.id })}
+                        className={`rounded px-2 py-1 ${
+                          prefs.hdr === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 font-medium">Max resolution</p>
+                  <select
+                    value={prefs.maxHeight}
+                    onChange={(e) => update({ maxHeight: Number(e.target.value) })}
+                    className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
+                  >
+                    {[720, 1080, 1440, 2160].map((h) => (
+                      <option key={h} value={h}>
+                        {h === 2160 ? "4K (2160p)" : `${h}p`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
+
           {check && check.notes.length > 0 && (
             <ul className="mt-3 space-y-1 opacity-70">
               {check.notes.map((n) => (
