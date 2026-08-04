@@ -4,6 +4,8 @@
 
 export type DecodeMode = "auto" | "hardware" | "software";
 export type PlaybackMode = "auto" | "hls" | "direct";
+/** How to handle HDR10 / HLG / Dolby Vision sources. */
+export type HdrMode = "auto" | "passthrough" | "sdr";
 
 export type PlayerPrefs = {
   /** Hardware = only use codecs the GPU can decode power-efficiently. */
@@ -14,6 +16,14 @@ export type PlayerPrefs = {
   maxBitrate: number;
   /** Turn on the first text subtitle track automatically. */
   autoSubtitles: boolean;
+  /**
+   * auto        — pass HDR/DV through when the display supports it, tone-map otherwise
+   * passthrough — always ask for the original HDR/DV stream (no tone mapping)
+   * sdr         — always tone-map to SDR
+   */
+  hdr: HdrMode;
+  /** Vertical resolution ceiling (2160 = 4K). */
+  maxHeight: number;
 };
 
 export const DEFAULT_PREFS: PlayerPrefs = {
@@ -21,6 +31,8 @@ export const DEFAULT_PREFS: PlayerPrefs = {
   playback: "auto",
   maxBitrate: 20_000_000,
   autoSubtitles: false,
+  hdr: "auto",
+  maxHeight: 2160,
 };
 
 const KEY = "media_player_prefs_v1";
@@ -46,8 +58,17 @@ export const BITRATE_OPTIONS = [
   { value: 8_000_000, label: "8 Mbps (720p/1080p)" },
   { value: 20_000_000, label: "20 Mbps (1080p high)" },
   { value: 40_000_000, label: "40 Mbps (4K)" },
+  { value: 80_000_000, label: "80 Mbps (4K HDR)" },
   { value: 120_000_000, label: "Unlimited (original)" },
 ];
+
+export const RESOLUTION_OPTIONS = [
+  { value: 720, label: "720p" },
+  { value: 1080, label: "1080p" },
+  { value: 1440, label: "1440p" },
+  { value: 2160, label: "4K (2160p)" },
+];
+
 
 // ── Codec probing ──────────────────────────────────────────────────────────
 
