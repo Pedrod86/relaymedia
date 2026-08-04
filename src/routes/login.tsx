@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
@@ -37,11 +37,13 @@ function LoginPage() {
   const [plexToken, setPlexToken] = useState("");
   const [usePlexToken, setUsePlexToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setLimitReached(false);
     setBusy(true);
     try {
       const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
@@ -54,6 +56,7 @@ function LoginPage() {
         });
         if (!res.ok) {
           setError(res.error);
+          setLimitReached(Boolean(res.limitReached));
           return;
         }
         setActiveServerId(res.server.id);
@@ -66,6 +69,7 @@ function LoginPage() {
         });
         if (!res.ok) {
           setError(res.error);
+          setLimitReached(Boolean(res.limitReached));
           return;
         }
         setActiveServerId(res.server.id);
@@ -201,9 +205,14 @@ function LoginPage() {
             )}
 
             {error && (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
-              </p>
+              <div className="space-y-2" role="alert">
+                <p className="text-sm text-destructive">{error}</p>
+                {limitReached && (
+                  <Button asChild variant="secondary" size="sm" className="w-full">
+                    <Link to="/upgrade">Unlock more servers with Relay Pro</Link>
+                  </Button>
+                )}
+              </div>
             )}
             <Button type="submit" disabled={busy} className="w-full">
               {busy ? "Connecting…" : "Connect server"}

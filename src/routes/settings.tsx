@@ -14,6 +14,8 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { useProAccess } from "@/lib/use-pro";
+import { FREE_SERVER_LIMIT, PRO_SERVER_LIMIT } from "@/lib/limits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
@@ -34,6 +36,7 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const navigate = useNavigate();
   const { servers, active, isLoading, switchTo, refresh } = useMediaServers();
+  const { isPro } = useProAccess();
   const removeServerFn = useServerFn(removeMediaServer);
   const signOutAllFn = useServerFn(signOutAllServers);
 
@@ -92,6 +95,20 @@ function SettingsPage() {
             Switch between connected <ServerLabel kind="emby" />,{" "}
             <ServerLabel kind="jellyfin" /> or <ServerLabel kind="plex" /> servers, or remove ones you no longer use.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {isPro ? (
+              <>Relay Pro: up to {PRO_SERVER_LIMIT} connected servers.</>
+            ) : (
+              <>
+                Free plan: {FREE_SERVER_LIMIT} connected server.{" "}
+                <Link to="/upgrade" className="underline">
+                  Unlock up to {PRO_SERVER_LIMIT} with Relay Pro
+                </Link>
+                .
+              </>
+            )}
+          </p>
+
           <ul className="mt-4 divide-y">
             {servers.map((s) => {
               const isActive = s.id === active.id;
