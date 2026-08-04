@@ -73,13 +73,35 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const item = itemQ.data?.item as any;
   const isFolder = item?.IsFolder || item?.Type === "Series" || item?.Type === "Season";
 
+  const isSeries = item?.Type === "Series";
+
+  // Emby/Jellyfin: a Series gets its full flat episode list (recursive) so a
+  // single Play button can start at episode 1; a Season lists its own children.
   const childrenQ = useQuery({
     enabled: !!item && isFolder && !isPlex,
-    queryKey: ["children", server.id, id],
+    queryKey: ["children", server.id, id, isSeries],
     queryFn: () =>
       getItemsEmby({
-        data: { serverId: server.id, parentId: id, limit: 100, sortBy: "SortName" },
+        data: isSeries
+          ? {
+              serverId: server.id,
+              parentId: id,
+              limit: 200,
+              recursive: true,
+              includeItemTypes: "Episode",
+              sortBy: "ParentIndexNumber,IndexNumber,SortName",
+            }
+          : { serverId: server.id, parentId: id, limit: 200, sortBy: "IndexNumber,SortName" },
       }),
+  });
+
+  // Plex: children of a show are seasons, so drill one level for a playable episode.
+  const plexChildren: any[] = isPlex ? (item?._children ?? []) : [];
+  const firstPlexFolder = plexChildren.find((c) => c.IsFolder);
+  const plexGrandChildrenQ = useQuery({
+    enabled: isPlex && !!firstPlexFolder && !plexChildren.some((c) => !c.IsFolder),
+    queryKey: ["plex-children", server.id, firstPlexFolder?.Id],
+    queryFn: () => getItemPlex({ data: { serverId: server.id, itemId: firstPlexFolder!.Id } }),
   });
 
   const check = useMemo(
@@ -91,7 +113,21 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
 
   const backdrop = imageUrl(server, item, "Backdrop", { maxWidth: 1920 });
   const poster = imageUrl(server, item, "Primary", { maxWidth: 400 });
-  const children: any[] = isPlex ? item._children ?? [] : childrenQ.data?.items ?? [];
+  const children: any[] = isPlex ? plexChildren : (childrenQ.data?.items ?? []);
+  const childrenLoading = isPlex ? false : childrenQ.isLoading;
+
+  // First playable episode: prefer a partially-watched one, else the first.
+  const episodePool: any[] = isPlex
+    ? (plexChildren.some((c) => !c.IsFolder)
+        ? plexChildren
+        : ((plexGrandChildrenQ.data?.item as any)?._children ?? []))
+    : children;
+  const playable = episodePool.filter((c: any) => !c.IsFolder);
+  const nextUp =
+    playable.find((c: any) => (c.UserData?.PlaybackPositionTicks ?? 0) > 0) ??
+    playable.find((c: any) => !c.UserData?.Played) ??
+    playable[0];
+
 
   const genres: string[] = item.Genres ?? [];
   const studios: string[] = (item.Studios ?? []).map((s: any) => s?.Name ?? s).filter(Boolean);
@@ -185,27 +221,45 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                 </dl>
               )}
 
-              {!isFolder && (
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {!isFolder && (
                   <Link to="/watch/$id" params={{ id: item.Id }}>
                     <Button size="lg">▶ Play</Button>
                   </Link>
-                  {check && (
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs ${
-                        check.canDirectPlay
-                          ? "bg-emerald-500/15 text-emerald-500"
-                          : "bg-amber-500/15 text-amber-500"
-                      }`}
-                    >
-                      {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
-                    </span>
-                  )}
-                  <Link to="/settings" className="text-xs text-muted-foreground underline">
-                    Player settings
+                )}
+                {isFolder && nextUp && (
+                  <Link to="/watch/$id" params={{ id: nextUp.Id }}>
+                    <Button size="lg">
+                      ▶ Play{" "}
+                      {nextUp.ParentIndexNumber != null && nextUp.IndexNumber != null
+                        ? `S${nextUp.ParentIndexNumber}·E${nextUp.IndexNumber}`
+                        : nextUp.IndexNumber != null
+                          ? `episode ${nextUp.IndexNumber}`
+                          : ""}
+                    </Button>
                   </Link>
-                </div>
-              )}
+                )}
+                {isFolder && !nextUp && childrenLoading && (
+                  <Button size="lg" disabled>
+                    Loading episodes…
+                  </Button>
+                )}
+                {check && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      check.canDirectPlay
+                        ? "bg-emerald-500/15 text-emerald-500"
+                        : "bg-amber-500/15 text-amber-500"
+                    }`}
+                  >
+                    {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
+                  </span>
+                )}
+                <Link to="/settings" className="text-xs text-muted-foreground underline">
+                  Player settings
+                </Link>
+              </div>
+
               {check && check.notes.length > 0 && (
                 <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
                   {check.notes.map((n) => (
@@ -308,9 +362,17 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         </section>
       )}
 
-      {isFolder && children.length > 0 && (
+      {isFolder && (
         <div className="mx-auto max-w-6xl px-6 py-12">
           <h2 className="mb-4 text-xl font-semibold">Episodes</h2>
+          {childrenLoading && children.length === 0 && (
+            <p className="text-sm text-muted-foreground">Loading episodes…</p>
+          )}
+          {!childrenLoading && children.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No episodes found for this title on {server.name}.
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((ep: any) => {
               const epImg = imageUrl(server, ep, "Primary", { maxWidth: 600 });
@@ -331,9 +393,14 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   )}
                   <div className="p-3">
                     <p className="font-medium">
-                      {ep.IndexNumber ? `${ep.IndexNumber}. ` : ""}
+                      {ep.ParentIndexNumber != null && ep.IndexNumber != null
+                        ? `S${ep.ParentIndexNumber}·E${ep.IndexNumber} — `
+                        : ep.IndexNumber != null
+                          ? `${ep.IndexNumber}. `
+                          : ""}
                       {ep.Name}
                     </p>
+
                     <p className="mt-1 text-xs text-muted-foreground">
                       {[ep.PremiereDate ? new Date(ep.PremiereDate).getFullYear() : null, ticksToTime(ep.RunTimeTicks)]
                         .filter(Boolean)
