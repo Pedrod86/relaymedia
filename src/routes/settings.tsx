@@ -22,6 +22,7 @@ import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
 import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
+import { AccountPanel } from "@/components/AccountPanel";
 
 
 
@@ -153,6 +154,8 @@ function SettingsPage() {
             </p>
           </div>
         </section>
+
+        <AccountPanel />
 
         <DevicesPanel />
 

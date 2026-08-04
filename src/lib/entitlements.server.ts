@@ -53,6 +53,16 @@ export async function callerUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/**
+ * Which payments environment this build talks to. Derived from the build-time
+ * client token prefix (Vite inlines VITE_* in the server bundle too), so a
+ * sandbox test purchase can never grant entitlements on the live site.
+ */
+function paymentsEnvironment(): "sandbox" | "live" {
+  const token = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
+  return token?.startsWith("pk_live_") ? "live" : "sandbox";
+}
+
 /** True when the caller is signed in AND has a paid Relay Pro purchase. */
 export async function callerHasPro(): Promise<boolean> {
   const supabase = callerClient();
@@ -63,6 +73,7 @@ export async function callerHasPro(): Promise<boolean> {
     .from("purchases")
     .select("id")
     .eq("status", "paid")
+    .eq("environment", paymentsEnvironment())
     .limit(1);
   if (error) return false;
   return (data?.length ?? 0) > 0;

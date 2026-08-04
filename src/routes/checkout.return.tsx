@@ -1,5 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { verifyProPurchase } from "@/lib/payments.functions";
+import { getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
+import { useAuth } from "@/lib/use-auth";
 import { useProAccess } from "@/lib/use-pro";
 import { Button } from "@/components/ui/button";
 
@@ -30,17 +34,32 @@ export const Route = createFileRoute("/checkout/return")({
 function CheckoutReturn() {
   const { session_id: sessionId } = Route.useSearch();
   const { isPro, refresh } = useProAccess();
+  const { user } = useAuth();
+  const verify = useServerFn(verifyProPurchase);
 
-  // The webhook writes the purchase row moments after redirect — poll briefly.
+  // Two paths converge here. The webhook usually writes the purchase row within
+  // seconds, so poll for it — but also ask the server to read the session back
+  // from Stripe, so a delayed or dropped webhook can't leave a paying customer
+  // without their unlock.
   useEffect(() => {
-    if (isPro) return;
+    if (!sessionId || isPro || !user || !isPaymentsConfigured()) return;
+    let cancelled = false;
+
+    void (async () => {
+      const result = await verify({
+        data: { sessionId, environment: getStripeEnvironment() },
+      });
+      if (!cancelled && result.isPro) refresh();
+    })();
+
     const timer = setInterval(refresh, 2000);
-    const stop = setTimeout(() => clearInterval(timer), 20000);
+    const stop = setTimeout(() => clearInterval(timer), 30000);
     return () => {
+      cancelled = true;
       clearInterval(timer);
       clearTimeout(stop);
     };
-  }, [isPro, refresh]);
+  }, [sessionId, isPro, user, verify, refresh]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
