@@ -500,9 +500,30 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <p className="mb-2 font-medium">Auto frame rate (AFR)</p>
+                  <div className="flex gap-1">
+                    {([
+                      { id: "off", label: "Off" },
+                      { id: "auto", label: "Auto" },
+                      { id: "strict", label: "Strict" },
+                    ] as { id: AfrMode; label: string }[]).map((o) => (
+                      <button
+                        key={o.id}
+                        onClick={() => update({ afr: o.id })}
+                        className={`rounded px-2 py-1 ${
+                          prefs.afr === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
+
 
           {check && check.notes.length > 0 && (
             <ul className="mt-3 space-y-1 opacity-70">
