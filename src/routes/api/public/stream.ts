@@ -34,6 +34,10 @@ const querySchema = z.object({
   session: z.string().max(120).optional(),
   /** Seek offset in seconds for a transcoded stream. */
   start: z.coerce.number().min(0).max(1_000_000).optional(),
+  /** HDR10 / HLG / Dolby Vision handling. */
+  hdr: z.enum(["passthrough", "tonemap"]).default("tonemap"),
+  /** Vertical resolution ceiling — 2160 keeps 4K intact. */
+  maxHeight: z.coerce.number().int().min(360).max(4320).default(2160),
 });
 
 const DEVICE_ID = "lovable-media-web";
@@ -54,6 +58,8 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     });
     return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
   }
+
+  const hdrPass = q.hdr === "passthrough";
 
   const params = new URLSearchParams({
     UserId: userId,
@@ -78,7 +84,34 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     AllowAudioStreamCopy: "true",
     "h264-profile": "high,main,baseline",
     "h264-level": "51",
+    // 4K ceiling: keep 2160p intact unless the client asked for less.
+    MaxHeight: String(q.maxHeight),
+    MaxWidth: String(Math.round((q.maxHeight * 16) / 9)),
+    TranscodingMaxHeight: String(q.maxHeight),
+    // HEVC Main10 @ L5.1 is the 4K HDR profile; fMP4 segments are required for
+    // 10-bit HEVC / Dolby Vision passthrough (MPEG-TS cannot carry DV RPUs).
+    "hevc-profile": hdrPass ? "main,main10" : "main",
+    "hevc-level": "153",
+    "hevc-videobitdepth": hdrPass ? "8,10" : "8",
+    "hevc-rangetype": hdrPass ? "SDR,HDR10,HDR10Plus,HLG,DOVI" : "SDR",
+    "h264-rangetype": "SDR",
+    "h264-videobitdepth": "8",
   });
+
+  if (hdrPass) {
+    // Preserve the grade: never tone-map, and use fMP4 so 10-bit/DV survives.
+    params.set("SegmentContainer", "mp4");
+    params.set("EnableTonemapping", "false");
+    params.set("RequireAvc", "false");
+  } else {
+    // Tone-map HDR down to SDR (BT.2390) so colours don't wash out on SDR panels.
+    params.set("EnableTonemapping", "true");
+    params.set("TonemappingAlgorithm", "bt2390");
+    params.set("TonemappingRange", "auto");
+    params.set("TonemappingPeak", "100");
+    params.set("TonemappingDesat", "0");
+  }
+
   if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
   if (q.subtitleIndex !== undefined) {
     params.set("SubtitleStreamIndex", String(q.subtitleIndex));
@@ -86,6 +119,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
   }
   return `/Videos/${encodeURIComponent(q.item)}/master.m3u8?${params}`;
 }
+
 
 async function handle(request: Request) {
   const url = new URL(request.url);

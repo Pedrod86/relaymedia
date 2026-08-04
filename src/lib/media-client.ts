@@ -133,6 +133,10 @@ export type StreamOptions = {
   session?: string;
   /** Seek offset in seconds for transcoded playback. */
   start?: number;
+  /** HDR handling: pass the HDR10/HLG/DV grade through, or tone-map to SDR. */
+  hdr?: "passthrough" | "tonemap";
+  /** Vertical resolution ceiling (2160 = 4K). */
+  maxHeight?: number;
 };
 
 export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
@@ -145,8 +149,11 @@ export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   if (opts.container) params.set("container", opts.container);
   if (opts.session) params.set("session", opts.session);
   if (opts.start) params.set("start", String(opts.start));
+  if (opts.hdr) params.set("hdr", opts.hdr);
+  if (opts.maxHeight) params.set("maxHeight", String(opts.maxHeight));
   return `${STREAM_PATH}?${params}`;
 }
+
 
 
 // ── Legacy stream URLs (Emby / Jellyfin only — built client-side) ───────────

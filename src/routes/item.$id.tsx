@@ -11,10 +11,14 @@ import {
   checkItemPlayback,
   loadPlayerPrefs,
   probeCodecs,
+  probeHdr,
+  NO_HDR,
   type CodecCap,
+  type HdrSupport,
   type PlayerPrefs,
   DEFAULT_PREFS,
 } from "@/lib/player-prefs";
+
 
 export const Route = createFileRoute("/item/$id")({
   head: () => ({
@@ -57,10 +61,15 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
 
   const [prefs, setPrefs] = useState<PlayerPrefs>(DEFAULT_PREFS);
   const [caps, setCaps] = useState<CodecCap[]>([]);
+  const [hdrSupport, setHdrSupport] = useState<HdrSupport>(NO_HDR);
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
-    void probeCodecs().then(setCaps);
+    void probeCodecs().then((c) => {
+      setCaps(c);
+      void probeHdr(c).then(setHdrSupport);
+    });
   }, []);
+
 
   const itemQ = useQuery({
     queryKey: ["item", server.id, id],
@@ -105,9 +114,13 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   });
 
   const check = useMemo(
-    () => (!isPlex && item && !isFolder && caps.length ? checkItemPlayback(item, caps, prefs) : null),
-    [item, caps, prefs, isPlex, isFolder],
+    () =>
+      !isPlex && item && !isFolder && caps.length
+        ? checkItemPlayback(item, caps, prefs, hdrSupport)
+        : null,
+    [item, caps, prefs, isPlex, isFolder, hdrSupport],
   );
+
 
   if (!item) return <div className="p-8 text-muted-foreground">Loading…</div>;
 
@@ -255,6 +268,22 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                     {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
                   </span>
                 )}
+                {check && (check.is4K || check.isHdr) && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      check.hdrPassthrough ? "bg-sky-500/15 text-sky-500" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {[
+                      check.is4K ? "4K" : null,
+                      check.isDolbyVision ? "Dolby Vision" : check.isHdr ? check.videoRange : null,
+                      check.isHdr ? (check.hdrPassthrough ? "passthrough" : "tone-mapped") : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </span>
+                )}
+
                 <Link to="/settings" className="text-xs text-muted-foreground underline">
                   Player settings
                 </Link>
@@ -284,11 +313,18 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   {[
                     (s.Codec || "").toUpperCase(),
                     s.Width && s.Height ? `${s.Width}×${s.Height}` : null,
-                    s.VideoRange && s.VideoRange !== "SDR" ? s.VideoRange : null,
+                    Number(s.Width ?? 0) >= 3400 ? "4K" : null,
+                    s.DvProfile || String(s.VideoRangeType ?? "").toUpperCase().includes("DOVI")
+                      ? `Dolby Vision${s.DvProfile ? ` p${s.DvProfile}` : ""}`
+                      : (s.VideoRangeType ?? s.VideoRange) && (s.VideoRangeType ?? s.VideoRange) !== "SDR"
+                        ? s.VideoRangeType ?? s.VideoRange
+                        : null,
+                    s.BitDepth ? `${s.BitDepth}-bit` : null,
                     s.AverageFrameRate ? `${Math.round(s.AverageFrameRate)}fps` : null,
                   ]
                     .filter(Boolean)
                     .join(" • ")}
+
                 </p>
               ))}
               {source?.Container && (
