@@ -289,7 +289,7 @@ function TVLayout({
           {hero && (
             <div className="relative mb-8 h-[32vh] min-h-[220px] w-full overflow-hidden rounded-2xl">
               <img
-                src={imageUrl(server, hero, "Backdrop", { maxWidth: 1600 })}
+                src={imageUrl(server, hero, "Backdrop", { maxWidth: 1600 }) ?? undefined}
                 alt=""
                 className="h-full w-full object-cover"
               />
