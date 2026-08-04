@@ -103,7 +103,14 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     "h264-videobitdepth": "8",
   });
 
-  if (hdrPass) {
+  // AFR: pin the transcode to the source frame rate so the original cadence
+  // (23.976 / 24 / 25 / 50 / 60) survives instead of being converted.
+  if (q.maxFps) {
+    const fps = String(Math.round(q.maxFps * 1000) / 1000);
+    params.set("MaxFramerate", fps);
+    params.set("Framerate", fps);
+  }
+
     // Preserve the grade: never tone-map, and use fMP4 so 10-bit/DV survives.
     params.set("SegmentContainer", "mp4");
     params.set("EnableTonemapping", "false");
