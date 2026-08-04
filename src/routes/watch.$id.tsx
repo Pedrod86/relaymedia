@@ -316,6 +316,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     prefs.maxHeight,
     hdrParam,
     sessionId,
+    prefs.afr,
+    sourceFps,
   ]);
 
 
