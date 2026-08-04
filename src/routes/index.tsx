@@ -1,15 +1,18 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { listMediaServers } from "@/lib/servers.functions";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: () => {
-    // Server can't read localStorage, so redirect to login so the page never renders blank.
-    if (typeof window === "undefined") {
-      throw redirect({ to: "/login" });
+  beforeLoad: async () => {
+    // The connected-server list lives in an encrypted httpOnly cookie, so this
+    // works on the server too — no blank first render.
+    let hasServer = false;
+    try {
+      const { servers } = await listMediaServers({});
+      hasServer = servers.length > 0;
+    } catch {
+      hasServer = false;
     }
-    const servers = localStorage.getItem("media_servers_v1");
-    const legacy = localStorage.getItem("emby_session_v1");
-    const has = (servers && JSON.parse(servers).length > 0) || !!legacy;
-    throw redirect({ to: has ? "/library" : "/login" });
+    throw redirect({ to: hasServer ? "/library" : "/login" });
   },
   component: () => null,
 });

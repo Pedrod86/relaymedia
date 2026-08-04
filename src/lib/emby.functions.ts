@@ -1,45 +1,33 @@
 // Emby / Jellyfin share the same HTTP API (Jellyfin is a fork). These server
 // functions work for both — the `kind` field is informational only.
+//
+// Access tokens are never accepted from, or returned to, the browser: they are
+// stored in the encrypted httpOnly cookie vault and resolved server-side from
+// an opaque serverId.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
 
-const CLIENT_NAME = "LovableMedia";
-const DEVICE_NAME = "Web Browser";
-const APP_VERSION = "1.0.0";
-
-function authHeader(token?: string, userId?: string, deviceId = "lovable-media-web") {
-  const parts = [
-    `MediaBrowser Client="${CLIENT_NAME}"`,
-    `Device="${DEVICE_NAME}"`,
-    `DeviceId="${deviceId}"`,
-    `Version="${APP_VERSION}"`,
-  ];
-  if (token) parts.push(`Token="${token}"`);
-  if (userId) parts.push(`UserId="${userId}"`);
-  return parts.join(", ");
-}
-
-function normalize(url: string) {
-  return url.replace(/\/+$/, "");
-}
+const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
 export const embyLogin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
+      kind: z.enum(["emby", "jellyfin"]),
       serverUrl: z.string().url().max(500),
       username: z.string().min(1).max(200),
       password: z.string().max(500),
-    })
+    }),
   )
   .handler(async ({ data }) => {
-    const url = `${normalize(data.serverUrl)}/Users/AuthenticateByName`;
+    const url = `${normalizeUrl(data.serverUrl)}/Users/AuthenticateByName`;
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Emby-Authorization": authHeader(),
+        "X-Emby-Authorization": embyAuthHeader(),
         // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
-        Authorization: authHeader(),
+        Authorization: embyAuthHeader(),
       },
       body: JSON.stringify({ Username: data.username, Pw: data.password }),
     });
@@ -50,60 +38,43 @@ export const embyLogin = createServerFn({ method: "POST" })
     const json = (await res.json()) as {
       AccessToken: string;
       User: { Id: string; Name: string };
-      ServerId?: string;
     };
-    return {
-      ok: true as const,
+    const { addCredential } = await import("./vault.server");
+    const server = await addCredential({
+      kind: data.kind,
+      name: new URL(normalizeUrl(data.serverUrl)).host,
+      serverUrl: data.serverUrl,
       token: json.AccessToken,
       userId: json.User.Id,
       userName: json.User.Name,
-      serverId: json.ServerId,
-    };
+    });
+    return { ok: true as const, server };
   });
-
-const sessionSchema = z.object({
-  serverUrl: z.string().url(),
-  token: z.string(),
-  userId: z.string(),
-});
-
-async function embyFetch(serverUrl: string, path: string, token: string, userId: string) {
-  const res = await fetch(`${normalize(serverUrl)}${path}`, {
-    headers: {
-      "X-Emby-Authorization": authHeader(token, userId),
-      Authorization: authHeader(token, userId),
-      "X-Emby-Token": token,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Server request failed: ${res.status} ${res.statusText}`);
-  }
-  return res.json();
-}
 
 export const embyGetViews = createServerFn({ method: "POST" })
-  .inputValidator(sessionSchema)
+  .inputValidator(serverRef)
   .handler(async ({ data }) => {
-    const json = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Views`,
-      data.token,
-      data.userId
-    )) as { Items: Array<{ Id: string; Name: string; CollectionType?: string; ImageTags?: Record<string, string> }> };
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const json = (await embyFetch(c, `/Users/${c.userId}/Views`)) as {
+      Items: Array<{ Id: string; Name: string; CollectionType?: string; ImageTags?: Record<string, string> }>;
+    };
     return { views: json.Items ?? [] };
   });
 
 export const embyGetItems = createServerFn({ method: "POST" })
   .inputValidator(
-    sessionSchema.extend({
-      parentId: z.string().optional(),
-      includeItemTypes: z.string().optional(),
+    serverRef.extend({
+      parentId: z.string().max(200).optional(),
+      includeItemTypes: z.string().max(200).optional(),
       limit: z.number().int().min(1).max(200).default(60),
-      sortBy: z.string().default("SortName"),
+      sortBy: z.string().max(200).default("SortName"),
       recursive: z.boolean().default(false),
-    })
+    }),
   )
   .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       SortBy: data.sortBy,
       SortOrder: "Ascending",
@@ -115,30 +86,27 @@ export const embyGetItems = createServerFn({ method: "POST" })
     if (data.parentId) params.set("ParentId", data.parentId);
     if (data.includeItemTypes) params.set("IncludeItemTypes", data.includeItemTypes);
     if (data.recursive) params.set("Recursive", "true");
-    const json = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Items?${params}`,
-      data.token,
-      data.userId
-    )) as { Items: any[]; TotalRecordCount: number };
+    const json = (await embyFetch(c, `/Users/${c.userId}/Items?${params}`)) as {
+      Items: any[];
+      TotalRecordCount: number;
+    };
     return { items: json.Items ?? [], total: json.TotalRecordCount ?? 0 };
   });
 
 export const embyGetItem = createServerFn({ method: "POST" })
-  .inputValidator(sessionSchema.extend({ itemId: z.string().min(1).max(100) }))
+  .inputValidator(serverRef.extend({ itemId: z.string().min(1).max(100) }))
   .handler(async ({ data }) => {
-    const item = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Items/${data.itemId}`,
-      data.token,
-      data.userId
-    )) as any;
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const item = (await embyFetch(c, `/Users/${c.userId}/Items/${data.itemId}`)) as any;
     return { item };
   });
 
 export const embyGetResume = createServerFn({ method: "POST" })
-  .inputValidator(sessionSchema)
+  .inputValidator(serverRef)
   .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "20",
       Fields: "PrimaryImageAspectRatio,Overview",
@@ -146,18 +114,17 @@ export const embyGetResume = createServerFn({ method: "POST" })
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
-    const json = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Items/Resume?${params}`,
-      data.token,
-      data.userId
-    )) as { Items: any[] };
+    const json = (await embyFetch(c, `/Users/${c.userId}/Items/Resume?${params}`)) as {
+      Items: any[];
+    };
     return { items: json.Items ?? [] };
   });
 
 export const embyGetLatest = createServerFn({ method: "POST" })
-  .inputValidator(sessionSchema)
+  .inputValidator(serverRef)
   .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "24",
       Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags",
@@ -166,25 +133,24 @@ export const embyGetLatest = createServerFn({ method: "POST" })
       EnableImageTypes: "Primary,Backdrop,Thumb",
       GroupItems: "true",
     });
-    const json = (await embyFetch(
-      data.serverUrl,
-      `/Users/${data.userId}/Items/Latest?${params}`,
-      data.token,
-      data.userId
-    )) as any[] | { Items: any[] };
+    const json = (await embyFetch(c, `/Users/${c.userId}/Items/Latest?${params}`)) as
+      | any[]
+      | { Items: any[] };
     const items = Array.isArray(json) ? json : (json.Items ?? []);
     return { items };
   });
 
 export const embyRefreshLibrary = createServerFn({ method: "POST" })
-  .inputValidator(sessionSchema)
+  .inputValidator(serverRef)
   .handler(async ({ data }) => {
-    const res = await fetch(`${normalize(data.serverUrl)}/Library/Refresh`, {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const res = await fetch(`${normalizeUrl(c.serverUrl)}/Library/Refresh`, {
       method: "POST",
       headers: {
-        "X-Emby-Authorization": authHeader(data.token, data.userId),
-        Authorization: authHeader(data.token, data.userId),
-        "X-Emby-Token": data.token,
+        "X-Emby-Authorization": embyAuthHeader(c.token, c.userId),
+        Authorization: embyAuthHeader(c.token, c.userId),
+        "X-Emby-Token": c.token,
       },
     });
     if (!res.ok) {

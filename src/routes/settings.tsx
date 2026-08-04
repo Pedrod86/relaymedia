@@ -5,15 +5,15 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { embyGetViews, embyRefreshLibrary } from "@/lib/emby.functions";
 import { plexGetViews, plexRefreshLibrary } from "@/lib/plex.functions";
+import { removeMediaServer, signOutAllServers } from "@/lib/servers.functions";
 import {
-  listServers,
-  loadActiveServer,
-  setActiveServerId,
-  removeServer,
+  clearActiveServerId,
+  clearHiddenViews,
   loadHiddenViews,
   saveHiddenViews,
   type MediaServer,
 } from "@/lib/media-client";
+import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
@@ -31,36 +31,38 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const navigate = useNavigate();
-  const [servers, setServers] = useState<MediaServer[]>([]);
-  const [active, setActive] = useState<MediaServer | null>(null);
-  const [tick, setTick] = useState(0); // force re-render after mutations
+  const { servers, active, isLoading, switchTo, refresh } = useMediaServers();
+  const removeServerFn = useServerFn(removeMediaServer);
+  const signOutAllFn = useServerFn(signOutAllServers);
 
   useEffect(() => {
-    const list = listServers();
-    if (list.length === 0) {
-      navigate({ to: "/login" });
-      return;
-    }
-    setServers(list);
-    setActive(loadActiveServer());
-  }, [navigate, tick]);
+    if (!isLoading && servers.length === 0) navigate({ to: "/login" });
+  }, [isLoading, servers.length, navigate]);
 
   if (!active) return null;
 
-  function onSwitch(id: string) {
-    setActiveServerId(id);
-    setTick((t) => t + 1);
-  }
-  function onRemove(id: string) {
-    if (!confirm("Remove this server from this device?")) return;
-    removeServer(id);
-    const remaining = listServers();
-    if (remaining.length === 0) {
+  async function onRemove(id: string) {
+    if (!confirm("Disconnect this server? Its saved sign-in will be deleted.")) return;
+    // Removing deletes the credential from the server-side vault, which is the
+    // only place the access token ever lived.
+    const res = await removeServerFn({ data: { serverId: id } });
+    clearHiddenViews(id);
+    if (res.servers.length === 0) {
+      clearActiveServerId();
       navigate({ to: "/login" });
       return;
     }
-    setTick((t) => t + 1);
+    if (active?.id === id) switchTo(res.servers[0]!.id);
+    refresh();
   }
+
+  async function onSignOutAll() {
+    if (!confirm("Sign out of every server on this device?")) return;
+    await signOutAllFn({});
+    clearActiveServerId();
+    navigate({ to: "/login" });
+  }
+
 
   return (
     <main className="min-h-screen bg-background">
@@ -108,7 +110,7 @@ function SettingsPage() {
                     {isActive ? (
                       <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">Active</span>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => onSwitch(s.id)}>
+                      <Button size="sm" variant="outline" onClick={() => switchTo(s.id)}>
                         Use
                       </Button>
                     )}
@@ -120,7 +122,17 @@ function SettingsPage() {
               );
             })}
           </ul>
+          <div className="mt-4 border-t pt-4">
+            <Button variant="outline" size="sm" onClick={onSignOutAll}>
+              Sign out of all servers
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sign-ins are stored encrypted on the server and are never readable by
+              scripts in your browser.
+            </p>
+          </div>
         </section>
+
 
         <ThemePanel />
 
@@ -184,10 +196,8 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
     queryKey: ["settings-views", server.id],
     queryFn: () =>
       isPlex
-        ? getViewsPlex({ data: { serverUrl: server.serverUrl, token: server.token } })
-        : getViewsEmby({
-            data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId },
-          }),
+        ? getViewsPlex({ data: { serverId: server.id } })
+        : getViewsEmby({ data: { serverId: server.id } }),
   });
 
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
@@ -209,10 +219,8 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
     setRefreshing(true);
     try {
       const res = isPlex
-        ? await refreshPlex({ data: { serverUrl: server.serverUrl, token: server.token } })
-        : await refreshEmby({
-            data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId },
-          });
+        ? await refreshPlex({ data: { serverId: server.id } })
+        : await refreshEmby({ data: { serverId: server.id } });
       if (res.ok) toast.success("Library sync started.");
       else toast.error(res.error);
     } catch (e: any) {

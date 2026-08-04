@@ -4,14 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
-import {
-  listServers,
-  loadActiveServer,
-  setActiveServerId,
-  loadHiddenViews,
-  imageUrl,
-  type MediaServer,
-} from "@/lib/media-client";
+import { loadHiddenViews, imageUrl, type MediaServer } from "@/lib/media-client";
+import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/library")({
@@ -26,30 +20,19 @@ export const Route = createFileRoute("/library")({
 
 function LibraryPage() {
   const navigate = useNavigate();
-  const [server, setServer] = useState<MediaServer | null>(null);
-  const [servers, setServers] = useState<MediaServer[]>([]);
+  const { servers, active, isLoading, switchTo } = useMediaServers();
 
   useEffect(() => {
-    const list = listServers();
-    setServers(list);
-    const active = loadActiveServer();
-    if (!active) {
-      navigate({ to: "/login" });
-      return;
-    }
-    setServer(active);
-  }, [navigate]);
+    if (!isLoading && !active) navigate({ to: "/login" });
+  }, [isLoading, active, navigate]);
 
-  if (!server) return null;
+  if (!active) return null;
   return (
     <LibraryContent
-      server={server}
+      key={active.id}
+      server={active}
       servers={servers}
-      onSwitch={(id) => {
-        setActiveServerId(id);
-        const next = listServers().find((s) => s.id === id);
-        if (next) setServer(next);
-      }}
+      onSwitch={switchTo}
     />
   );
 }
@@ -64,8 +47,9 @@ function LibraryContent({
   onSwitch: (id: string) => void;
 }) {
   const isPlex = server.kind === "plex";
-  const embyArg = { serverUrl: server.serverUrl, token: server.token, userId: server.userId };
-  const plexArg = { serverUrl: server.serverUrl, token: server.token };
+  // Only the opaque server id crosses the wire — the token is resolved
+  // server-side from the encrypted cookie vault.
+  const arg = { serverId: server.id };
 
   const getViewsEmby = useServerFn(embyGetViews);
   const getResumeEmby = useServerFn(embyGetResume);
@@ -78,19 +62,17 @@ function LibraryContent({
 
   const views = useQuery({
     queryKey: ["views", server.id],
-    queryFn: () =>
-      isPlex ? getViewsPlex({ data: plexArg }) : getViewsEmby({ data: embyArg }),
+    queryFn: () => (isPlex ? getViewsPlex({ data: arg }) : getViewsEmby({ data: arg })),
   });
   const resume = useQuery({
     queryKey: ["resume", server.id],
-    queryFn: () =>
-      isPlex ? getResumePlex({ data: plexArg }) : getResumeEmby({ data: embyArg }),
+    queryFn: () => (isPlex ? getResumePlex({ data: arg }) : getResumeEmby({ data: arg })),
   });
   const latest = useQuery({
     queryKey: ["latest", server.id],
-    queryFn: () =>
-      isPlex ? getLatestPlex({ data: plexArg }) : getLatestEmby({ data: embyArg }),
+    queryFn: () => (isPlex ? getLatestPlex({ data: arg }) : getLatestEmby({ data: arg })),
   });
+
 
   const backdropItems = useMemo(() => {
     const pool = latest.data?.items ?? [];
@@ -176,13 +158,11 @@ function LibrarySection({
     queryFn: () =>
       isPlex
         ? getItemsPlex({
-            data: { serverUrl: server.serverUrl, token: server.token, parentId: view.Id, limit: 30, sortBy: "addedAt:desc" },
+            data: { serverId: server.id, parentId: view.Id, limit: 30, sortBy: "addedAt:desc" },
           })
         : getItemsEmby({
             data: {
-              serverUrl: server.serverUrl,
-              token: server.token,
-              userId: server.userId,
+              serverId: server.id,
               parentId: view.Id,
               limit: 30,
               sortBy: "DateCreated,SortName",

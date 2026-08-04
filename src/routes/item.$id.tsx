@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
-import { loadActiveServer, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
+import { imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
+import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/item/$id")({
@@ -15,15 +16,14 @@ export const Route = createFileRoute("/item/$id")({
 function ItemPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
-  const [server, setServer] = useState<MediaServer | null>(null);
-  useEffect(() => {
-    const s = loadActiveServer();
-    if (!s) navigate({ to: "/login" });
-    else setServer(s);
-  }, [navigate]);
+  const { active, isLoading } = useMediaServers();
 
-  if (!server) return null;
-  return <Detail server={server} id={id} />;
+  useEffect(() => {
+    if (!isLoading && !active) navigate({ to: "/login" });
+  }, [isLoading, active, navigate]);
+
+  if (!active) return null;
+  return <Detail key={active.id} server={active} id={id} />;
 }
 
 function Detail({ server, id }: { server: MediaServer; id: string }) {
@@ -36,8 +36,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
     queryKey: ["item", server.id, id],
     queryFn: () =>
       isPlex
-        ? getItemPlex({ data: { serverUrl: server.serverUrl, token: server.token, itemId: id } })
-        : getItemEmby({ data: { serverUrl: server.serverUrl, token: server.token, userId: server.userId, itemId: id } }),
+        ? getItemPlex({ data: { serverId: server.id, itemId: id } })
+        : getItemEmby({ data: { serverId: server.id, itemId: id } }),
   });
 
   const item = itemQ.data?.item;
@@ -50,15 +50,14 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
     queryFn: () =>
       getItemsEmby({
         data: {
-          serverUrl: server.serverUrl,
-          token: server.token,
-          userId: server.userId,
+          serverId: server.id,
           parentId: id,
           limit: 100,
           sortBy: "SortName",
         },
       }),
   });
+
 
   if (!item) return <div className="p-8 text-muted-foreground">Loading…</div>;
 

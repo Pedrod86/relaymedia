@@ -16,7 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
-import { Route as ApiPublicEmbyProxyRouteImport } from './routes/api/public/emby-proxy'
+import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,9 +53,9 @@ const WatchIdRoute = WatchIdRouteImport.update({
   path: '/watch/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicEmbyProxyRoute = ApiPublicEmbyProxyRouteImport.update({
-  id: '/api/public/emby-proxy',
-  path: '/api/public/emby-proxy',
+const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
+  id: '/api/public/media-proxy',
+  path: '/api/public/media-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -67,7 +67,7 @@ export interface FileRoutesByFullPath {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
-  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +77,7 @@ export interface FileRoutesByTo {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
-  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +88,7 @@ export interface FileRoutesById {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
-  '/api/public/emby-proxy': typeof ApiPublicEmbyProxyRoute
+  '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +100,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
-    | '/api/public/emby-proxy'
+    | '/api/public/media-proxy'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +110,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
-    | '/api/public/emby-proxy'
+    | '/api/public/media-proxy'
   id:
     | '__root__'
     | '/'
@@ -120,7 +120,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
-    | '/api/public/emby-proxy'
+    | '/api/public/media-proxy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,7 +131,7 @@ export interface RootRouteChildren {
   ItemIdRoute: typeof ItemIdRoute
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
-  ApiPublicEmbyProxyRoute: typeof ApiPublicEmbyProxyRoute
+  ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,11 +185,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/emby-proxy': {
-      id: '/api/public/emby-proxy'
-      path: '/api/public/emby-proxy'
-      fullPath: '/api/public/emby-proxy'
-      preLoaderRoute: typeof ApiPublicEmbyProxyRouteImport
+    '/api/public/media-proxy': {
+      id: '/api/public/media-proxy'
+      path: '/api/public/media-proxy'
+      fullPath: '/api/public/media-proxy'
+      preLoaderRoute: typeof ApiPublicMediaProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -203,7 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   ItemIdRoute: ItemIdRoute,
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
-  ApiPublicEmbyProxyRoute: ApiPublicEmbyProxyRoute,
+  ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
