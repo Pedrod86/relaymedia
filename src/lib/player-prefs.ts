@@ -153,19 +153,127 @@ export async function probeCodecs(): Promise<CodecCap[]> {
   return Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
 }
 
+// ── HDR / Dolby Vision display capability ──────────────────────────────────
+
+export type HdrSupport = {
+  /** Display reports a high dynamic range (10-bit+, wide luminance). */
+  hdrDisplay: boolean;
+  /** PQ transfer function decodable → HDR10 / HDR10+ passthrough possible. */
+  hdr10: boolean;
+  /** HLG transfer function decodable. */
+  hlg: boolean;
+  /** A Dolby Vision codec profile is decodable (usually Safari / Apple, Edge on DV TVs). */
+  dolbyVision: boolean;
+  /** 10-bit HEVC decode (required for most 4K HDR sources). */
+  hevcMain10: boolean;
+  /** Platform can decode 3840×2160 at 60fps power-efficiently. */
+  uhdHardware: boolean;
+};
+
+export const NO_HDR: HdrSupport = {
+  hdrDisplay: false,
+  hdr10: false,
+  hlg: false,
+  dolbyVision: false,
+  hevcMain10: false,
+  uhdHardware: false,
+};
+
+/** Probe the display + decoder for 4K, HDR10/HLG and Dolby Vision support. */
+export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
+  if (typeof window === "undefined") return NO_HDR;
+  const list = caps ?? (await probeCodecs());
+  const mc = (navigator as any).mediaCapabilities;
+
+  const hdrDisplay =
+    window.matchMedia?.("(dynamic-range: high)").matches ||
+    window.matchMedia?.("(video-dynamic-range: high)").matches ||
+    false;
+
+  async function transfer(fn: "pq" | "hlg") {
+    if (!mc?.decodingInfo) return false;
+    try {
+      const info = await mc.decodingInfo({
+        type: "media-source",
+        video: {
+          contentType: 'video/mp4; codecs="hvc1.2.4.L153.B0"',
+          width: 3840,
+          height: 2160,
+          bitrate: 40_000_000,
+          framerate: 24,
+          transferFunction: fn,
+          colorGamut: "rec2020",
+          hdrMetadataType: fn === "pq" ? "smpteSt2086" : undefined,
+        },
+      });
+      return !!info.supported;
+    } catch {
+      return false;
+    }
+  }
+
+  async function uhd() {
+    if (!mc?.decodingInfo) return false;
+    try {
+      const info = await mc.decodingInfo({
+        type: "media-source",
+        video: {
+          contentType: 'video/mp4; codecs="hvc1.1.6.L153.B0"',
+          width: 3840,
+          height: 2160,
+          bitrate: 40_000_000,
+          framerate: 60,
+        },
+      });
+      return !!info.supported && !!info.powerEfficient;
+    } catch {
+      return false;
+    }
+  }
+
+  const hevcMain10 = !!list.find((c) => c.name === "hevc10")?.supported;
+  const dolbyVision = list.some((c) => (c.name === "dvhe5" || c.name === "dvhe8") && c.supported);
+  const [pq, hlg, uhdHardware] = await Promise.all([transfer("pq"), transfer("hlg"), uhd()]);
+
+  return {
+    hdrDisplay,
+    hdr10: pq && hevcMain10,
+    hlg: hlg && hevcMain10,
+    dolbyVision,
+    hevcMain10,
+    uhdHardware,
+  };
+}
+
+/** Should HDR/DV be passed through untouched, given prefs + capabilities? */
+export function wantsHdrPassthrough(prefs: PlayerPrefs, hdr: HdrSupport) {
+  if (prefs.hdr === "sdr") return false;
+  if (prefs.hdr === "passthrough") return true;
+  return hdr.hdrDisplay && (hdr.hdr10 || hdr.hlg || hdr.dolbyVision);
+}
+
+/** Map our probe names onto the codec names media servers understand. */
+const SERVER_CODEC: Record<string, string> = {
+  hevc10: "hevc",
+  dvhe5: "hevc",
+  dvhe8: "hevc",
+  av1_10bit: "av1",
+};
+
 /** Codecs we are willing to ask the server for, given the decode preference. */
 export function allowedCodecs(caps: CodecCap[], prefs: PlayerPrefs, track: "video" | "audio") {
   const pool = caps.filter((c) => c.track === track && c.supported);
+  const names = (list: CodecCap[]) => [...new Set(list.map((c) => SERVER_CODEC[c.name] ?? c.name))];
   if (prefs.decode === "hardware") {
     const hw = pool.filter((c) => c.hardware);
-    if (hw.length) return hw.map((c) => c.name);
+    if (hw.length) return names(hw);
   }
   if (prefs.decode === "software") {
     // Prefer the most broadly-decodable codecs; skip exotic hardware-only ones.
     const soft = pool.filter((c) => ["h264", "vp9", "aac", "mp3", "opus"].includes(c.name));
-    if (soft.length) return soft.map((c) => c.name);
+    if (soft.length) return names(soft);
   }
-  return pool.map((c) => c.name);
+  return names(pool);
 }
 
 // ── Item validation ────────────────────────────────────────────────────────
@@ -180,16 +288,41 @@ export type StreamCheck = {
   audioSupported: boolean;
   canDirectPlay: boolean;
   recommended: "direct" | "hls";
+  /** SDR | HDR10 | HDR10+ | HLG | DOVI (as reported by the server). */
+  videoRange: string;
+  isHdr: boolean;
+  isDolbyVision: boolean;
+  is4K: boolean;
+  /** True when the HDR/DV grade will be delivered untouched. */
+  hdrPassthrough: boolean;
+  /** True when the server must tone-map HDR down to SDR. */
+  toneMapping: boolean;
   notes: string[];
 };
 
 const DIRECT_CONTAINERS = ["mp4", "m4v", "mov", "webm"];
 
+function rangeOf(v: any): string {
+  const raw = String(v?.VideoRangeType ?? v?.VideoRange ?? "SDR").toUpperCase();
+  if (raw.includes("DOVI") || raw.includes("DOLBY")) return "DOVI";
+  if (raw.includes("HDR10PLUS") || raw.includes("HDR10+")) return "HDR10+";
+  if (raw.includes("HDR10")) return "HDR10";
+  if (raw.includes("HLG")) return "HLG";
+  if (raw.includes("HDR")) return "HDR10";
+  return "SDR";
+}
+
 /**
  * Compare an Emby/Jellyfin item's media streams against browser capabilities to
- * decide whether it can direct-play or should be transcoded to HLS.
+ * decide whether it can direct-play (including 4K HDR10 / Dolby Vision
+ * passthrough) or should be transcoded / tone-mapped to HLS.
  */
-export function checkItemPlayback(item: any, caps: CodecCap[], prefs: PlayerPrefs): StreamCheck {
+export function checkItemPlayback(
+  item: any,
+  caps: CodecCap[],
+  prefs: PlayerPrefs,
+  hdrSupport: HdrSupport = NO_HDR,
+): StreamCheck {
   const source = item?.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item?.MediaStreams ?? [];
   const v = streams.find((s) => s.Type === "Video");
@@ -198,7 +331,22 @@ export function checkItemPlayback(item: any, caps: CodecCap[], prefs: PlayerPref
   const videoCodec = (v?.Codec ?? "").toLowerCase() || undefined;
   const audioCodec = (a?.Codec ?? "").toLowerCase() || undefined;
 
-  const vCap = caps.find((c) => c.track === "video" && c.name === videoCodec);
+  const videoRange = rangeOf(v);
+  const isDolbyVision = videoRange === "DOVI" || !!v?.DvProfile || !!v?.DvVersionMajor;
+  const isHdr = videoRange !== "SDR";
+  const bitDepth = Number(v?.BitDepth ?? (isHdr ? 10 : 8));
+  const is4K = Number(v?.Width ?? 0) >= 3400 || Number(v?.Height ?? 0) >= 2000;
+
+  // A 10-bit HEVC HDR stream needs the Main10 profile, not plain HEVC.
+  const needsMain10 = bitDepth >= 10 || isHdr;
+  const capName =
+    videoCodec === "hevc" && needsMain10
+      ? "hevc10"
+      : videoCodec === "av1" && needsMain10
+        ? "av1_10bit"
+        : videoCodec;
+  const dvCap = caps.find((c) => (c.name === "dvhe5" || c.name === "dvhe8") && c.supported);
+  const vCap = isDolbyVision ? (dvCap ?? caps.find((c) => c.name === capName)) : caps.find((c) => c.track === "video" && c.name === capName);
   const aCap = caps.find((c) => c.track === "audio" && c.name === audioCodec);
 
   const notes: string[] = [];
@@ -206,19 +354,40 @@ export function checkItemPlayback(item: any, caps: CodecCap[], prefs: PlayerPref
   const videoHardware = !!vCap?.hardware;
   const audioSupported = !!aCap?.supported;
 
-  if (videoCodec && !videoSupported) notes.push(`${videoCodec.toUpperCase()} video isn't decodable here — will transcode.`);
+  const passthroughWanted = isHdr && wantsHdrPassthrough(prefs, hdrSupport);
+  const canPassHdr =
+    passthroughWanted &&
+    videoSupported &&
+    (isDolbyVision ? hdrSupport.dolbyVision || prefs.hdr === "passthrough" : hdrSupport.hdr10 || hdrSupport.hlg || prefs.hdr === "passthrough");
+  const toneMapping = isHdr && !canPassHdr;
+
+  if (videoCodec && !videoSupported)
+    notes.push(`${videoCodec.toUpperCase()}${needsMain10 ? " 10-bit" : ""} video isn't decodable here — will transcode.`);
   if (videoSupported && !videoHardware) notes.push(`${videoCodec?.toUpperCase()} decodes in software on this device.`);
   if (audioCodec && !audioSupported) notes.push(`${audioCodec.toUpperCase()} audio isn't supported — will be re-encoded to AAC.`);
   if (container && !DIRECT_CONTAINERS.includes(container)) notes.push(`${container.toUpperCase()} container needs remuxing.`);
   if (prefs.decode === "hardware" && videoSupported && !videoHardware)
     notes.push("Hardware-only decoding is on, so the server will transcode to a GPU-friendly codec.");
+  if (is4K && !hdrSupport.uhdHardware)
+    notes.push("4K isn't confirmed as hardware-decodable here — playback may drop frames.");
+  if (isDolbyVision)
+    notes.push(
+      canPassHdr
+        ? "Dolby Vision passthrough — original grade sent untouched."
+        : "Dolby Vision source: base layer will be tone-mapped for this display.",
+    );
+  else if (isHdr)
+    notes.push(canPassHdr ? `${videoRange} passthrough — original grade sent untouched.` : `${videoRange} will be tone-mapped to SDR.`);
+  if (is4K && prefs.maxHeight < 2160) notes.push(`4K source downscaled to ${prefs.maxHeight}p by your resolution cap.`);
 
   let canDirectPlay =
     videoSupported &&
     audioSupported &&
     !!container &&
-    DIRECT_CONTAINERS.includes(container);
+    DIRECT_CONTAINERS.includes(container) &&
+    !toneMapping;
   if (prefs.decode === "hardware" && !videoHardware) canDirectPlay = false;
+  if (is4K && prefs.maxHeight < 2160) canDirectPlay = false;
 
   const bitrate = source?.Bitrate ?? v?.BitRate;
   if (canDirectPlay && bitrate && bitrate > prefs.maxBitrate) {
@@ -226,7 +395,7 @@ export function checkItemPlayback(item: any, caps: CodecCap[], prefs: PlayerPref
     notes.push("Source bitrate is above your quality cap — will transcode.");
   }
 
-  let recommended: "direct" | "hls" =
+  const recommended: "direct" | "hls" =
     prefs.playback === "direct" ? "direct" : prefs.playback === "hls" ? "hls" : canDirectPlay ? "direct" : "hls";
 
   if (canDirectPlay && notes.length === 0) notes.push("Direct play — no transcoding needed.");
@@ -241,6 +410,13 @@ export function checkItemPlayback(item: any, caps: CodecCap[], prefs: PlayerPref
     audioSupported,
     canDirectPlay,
     recommended,
+    videoRange,
+    isHdr,
+    isDolbyVision,
+    is4K,
+    hdrPassthrough: canPassHdr,
+    toneMapping,
     notes,
   };
 }
+
