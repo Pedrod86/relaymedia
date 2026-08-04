@@ -362,9 +362,17 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         </section>
       )}
 
-      {isFolder && children.length > 0 && (
+      {isFolder && (
         <div className="mx-auto max-w-6xl px-6 py-12">
           <h2 className="mb-4 text-xl font-semibold">Episodes</h2>
+          {childrenLoading && children.length === 0 && (
+            <p className="text-sm text-muted-foreground">Loading episodes…</p>
+          )}
+          {!childrenLoading && children.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No episodes found for this title on {server.name}.
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((ep: any) => {
               const epImg = imageUrl(server, ep, "Primary", { maxWidth: 600 });
@@ -385,9 +393,14 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   )}
                   <div className="p-3">
                     <p className="font-medium">
-                      {ep.IndexNumber ? `${ep.IndexNumber}. ` : ""}
+                      {ep.ParentIndexNumber != null && ep.IndexNumber != null
+                        ? `S${ep.ParentIndexNumber}·E${ep.IndexNumber} — `
+                        : ep.IndexNumber != null
+                          ? `${ep.IndexNumber}. `
+                          : ""}
                       {ep.Name}
                     </p>
+
                     <p className="mt-1 text-xs text-muted-foreground">
                       {[ep.PremiereDate ? new Date(ep.PremiereDate).getFullYear() : null, ticksToTime(ep.RunTimeTicks)]
                         .filter(Boolean)
