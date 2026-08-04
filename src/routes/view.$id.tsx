@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { embyGetItems, embyGetViews } from "@/lib/emby.functions";
 import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
-import { imageUrl, type MediaServer } from "@/lib/media-client";
+import { imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
@@ -110,17 +110,17 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
                   {src ? (
                     <img
                       src={src}
-                      alt={it.Name}
+                      alt={cleanName(it.Name)}
                       loading="lazy"
                       className="h-full w-full object-cover transition group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                      {it.Name}
+                      {cleanName(it.Name)}
                     </div>
                   )}
                 </div>
-                <p className="mt-2 line-clamp-1 text-sm font-medium">{it.Name}</p>
+                <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
                 {it.ProductionYear && (
                   <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>
                 )}

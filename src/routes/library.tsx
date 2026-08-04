@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
-import { loadHiddenViews, imageUrl, type MediaServer } from "@/lib/media-client";
+import { loadHiddenViews, imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
@@ -230,17 +230,17 @@ function Row({
               {src ? (
                 <img
                   src={src}
-                  alt={it.Name}
+                  alt={cleanName(it.Name)}
                   loading="lazy"
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                  {it.Name}
+                  {cleanName(it.Name)}
                 </div>
               )}
             </div>
-            <p className="mt-2 line-clamp-1 text-sm font-medium">{it.Name}</p>
+            <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
             {it.ProductionYear && (
               <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>
             )}
@@ -299,7 +299,7 @@ function BackdropHero({
           Recently added
         </p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight drop-shadow-lg sm:text-4xl">
-          {current.Name}
+          {cleanName(current.Name)}
         </h2>
         {current.ProductionYear && (
           <p className="mt-1 text-sm text-muted-foreground">{current.ProductionYear}</p>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
-import { imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
+import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,12 +175,12 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
             {poster && (
               <img
                 src={poster}
-                alt={`${item.Name} poster`}
+                alt={`${cleanName(item.Name)} poster`}
                 className="w-48 rounded-xl shadow-2xl ring-1 ring-border"
               />
             )}
             <div className="flex-1">
-              <h1 className="text-4xl font-bold tracking-tight">{item.Name}</h1>
+              <h1 className="text-4xl font-bold tracking-tight">{cleanName(item.Name)}</h1>
               {item.Taglines?.[0] && (
                 <p className="mt-1 italic text-muted-foreground">{item.Taglines[0]}</p>
               )}
@@ -344,14 +344,14 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   {img ? (
                     <img
                       src={img}
-                      alt={p.Name}
+                      alt={cleanName(p.Name)}
                       loading="lazy"
                       className="aspect-[2/3] w-full rounded-lg object-cover ring-1 ring-border"
                     />
                   ) : (
                     <div className="aspect-[2/3] w-full rounded-lg bg-muted" />
                   )}
-                  <p className="mt-2 truncate text-xs font-medium">{p.Name}</p>
+                  <p className="mt-2 truncate text-xs font-medium">{cleanName(p.Name)}</p>
                   {p.Role && (
                     <p className="truncate text-[11px] text-muted-foreground">{p.Role}</p>
                   )}
@@ -386,7 +386,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   {epImg && (
                     <img
                       src={epImg}
-                      alt={ep.Name}
+                      alt={cleanName(ep.Name)}
                       loading="lazy"
                       className="aspect-video w-full object-cover"
                     />
@@ -398,7 +398,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                         : ep.IndexNumber != null
                           ? `${ep.IndexNumber}. `
                           : ""}
-                      {ep.Name}
+                      {cleanName(ep.Name)}
                     </p>
 
                     <p className="mt-1 text-xs text-muted-foreground">
