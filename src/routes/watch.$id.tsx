@@ -11,11 +11,17 @@ import {
   checkItemPlayback,
   loadPlayerPrefs,
   probeCodecs,
+  probeHdr,
   savePlayerPrefs,
+  wantsHdrPassthrough,
+  NO_HDR,
   type CodecCap,
   type DecodeMode,
+  type HdrMode,
+  type HdrSupport,
   type PlayerPrefs,
 } from "@/lib/player-prefs";
+
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — Media" }] }),
