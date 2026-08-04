@@ -3,16 +3,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  embyHlsStreamUrl,
-  embyDirectStreamUrl,
-  embySubtitleUrl,
-  plexDirectStreamUrl,
-  type MediaServer,
-} from "@/lib/media-client";
+import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { embyGetItem } from "@/lib/emby.functions";
-import { plexGetStreamInfo } from "@/lib/plex.functions";
+import {
+  allowedCodecs,
+  checkItemPlayback,
+  loadPlayerPrefs,
+  probeCodecs,
+  savePlayerPrefs,
+  type CodecCap,
+  type DecodeMode,
+  type PlayerPrefs,
+} from "@/lib/player-prefs";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — Media" }] }),
@@ -43,21 +46,51 @@ type SubTrack = {
 
 function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mode, setMode] = useState<"hls" | "direct">(server.kind === "plex" ? "direct" : "hls");
+  const [prefs, setPrefs] = useState<PlayerPrefs>(loadPlayerPrefs);
+  const [caps, setCaps] = useState<CodecCap[]>([]);
+  const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
-  const getPlexStream = useServerFn(plexGetStreamInfo);
+  const [showPanel, setShowPanel] = useState(false);
   const getItemEmby = useServerFn(embyGetItem);
 
   const isEmbyFamily = server.kind !== "plex";
 
-  // Fetch item to discover subtitle streams (Emby / Jellyfin only).
+  useEffect(() => {
+    setPrefs(loadPlayerPrefs());
+    void probeCodecs().then(setCaps);
+  }, []);
+
+  function update(patch: Partial<PlayerPrefs>) {
+    const next = { ...prefs, ...patch };
+    setPrefs(next);
+    savePlayerPrefs(next);
+  }
+
+  // Fetch item to discover subtitle streams + media info (Emby / Jellyfin).
   const itemQ = useQuery({
     enabled: isEmbyFamily,
     queryKey: ["watch-item", server.id, itemId],
     queryFn: () => getItemEmby({ data: { serverId: server.id, itemId } }),
   });
 
+  const check = useMemo(
+    () => (isEmbyFamily && itemQ.data?.item && caps.length ? checkItemPlayback(itemQ.data.item, caps, prefs) : null),
+    [itemQ.data, caps, prefs, isEmbyFamily],
+  );
+
+  // Decide the mode once capabilities and item info are known.
+  useEffect(() => {
+    if (!isEmbyFamily) {
+      setMode("direct");
+      return;
+    }
+    if (prefs.playback !== "auto") {
+      setMode(prefs.playback);
+      return;
+    }
+    if (check) setMode(check.recommended);
+  }, [check, prefs.playback, isEmbyFamily]);
 
   const subtitles: SubTrack[] = useMemo(() => {
     if (!isEmbyFamily) return [];
@@ -68,7 +101,9 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       const sid = src.Id ?? itemId;
       for (const st of src.MediaStreams ?? []) {
         if (st.Type !== "Subtitle") continue;
-        const isText = st.IsTextSubtitleStream || ["srt", "vtt", "ass", "ssa", "sub"].includes((st.Codec || "").toLowerCase());
+        const isText =
+          st.IsTextSubtitleStream ||
+          ["srt", "vtt", "ass", "ssa", "sub"].includes((st.Codec || "").toLowerCase());
         out.push({
           index: st.Index,
           mediaSourceId: sid,
@@ -83,68 +118,57 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     return out;
   }, [itemQ.data, isEmbyFamily, itemId]);
 
+  const textSubs = useMemo(() => subtitles.filter((s) => s.isText), [subtitles]);
+
+  // Auto-enable the first text subtitle track when requested.
+  useEffect(() => {
+    if (prefs.autoSubtitles && subIndex === null && textSubs.length > 0) {
+      setSubIndex((textSubs.find((s) => s.isDefault) ?? textSubs[0]!).index);
+    }
+  }, [prefs.autoSubtitles, textSubs, subIndex]);
+
+  const videoCodecs = useMemo(() => allowedCodecs(caps, prefs, "video"), [caps, prefs]);
+  const audioCodecs = useMemo(() => allowedCodecs(caps, prefs, "audio"), [caps, prefs]);
+
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !mode) return;
+    if (caps.length === 0) return; // wait for codec probing
     setError(null);
     let hlsInstance: Hls | null = null;
-    let cancelled = false;
 
-    async function start() {
-      if (!video) return;
+    const src = streamUrl(server, itemId, {
+      mode,
+      videoCodec: videoCodecs,
+      audioCodec: audioCodecs,
+      maxBitrate: prefs.maxBitrate,
+    });
 
-      if (server.kind === "plex") {
-        const res = await getPlexStream({ data: { serverId: server.id, itemId } });
-        if (cancelled) return;
-        if (!res.ok) {
-          setError(res.error);
-          return;
+    if (mode === "direct" || video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.play().catch(() => {});
+    } else if (Hls.isSupported()) {
+      hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: false });
+      hlsInstance.loadSource(src);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      hlsInstance.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) {
+          console.error("HLS fatal", data);
+          setError(`Playback error: ${data.type} / ${data.details}. Falling back to direct stream…`);
+          hlsInstance?.destroy();
+          setMode("direct");
         }
-        video.src = plexDirectStreamUrl(server, res.partKey);
-        video.play().catch(() => {});
-        return;
-      }
-
-      if (mode === "direct") {
-        video.src = embyDirectStreamUrl(server, itemId);
-        video.play().catch(() => {});
-        return;
-      }
-
-      const src = embyHlsStreamUrl(server, itemId);
-
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = src;
-        video.play().catch(() => {});
-        return;
-      }
-
-      if (Hls.isSupported()) {
-        hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: false });
-        hlsInstance.loadSource(src);
-        hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-        hlsInstance.on(Hls.Events.ERROR, (_e, data) => {
-          if (data.fatal) {
-            console.error("HLS fatal", data);
-            setError(`Playback error: ${data.type} / ${data.details}. Trying direct stream…`);
-            hlsInstance?.destroy();
-            setMode("direct");
-          }
-        });
-        return;
-      }
-
-      video.src = embyDirectStreamUrl(server, itemId);
+      });
+    } else {
+      video.src = streamUrl(server, itemId, { mode: "direct" });
       video.play().catch(() => setError("Your browser cannot play this stream."));
     }
 
-    void start();
     return () => {
-      cancelled = true;
       hlsInstance?.destroy();
     };
-  }, [server, itemId, mode, getPlexStream]);
+  }, [server, itemId, mode, caps.length, videoCodecs, audioCodecs, prefs.maxBitrate]);
 
   // Force the chosen <track> to "showing" — browsers default to "disabled".
   useEffect(() => {
@@ -152,13 +176,17 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     if (!video) return;
     const tracks = video.textTracks;
     for (let i = 0; i < tracks.length; i++) {
-      const t = tracks[i];
+      const t = tracks[i]!;
       const wanted = subIndex !== null && (t as any).__embyIndex === subIndex;
       t.mode = wanted ? "showing" : "disabled";
     }
   }, [subIndex, subtitles]);
 
-  const textSubs = subtitles.filter((s) => s.isText);
+  const decodeOptions: { id: DecodeMode; label: string }[] = [
+    { id: "auto", label: "Auto" },
+    { id: "hardware", label: "Hardware" },
+    { id: "software", label: "Software" },
+  ];
 
   return (
     <main className="flex min-h-screen flex-col bg-black text-white">
@@ -166,22 +194,17 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
         <Link to="/item/$id" params={{ id: itemId }} className="text-sm opacity-80 hover:opacity-100">
           ← Back
         </Link>
-        <div className="flex flex-wrap gap-2 text-xs">
-          {isEmbyFamily && (
-            <>
-              <button
-                onClick={() => setMode("hls")}
-                className={`rounded px-2 py-1 ${mode === "hls" ? "bg-primary text-primary-foreground" : "bg-white/10"}`}
-              >
-                HLS (adaptive)
-              </button>
-              <button
-                onClick={() => setMode("direct")}
-                className={`rounded px-2 py-1 ${mode === "direct" ? "bg-primary text-primary-foreground" : "bg-white/10"}`}
-              >
-                Direct
-              </button>
-            </>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {check && (
+            <span
+              className={`rounded px-2 py-1 ${
+                check.canDirectPlay ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-200"
+              }`}
+            >
+              {check.canDirectPlay ? "Direct play" : "Transcoding"}
+              {check.videoCodec ? ` • ${check.videoCodec.toUpperCase()}` : ""}
+              {check.videoSupported ? (check.videoHardware ? " • HW" : " • SW") : ""}
+            </span>
           )}
           {isEmbyFamily && textSubs.length > 0 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
@@ -200,13 +223,78 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
               </select>
             </label>
           )}
-          {isEmbyFamily && subtitles.length > 0 && textSubs.length === 0 && (
-            <span className="rounded bg-white/10 px-2 py-1 opacity-70">
-              Image-based subtitles — switch to Direct & burn-in not yet supported
-            </span>
-          )}
+          <button
+            onClick={() => setShowPanel((v) => !v)}
+            className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
+          >
+            ⚙ Player settings
+          </button>
         </div>
       </header>
+
+      {showPanel && (
+        <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="mb-2 font-medium">Decoding</p>
+              <div className="flex gap-1">
+                {decodeOptions.map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => update({ decode: o.id })}
+                    className={`rounded px-2 py-1 ${
+                      prefs.decode === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 font-medium">Stream</p>
+              <div className="flex gap-1">
+                {(["auto", "hls", "direct"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => update({ playback: m })}
+                    className={`rounded px-2 py-1 uppercase ${
+                      prefs.playback === m ? "bg-primary text-primary-foreground" : "bg-white/10"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 font-medium">Quality cap</p>
+              <select
+                value={prefs.maxBitrate}
+                onChange={(e) => update({ maxBitrate: Number(e.target.value) })}
+                className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
+              >
+                {[4, 8, 20, 40, 120].map((mbps) => (
+                  <option key={mbps} value={mbps * 1_000_000}>
+                    {mbps === 120 ? "Unlimited" : `${mbps} Mbps`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {check && check.notes.length > 0 && (
+            <ul className="mt-3 space-y-1 opacity-70">
+              {check.notes.map((n) => (
+                <li key={n}>• {n}</li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 opacity-60">
+            Detected: {caps.filter((c) => c.supported && c.hardware).map((c) => c.name).join(", ") || "probing…"} (hardware)
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-1 items-center justify-center">
         <video
           ref={videoRef}

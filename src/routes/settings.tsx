@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
 import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
+import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
+
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -134,9 +136,12 @@ function SettingsPage() {
         </section>
 
 
+        <PlayerSettingsPanel />
+
         <ThemePanel />
 
         <ActiveServerPanel server={active} />
+
       </div>
     </main>
   );
