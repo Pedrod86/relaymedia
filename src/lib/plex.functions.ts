@@ -102,7 +102,16 @@ export const plexAddServer = createServerFn({ method: "POST" })
       return { ok: false as const, error: e?.message ?? "Could not reach Plex server" };
     }
 
-    const { addCredential } = await import("./vault.server");
+    const { addCredential, readVault } = await import("./vault.server");
+    const { callerHasPro } = await import("./entitlements.server");
+    const { serverLimitFor, SERVER_LIMIT_ERROR } = await import("./limits");
+    const existing = await readVault();
+    const alreadyConnected = existing.some(
+      (c) => c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl),
+    );
+    if (!alreadyConnected && existing.length >= serverLimitFor(await callerHasPro())) {
+      return { ok: false as const, error: SERVER_LIMIT_ERROR, limitReached: true as const };
+    }
     const server = await addCredential({
       kind: "plex",
       name: friendlyName,
