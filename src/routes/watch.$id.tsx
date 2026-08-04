@@ -370,9 +370,43 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 onChange={(e) => update({ maxBitrate: Number(e.target.value) })}
                 className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
               >
-                {[4, 8, 20, 40, 120].map((mbps) => (
+                {[4, 8, 20, 40, 80, 120].map((mbps) => (
                   <option key={mbps} value={mbps * 1_000_000}>
                     {mbps === 120 ? "Unlimited" : `${mbps} Mbps`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="mb-2 font-medium">HDR / Dolby Vision</p>
+              <div className="flex gap-1">
+                {([
+                  { id: "auto", label: "Auto" },
+                  { id: "passthrough", label: "Passthrough" },
+                  { id: "sdr", label: "Tone-map" },
+                ] as { id: HdrMode; label: string }[]).map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => update({ hdr: o.id })}
+                    className={`rounded px-2 py-1 ${
+                      prefs.hdr === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 font-medium">Max resolution</p>
+              <select
+                value={prefs.maxHeight}
+                onChange={(e) => update({ maxHeight: Number(e.target.value) })}
+                className="w-full rounded bg-white/10 px-2 py-1 outline-none [&>option]:bg-black"
+              >
+                {[720, 1080, 1440, 2160].map((h) => (
+                  <option key={h} value={h}>
+                    {h === 2160 ? "4K (2160p)" : `${h}p`}
                   </option>
                 ))}
               </select>
@@ -388,6 +422,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           <p className="mt-3 opacity-60">
             Detected: {caps.filter((c) => c.supported && c.hardware).map((c) => c.name).join(", ") || "probing…"} (hardware)
           </p>
+          <p className="mt-1 opacity-60">
+            Display: {hdr.hdrDisplay ? "HDR capable" : "SDR"} • HDR10 {hdr.hdr10 ? "✓" : "✗"} • HLG{" "}
+            {hdr.hlg ? "✓" : "✗"} • Dolby Vision {hdr.dolbyVision ? "✓" : "✗"} • 4K hardware{" "}
+            {hdr.uhdHardware ? "✓" : "✗"}
+          </p>
+
         </div>
       )}
 
