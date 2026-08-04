@@ -38,6 +38,11 @@ const querySchema = z.object({
   hdr: z.enum(["passthrough", "tonemap"]).default("tonemap"),
   /** Vertical resolution ceiling — 2160 keeps 4K intact. */
   maxHeight: z.coerce.number().int().min(360).max(4320).default(2160),
+  /**
+   * Frame-rate ceiling. AFR sends the source fps here so the server copies the
+   * original cadence instead of converting to a fixed 30/60 fps.
+   */
+  maxFps: z.coerce.number().min(1).max(300).optional(),
 });
 
 const DEVICE_ID = "lovable-media-web";
@@ -97,6 +102,14 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     "h264-rangetype": "SDR",
     "h264-videobitdepth": "8",
   });
+
+  // AFR: pin the transcode to the source frame rate so the original cadence
+  // (23.976 / 24 / 25 / 50 / 60) survives instead of being converted.
+  if (q.maxFps) {
+    const fps = String(Math.round(q.maxFps * 1000) / 1000);
+    params.set("MaxFramerate", fps);
+    params.set("Framerate", fps);
+  }
 
   if (hdrPass) {
     // Preserve the grade: never tone-map, and use fMP4 so 10-bit/DV survives.

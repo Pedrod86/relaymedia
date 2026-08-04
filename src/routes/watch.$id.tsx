@@ -22,6 +22,15 @@ import {
   type HdrSupport,
   type PlayerPrefs,
 } from "@/lib/player-prefs";
+import {
+  AFR_OFF,
+  measureRefreshRate,
+  planFrameRate,
+  readFrameStats,
+  sourceFrameRate,
+  type AfrMode,
+  type FrameStats,
+} from "@/lib/afr";
 
 
 export const Route = createFileRoute("/watch/$id")({
@@ -66,12 +75,16 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
   const isEmbyFamily = server.kind !== "plex";
 
+  const [displayHz, setDisplayHz] = useState<number | undefined>(undefined);
+  const [frames, setFrames] = useState<FrameStats | undefined>(undefined);
+
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
     void probeCodecs().then((c) => {
       setCaps(c);
       void probeHdr(c).then(setHdr);
     });
+    void measureRefreshRate().then(setDisplayHz);
   }, []);
 
 
@@ -106,7 +119,44 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       : "tonemap";
 
 
-  // Decide the mode once capabilities and item info are known.
+  // ── AFR: source cadence, display cadence, and the correction between them ──
+  const sourceFps = useMemo(
+    () => (isEmbyFamily && itemQ.data?.item ? sourceFrameRate(itemQ.data.item) : undefined),
+    [itemQ.data, isEmbyFamily],
+  );
+  const afr = useMemo(
+    () => (isPro ? planFrameRate(prefs.afr, sourceFps, displayHz) : AFR_OFF),
+    [prefs.afr, sourceFps, displayHz, isPro],
+  );
+
+  // Apply the cadence correction to the element, and keep it applied across
+  // seeks / source swaps (browsers reset playbackRate on some src changes).
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const apply = () => {
+      if (Math.abs(video.playbackRate - afr.playbackRate) > 0.0005) {
+        video.playbackRate = afr.playbackRate;
+      }
+    };
+    apply();
+    video.addEventListener("loadedmetadata", apply);
+    video.addEventListener("seeked", apply);
+    return () => {
+      video.removeEventListener("loadedmetadata", apply);
+      video.removeEventListener("seeked", apply);
+    };
+  }, [afr.playbackRate, mode]);
+
+  // Surface dropped frames so cadence problems are visible, not guessed at.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const t = window.setInterval(() => setFrames(readFrameStats(video)), 2000);
+    return () => window.clearInterval(t);
+  }, [mode]);
+
+
   useEffect(() => {
     if (!isEmbyFamily) {
       setMode("direct");
@@ -179,6 +229,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       session: sessionId,
       hdr: hdrParam,
       maxHeight: prefs.maxHeight,
+      // AFR: keep the transcode at the source cadence instead of 30/60 fps.
+      maxFps: prefs.afr !== "off" ? sourceFps : undefined,
     });
 
 
@@ -264,6 +316,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     prefs.maxHeight,
     hdrParam,
     sessionId,
+    prefs.afr,
+    sourceFps,
   ]);
 
 
@@ -319,6 +373,20 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 .join(" • ")}
             </span>
           )}
+          {prefs.afr !== "off" && afr.sourceFps && (
+            <span
+              className={`rounded px-2 py-1 ${
+                afr.exact ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-200"
+              }`}
+              title={afr.note}
+            >
+              AFR {Math.round(afr.sourceFps * 1000) / 1000}fps
+              {afr.displayHz ? ` → ${afr.displayHz}Hz` : ""}
+              {afr.cadence ? ` • ${afr.cadence}:1` : ""}
+            </span>
+          )}
+
+
 
           {isEmbyFamily && textSubs.length > 0 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
@@ -446,9 +514,30 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <p className="mb-2 font-medium">Auto frame rate (AFR)</p>
+                  <div className="flex gap-1">
+                    {([
+                      { id: "off", label: "Off" },
+                      { id: "auto", label: "Auto" },
+                      { id: "strict", label: "Strict" },
+                    ] as { id: AfrMode; label: string }[]).map((o) => (
+                      <button
+                        key={o.id}
+                        onClick={() => update({ afr: o.id })}
+                        className={`rounded px-2 py-1 ${
+                          prefs.afr === o.id ? "bg-primary text-primary-foreground" : "bg-white/10"
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
+
 
           {check && check.notes.length > 0 && (
             <ul className="mt-3 space-y-1 opacity-70">
@@ -465,6 +554,14 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             {hdr.hlg ? "✓" : "✗"} • Dolby Vision {hdr.dolbyVision ? "✓" : "✗"} • 4K hardware{" "}
             {hdr.uhdHardware ? "✓" : "✗"}
           </p>
+          <p className="mt-1 opacity-60">
+            {afr.note}
+            {displayHz ? ` • measured ${displayHz} Hz` : " • measuring refresh rate…"}
+            {frames && frames.decoded > 0
+              ? ` • ${frames.dropped} dropped / ${frames.decoded} frames`
+              : ""}
+          </p>
+
 
         </div>
       )}

@@ -137,6 +137,8 @@ export type StreamOptions = {
   hdr?: "passthrough" | "tonemap";
   /** Vertical resolution ceiling (2160 = 4K). */
   maxHeight?: number;
+  /** Frame-rate ceiling — set to the source fps so AFR cadence is preserved. */
+  maxFps?: number;
 };
 
 export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
@@ -151,6 +153,7 @@ export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   if (opts.start) params.set("start", String(opts.start));
   if (opts.hdr) params.set("hdr", opts.hdr);
   if (opts.maxHeight) params.set("maxHeight", String(opts.maxHeight));
+  if (opts.maxFps) params.set("maxFps", String(Math.round(opts.maxFps * 1000) / 1000));
   return `${STREAM_PATH}?${params}`;
 }
 
