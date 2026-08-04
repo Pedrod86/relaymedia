@@ -302,6 +302,22 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
               {check.videoSupported ? (check.videoHardware ? " • HW" : " • SW") : ""}
             </span>
           )}
+          {check && (check.is4K || check.isHdr) && (
+            <span
+              className={`rounded px-2 py-1 ${
+                check.hdrPassthrough ? "bg-sky-500/20 text-sky-300" : "bg-white/10 text-white/80"
+              }`}
+            >
+              {[
+                check.is4K ? "4K" : null,
+                check.isDolbyVision ? "Dolby Vision" : check.isHdr ? check.videoRange : null,
+                check.isHdr ? (check.hdrPassthrough ? "passthrough" : "tone-mapped") : null,
+              ]
+                .filter(Boolean)
+                .join(" • ")}
+            </span>
+          )}
+
           {isEmbyFamily && textSubs.length > 0 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
               <span className="opacity-70">Subtitles</span>
