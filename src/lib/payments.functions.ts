@@ -125,3 +125,69 @@ export const getProStatus = createServerFn({ method: "POST" })
     const row = rows?.[0];
     return { isPro: Boolean(row), purchasedAt: row?.created_at ?? null };
   });
+
+/**
+ * Fulfillment fallback for the return page.
+ *
+ * Webhooks are the primary path, but a delayed or dropped delivery would leave
+ * a paying customer without Pro. This re-reads the Checkout Session straight
+ * from Stripe and records the purchase itself when it is settled, so the unlock
+ * never depends on a single webhook arriving.
+ */
+export const verifyProPurchase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(data.sessionId)) throw new Error("Invalid sessionId");
+    return data;
+  })
+  .handler(async ({ data, context }): Promise<ProStatus> => {
+    const { userId } = context;
+    try {
+      const stripe = createStripeClient(data.environment);
+      const session = await stripe.checkout.sessions.retrieve(data.sessionId, {
+        expand: ["line_items"],
+      });
+
+      // The session must belong to the caller — never trust the id alone.
+      if (session.metadata?.["userId"] !== userId) {
+        return { isPro: false, purchasedAt: null };
+      }
+      // "unpaid" means a delayed-notification method hasn't settled yet.
+      if (session.payment_status === "unpaid") {
+        return { isPro: false, purchasedAt: null };
+      }
+
+      const priceId =
+        session.line_items?.data?.[0]?.price?.lookup_key ?? "pro_unlock_lifetime";
+
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error } = await supabaseAdmin.from("purchases").upsert(
+        {
+          user_id: userId,
+          price_id: priceId,
+          stripe_customer_id:
+            typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
+          stripe_session_id: session.id,
+          stripe_payment_intent_id:
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : (session.payment_intent?.id ?? null),
+          amount_total: session.amount_total ?? null,
+          currency: session.currency ?? null,
+          environment: data.environment,
+          status: "paid",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" },
+      );
+      if (error) {
+        console.error("Failed to reconcile purchase:", error.message);
+        return { isPro: false, purchasedAt: null };
+      }
+
+      return { isPro: true, purchasedAt: new Date().toISOString() };
+    } catch (error) {
+      console.error("verifyProPurchase failed:", getStripeErrorMessage(error));
+      return { isPro: false, purchasedAt: null };
+    }
+  });
