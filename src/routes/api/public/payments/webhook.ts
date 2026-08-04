@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
+import { type StripeEnv, createStripeClient, verifyWebhook } from "@/lib/stripe.server";
 import type { Database } from "@/integrations/supabase/types";
 
 // Deferred so env availability is not assumed at module load time.
@@ -22,10 +22,18 @@ async function recordPurchase(session: any, env: StripeEnv) {
     return;
   }
 
-  const priceId =
-    session.line_items?.data?.[0]?.price?.lookup_key ??
-    session.metadata?.priceId ??
-    "pro_unlock_lifetime";
+  // Webhook payloads do NOT include line_items, so resolve the human-readable
+  // price id from Stripe directly. lookup_key is stable across sandbox/live.
+  let priceId: string = session.metadata?.priceId ?? "pro_unlock_lifetime";
+  try {
+    const items = await createStripeClient(env).checkout.sessions.listLineItems(session.id, {
+      limit: 1,
+    });
+    const key = items.data[0]?.price?.lookup_key;
+    if (key) priceId = key;
+  } catch (e) {
+    console.error("Could not resolve line items for session", session.id, e);
+  }
 
   const { error } = await getSupabase()
     .from("purchases")
@@ -81,16 +89,11 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "checkout.session.async_payment_failed":
       await markFailed(event.data.object, env);
       break;
-    case "charge.refunded": {
-      const charge = event.data.object;
-      const { error } = await getSupabase()
-        .from("purchases")
-        .update({ status: "refunded", updated_at: new Date().toISOString() })
-        .eq("stripe_payment_intent_id", charge.payment_intent)
-        .eq("environment", env);
-      if (error) console.error("Failed to mark purchase refunded:", error.message);
+    case "charge.refunded":
+      // Refunds are handled manually and never revoke access, so this is
+      // recorded for visibility only.
+      console.log("Charge refunded (access retained):", event.data.object.id);
       break;
-    }
     default:
       console.log("Unhandled event:", event.type);
   }
