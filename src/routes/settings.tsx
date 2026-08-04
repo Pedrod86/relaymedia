@@ -14,6 +14,8 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { useProAccess } from "@/lib/use-pro";
+import { FREE_SERVER_LIMIT, PRO_SERVER_LIMIT } from "@/lib/limits";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
@@ -34,6 +36,7 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const navigate = useNavigate();
   const { servers, active, isLoading, switchTo, refresh } = useMediaServers();
+  const { isPro } = useProAccess();
   const removeServerFn = useServerFn(removeMediaServer);
   const signOutAllFn = useServerFn(signOutAllServers);
 
