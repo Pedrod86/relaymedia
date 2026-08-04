@@ -115,11 +115,39 @@ export function imageUrl(
   return proxiedPath(s.id, `/Items/${item.Id}/Images/${type}?${params}`);
 }
 
-// ── Stream URLs (Emby / Jellyfin only — built client-side) ─────────────────
+// ── Streaming endpoint ─────────────────────────────────────────────────────
+// One endpoint for every server kind: /api/public/stream resolves the upstream
+// URL, attaches the vaulted token and rewrites HLS playlists server-side.
+
+export const STREAM_PATH = "/api/public/stream";
+
+export type StreamOptions = {
+  mode: "hls" | "direct";
+  videoCodec?: string[];
+  audioCodec?: string[];
+  maxBitrate?: number;
+  audioChannels?: number;
+  subtitleIndex?: number;
+  container?: string;
+};
+
+export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
+  const params = new URLSearchParams({ sid: s.id, item: itemId, mode: opts.mode });
+  if (opts.videoCodec?.length) params.set("videoCodec", opts.videoCodec.join(","));
+  if (opts.audioCodec?.length) params.set("audioCodec", opts.audioCodec.join(","));
+  if (opts.maxBitrate) params.set("maxBitrate", String(opts.maxBitrate));
+  if (opts.audioChannels) params.set("audioChannels", String(opts.audioChannels));
+  if (opts.subtitleIndex !== undefined) params.set("subtitleIndex", String(opts.subtitleIndex));
+  if (opts.container) params.set("container", opts.container);
+  return `${STREAM_PATH}?${params}`;
+}
+
+// ── Legacy stream URLs (Emby / Jellyfin only — built client-side) ───────────
 // Plex needs an extra round-trip to resolve Media.Part.key; that lives in
 // plex.functions.ts.
 
 const DEVICE_ID = "lovable-media-web";
+
 
 export function embyHlsStreamUrl(s: MediaServer, itemId: string) {
   const params = new URLSearchParams();
