@@ -130,6 +130,13 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const videoCodecs = useMemo(() => allowedCodecs(caps, prefs, "video"), [caps, prefs]);
   const audioCodecs = useMemo(() => allowedCodecs(caps, prefs, "audio"), [caps, prefs]);
 
+  // One stable session id per mounted playback, so switching quality/subtitles
+  // reuses the same server-side transcode session instead of spawning new ones.
+  const sessionId = useMemo(
+    () => `lovable-${itemId}-${Math.random().toString(36).slice(2, 10)}`,
+    [itemId],
+  );
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !mode) return;
@@ -142,33 +149,82 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       videoCodec: videoCodecs,
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
+      session: sessionId,
     });
 
     if (mode === "direct" || video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native playback: let the browser's own range-based buffering run — it
+      // maps directly onto the hardware decoder's demand.
+      video.preload = "auto";
       video.src = src;
       video.play().catch(() => {});
     } else if (Hls.isSupported()) {
-      hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: false });
+      // Buffering strategy tuned for smooth hardware-decoded playback:
+      //  • ~60s forward buffer capped by size, so the decoder is never starved
+      //    but memory stays bounded on mobile GPUs.
+      //  • a small back buffer keeps short rewinds instant without holding the
+      //    whole session in memory.
+      //  • worker + progressive fetch keeps demuxing off the main thread, which
+      //    is what causes dropped frames during hardware decode.
+      //  • fragment loads are retried and aborted quickly so a stalled segment
+      //    doesn't hold the pipeline (server-side the abort cancels upstream).
+      hlsInstance = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        progressive: true,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000,
+        maxBufferHole: 0.5,
+        backBufferLength: 30,
+        startFragPrefetch: true,
+        capLevelToPlayerSize: true,
+        abrEwmaDefaultEstimate: 5_000_000,
+        fragLoadPolicy: {
+          default: {
+            maxTimeToFirstByteMs: 10_000,
+            maxLoadTimeMs: 120_000,
+            timeoutRetry: { maxNumRetry: 3, retryDelayMs: 0, maxRetryDelayMs: 0 },
+            errorRetry: { maxNumRetry: 4, retryDelayMs: 500, maxRetryDelayMs: 4_000 },
+          },
+        },
+      });
       hlsInstance.loadSource(src);
       hlsInstance.attachMedia(video);
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
       hlsInstance.on(Hls.Events.ERROR, (_e, data) => {
-        if (data.fatal) {
-          console.error("HLS fatal", data);
-          setError(`Playback error: ${data.type} / ${data.details}. Falling back to direct stream…`);
-          hlsInstance?.destroy();
-          setMode("direct");
+        if (!data.fatal) return;
+        console.error("HLS fatal", data);
+        // Network/media errors are usually recoverable: retry in place before
+        // tearing the session down and restarting the transcode.
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hlsInstance?.recoverMediaError();
+          return;
         }
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details !== "manifestLoadError") {
+          hlsInstance?.startLoad();
+          return;
+        }
+        setError(`Playback error: ${data.type} / ${data.details}. Falling back to direct stream…`);
+        hlsInstance?.destroy();
+        setMode("direct");
       });
     } else {
-      video.src = streamUrl(server, itemId, { mode: "direct" });
+      video.src = streamUrl(server, itemId, { mode: "direct", session: sessionId });
       video.play().catch(() => setError("Your browser cannot play this stream."));
     }
 
     return () => {
       hlsInstance?.destroy();
+      // Cancel any in-flight direct-stream request so the server stops
+      // transcoding/serving bytes nobody will consume.
+      if (!hlsInstance) {
+        video.removeAttribute("src");
+        video.load();
+      }
     };
-  }, [server, itemId, mode, caps.length, videoCodecs, audioCodecs, prefs.maxBitrate]);
+  }, [server, itemId, mode, caps.length, videoCodecs, audioCodecs, prefs.maxBitrate, sessionId]);
+
 
   // Force the chosen <track> to "showing" — browsers default to "disabled".
   useEffect(() => {
