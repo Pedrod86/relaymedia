@@ -87,9 +87,22 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   });
 
   const check = useMemo(
-    () => (isEmbyFamily && itemQ.data?.item && caps.length ? checkItemPlayback(itemQ.data.item, caps, prefs) : null),
-    [itemQ.data, caps, prefs, isEmbyFamily],
+    () =>
+      isEmbyFamily && itemQ.data?.item && caps.length
+        ? checkItemPlayback(itemQ.data.item, caps, prefs, hdr)
+        : null,
+    [itemQ.data, caps, prefs, isEmbyFamily, hdr],
   );
+
+  // HDR request mode: pass the grade through when the display can show it.
+  const hdrParam: "passthrough" | "tonemap" = check
+    ? check.hdrPassthrough
+      ? "passthrough"
+      : "tonemap"
+    : wantsHdrPassthrough(prefs, hdr)
+      ? "passthrough"
+      : "tonemap";
+
 
   // Decide the mode once capabilities and item info are known.
   useEffect(() => {
