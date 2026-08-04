@@ -14,7 +14,7 @@ function isOpaqueKey(value: string) {
 }
 
 /** True when the caller is signed in AND has a paid Relay Pro purchase. */
-export async function callerHasPro(environment: "sandbox" | "live"): Promise<boolean> {
+export async function callerHasPro(): Promise<boolean> {
   const authHeader = getRequestHeader("authorization");
   if (!authHeader?.startsWith("Bearer ")) return false;
   const token = authHeader.slice("Bearer ".length);
@@ -44,7 +44,6 @@ export async function callerHasPro(environment: "sandbox" | "live"): Promise<boo
   const { data, error } = await supabase
     .from("purchases")
     .select("id")
-    .eq("environment", environment)
     .eq("status", "paid")
     .limit(1);
   if (error) return false;
