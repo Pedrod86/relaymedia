@@ -6,6 +6,8 @@ import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
 import { loadHiddenViews, imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { useProAccess } from "@/lib/use-pro";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/library")({
@@ -66,12 +68,29 @@ function LibraryContent({
   servers: MediaServer[];
   onSwitch: (id: string) => void;
 }) {
+  const navigate = useNavigate();
+  const { isPro } = useProAccess();
   const [tvMode, setTvMode] = useState(false);
   useEffect(() => {
     setTvMode(loadTvMode());
   }, []);
 
+  // TV mode is a Pro feature — drop back to the standard layout if access ends.
+  useEffect(() => {
+    if (!isPro && tvMode) {
+      setTvMode(false);
+      saveTvMode(false);
+    }
+  }, [isPro, tvMode]);
+
   const toggleTv = () => {
+    if (!isPro) {
+      toast.info("TV mode is part of Relay Pro", {
+        description: "Unlock it once for $15 — no subscription.",
+        action: { label: "Unlock", onClick: () => navigate({ to: "/upgrade" }) },
+      });
+      return;
+    }
     const next = !tvMode;
     setTvMode(next);
     saveTvMode(next);
@@ -163,10 +182,21 @@ function LibraryContent({
           >
             <span className="mr-1">📺</span>
             {tvMode ? "Exit TV" : "TV mode"}
+            {!isPro && <span className="ml-1 text-[10px] uppercase opacity-70">Pro</span>}
           </Button>
+          {isPro ? (
+            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
+              Pro
+            </span>
+          ) : (
+            <Button size="sm" asChild>
+              <Link to="/upgrade">Upgrade to Pro</Link>
+            </Button>
+          )}
           <Button variant="ghost" asChild>
             <Link to="/settings">Settings</Link>
           </Button>
+
 
         </div>
       </div>
