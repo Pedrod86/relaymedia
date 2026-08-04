@@ -175,7 +175,10 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
       session: sessionId,
+      hdr: hdrParam,
+      maxHeight: prefs.maxHeight,
     });
+
 
     if (mode === "direct" || video.canPlayType("application/vnd.apple.mpegurl")) {
       // Native playback: let the browser's own range-based buffering run — it
