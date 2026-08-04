@@ -11,10 +11,14 @@ import {
   checkItemPlayback,
   loadPlayerPrefs,
   probeCodecs,
+  probeHdr,
+  NO_HDR,
   type CodecCap,
+  type HdrSupport,
   type PlayerPrefs,
   DEFAULT_PREFS,
 } from "@/lib/player-prefs";
+
 
 export const Route = createFileRoute("/item/$id")({
   head: () => ({
