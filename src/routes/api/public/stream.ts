@@ -10,9 +10,13 @@ import { z } from "zod";
 //
 // SECURITY: no access token ever reaches the browser. The upstream base URL and
 // token come from the encrypted httpOnly cookie vault, so the target host is
-// pinned to the user's own server (no open proxy / SSRF). Range requests are
-// forwarded so seeking works, and HLS playlists are rewritten so segment URLs
-// flow back through our HTTPS origin.
+// pinned to the user's own server (no open proxy / SSRF).
+//
+// PERFORMANCE: range requests are forwarded verbatim (206 + Content-Range pass
+// straight back, so seeking never re-downloads from byte 0), bodies stream
+// without buffering so backpressure reaches the origin, and a client abort
+// cancels the upstream fetch. Shared plumbing lives in
+// src/lib/stream-proxy.server.ts.
 
 const MEDIA_PROXY_PATH = "/api/public/media-proxy";
 
@@ -26,17 +30,11 @@ const querySchema = z.object({
   audioChannels: z.coerce.number().int().min(1).max(8).default(2),
   subtitleIndex: z.coerce.number().int().min(0).max(200).optional(),
   container: z.string().regex(/^[a-z0-9]{2,5}$/).default("mp4"),
+  /** Stable per-playback id so the server reuses one transcode session. */
+  session: z.string().max(120).optional(),
+  /** Seek offset in seconds for a transcoded stream. */
+  start: z.coerce.number().min(0).max(1_000_000).optional(),
 });
-
-const PASS_REQ_HEADERS = ["range", "accept", "accept-language", "if-range"];
-const PASS_RES_HEADERS = [
-  "content-type",
-  "content-length",
-  "content-range",
-  "accept-ranges",
-  "etag",
-  "last-modified",
-];
 
 const DEVICE_ID = "lovable-media-web";
 
@@ -44,40 +42,15 @@ function proxyHref(sid: string, path: string) {
   return `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
 }
 
-function rewritePlaylist(text: string, sid: string, sourceUrl: URL) {
-  const toPath = (uri: string) => {
-    try {
-      const abs = new URL(uri, sourceUrl);
-      if (abs.origin !== sourceUrl.origin) return null;
-      return `${abs.pathname}${abs.search}`;
-    } catch {
-      return null;
-    }
-  };
-  return text
-    .split(/\r?\n/)
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return line;
-      if (trimmed.startsWith("#")) {
-        return line.replace(/URI="([^"]+)"/g, (m, uri) => {
-          const p = toPath(uri);
-          return p ? `URI="${proxyHref(sid, p)}"` : m;
-        });
-      }
-      const p = toPath(trimmed);
-      return p ? proxyHref(sid, p) : line;
-    })
-    .join("\n");
-}
-
 function embyPath(q: z.infer<typeof querySchema>, userId: string) {
+  const session = q.session || `lovable-${q.item}`;
+
   if (q.mode === "direct") {
     const params = new URLSearchParams({
       UserId: userId,
       DeviceId: DEVICE_ID,
       Static: "true",
-      PlaySessionId: `lovable-${q.item}`,
+      PlaySessionId: session,
     });
     return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
   }
@@ -85,7 +58,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
   const params = new URLSearchParams({
     UserId: userId,
     DeviceId: DEVICE_ID,
-    PlaySessionId: `lovable-${q.item}-${Date.now()}`,
+    PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
     AudioCodec: q.audioCodec || "aac,mp3",
     AudioStreamIndex: "1",
@@ -94,11 +67,19 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     MaxAudioChannels: String(q.audioChannels),
     TranscodingMaxAudioChannels: String(q.audioChannels),
     SegmentContainer: "ts",
-    MinSegments: "1",
+    // Shorter segments = faster first frame and cheaper seeks; the decoder gets
+    // a keyframe sooner and hls.js can fill its buffer in parallel.
+    SegmentLength: "3",
+    MinSegments: "2",
     BreakOnNonKeyFrames: "True",
+    // Ask the server to copy the original streams when they already match, so
+    // hardware decoding is preserved instead of re-encoding.
+    AllowVideoStreamCopy: "true",
+    AllowAudioStreamCopy: "true",
     "h264-profile": "high,main,baseline",
     "h264-level": "51",
   });
+  if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
   if (q.subtitleIndex !== undefined) {
     params.set("SubtitleStreamIndex", String(q.subtitleIndex));
     params.set("SubtitleMethod", "Hls");
@@ -116,11 +97,15 @@ async function handle(request: Request) {
   const cred = (await readVaultFromRequest(request)).find((c) => c.id === q.sid);
   if (!cred) return new Response("not authenticated", { status: 401 });
 
-  const headers = new Headers();
-  for (const h of PASS_REQ_HEADERS) {
-    const v = request.headers.get(h);
-    if (v) headers.set(h, v);
-  }
+  const {
+    forwardRequestHeaders,
+    fetchUpstream,
+    buildResponse,
+    classify,
+    rewritePlaylist,
+  } = await import("@/lib/stream-proxy.server");
+
+  const headers = forwardRequestHeaders(request);
 
   let path: string;
   if (cred.kind === "plex") {
@@ -155,37 +140,37 @@ async function handle(request: Request) {
     return new Response("invalid stream target", { status: 400 });
   }
 
-  const upstream = await fetch(targetUrl.toString(), {
-    method: request.method === "HEAD" ? "HEAD" : "GET",
-    headers,
-    redirect: "follow",
-  });
-
-  const outHeaders = new Headers();
-  for (const h of PASS_RES_HEADERS) {
-    const v = upstream.headers.get(h);
-    if (v) outHeaders.set(h, v);
+  let upstream: Response;
+  try {
+    upstream = await fetchUpstream(targetUrl.toString(), {
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      headers,
+      signal: request.signal,
+    });
+  } catch (e: any) {
+    // Client went away mid-seek: nothing to send, and the upstream fetch is
+    // already cancelled so the server stops producing bytes.
+    if (e?.name === "AbortError") return new Response(null, { status: 499 });
+    return new Response("upstream unreachable", { status: 502 });
   }
-  outHeaders.set("cache-control", "private, max-age=0, no-store");
 
-  const ct = (upstream.headers.get("content-type") ?? "").toLowerCase();
-  const isPlaylist = ct.includes("mpegurl") || targetUrl.pathname.endsWith(".m3u8");
+  const kind = classify(targetUrl.pathname, upstream.headers.get("content-type") ?? "");
 
-  if (isPlaylist && upstream.ok && request.method !== "HEAD") {
+  if (kind === "playlist" && upstream.ok && request.method !== "HEAD") {
     const text = await upstream.text();
+    const rewritten = rewritePlaylist(text, targetUrl, (p) => proxyHref(q.sid, p));
+    const base = buildResponse(new Response(null, { status: upstream.status }), "playlist", request);
+    const outHeaders = new Headers(base.headers);
     outHeaders.set("content-type", "application/vnd.apple.mpegurl");
     outHeaders.delete("content-length");
-    return new Response(rewritePlaylist(text, q.sid, targetUrl), {
-      status: upstream.status,
-      headers: outHeaders,
-    });
+    return new Response(rewritten, { status: upstream.status, headers: outHeaders });
   }
 
-  if (!upstream.ok) {
+  if (!upstream.ok && upstream.status !== 206 && upstream.status !== 304) {
     return new Response(`upstream error ${upstream.status}`, { status: upstream.status });
   }
 
-  return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
+  return buildResponse(upstream, kind, request);
 }
 
 export const Route = createFileRoute("/api/public/stream")({
