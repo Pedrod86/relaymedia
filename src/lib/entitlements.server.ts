@@ -5,7 +5,7 @@
 // out — so this resolves Pro access opportunistically and treats "no token" as
 // "free plan" rather than an error.
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -13,18 +13,21 @@ function isOpaqueKey(value: string) {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
 }
 
-/** True when the caller is signed in AND has a paid Relay Pro purchase. */
-export async function callerHasPro(): Promise<boolean> {
+/**
+ * Build a Supabase client that acts as the calling user (RLS applies), or
+ * return null when the request carries no usable bearer token.
+ */
+export function callerClient(): SupabaseClient<Database> | null {
   const authHeader = getRequestHeader("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return false;
+  if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice("Bearer ".length);
-  if (token.split(".").length !== 3) return false;
+  if (token.split(".").length !== 3) return null;
 
   const url = process.env["SUPABASE_URL"];
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
-  if (!url || !key) return false;
+  if (!url || !key) return null;
 
-  const supabase = createClient<Database>(url, key, {
+  return createClient<Database>(url, key, {
     global: {
       headers: { Authorization: `Bearer ${token}` },
       fetch: (input, init) => {
@@ -39,6 +42,21 @@ export async function callerHasPro(): Promise<boolean> {
     },
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
+}
+
+/** The signed-in user's id, or null when the caller is anonymous. */
+export async function callerUserId(): Promise<string | null> {
+  const supabase = callerClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase.auth.getUser();
+  if (error) return null;
+  return data.user?.id ?? null;
+}
+
+/** True when the caller is signed in AND has a paid Relay Pro purchase. */
+export async function callerHasPro(): Promise<boolean> {
+  const supabase = callerClient();
+  if (!supabase) return false;
 
   // RLS restricts this to the token holder's own rows.
   const { data, error } = await supabase
