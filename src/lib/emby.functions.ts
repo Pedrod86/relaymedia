@@ -41,14 +41,21 @@ export const embyLogin = createServerFn({ method: "POST" })
     };
     const { addCredential, readVault } = await import("./vault.server");
     const { callerHasPro } = await import("./entitlements.server");
-    const { serverLimitFor, SERVER_LIMIT_ERROR } = await import("./limits");
+    const { registerDevice } = await import("./devices.server");
+    const { serverLimitFor, SERVER_LIMIT_ERROR, DEVICE_LIMIT_ERROR } = await import("./limits");
+    const isPro = await callerHasPro();
     const existing = await readVault();
     const alreadyConnected = existing.some(
       (c) => c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl),
     );
-    if (!alreadyConnected && existing.length >= serverLimitFor(await callerHasPro())) {
+    if (!alreadyConnected && existing.length >= serverLimitFor(isPro)) {
       return { ok: false as const, error: SERVER_LIMIT_ERROR, limitReached: true as const };
     }
+    const device = await registerDevice(isPro);
+    if (!device.allowed) {
+      return { ok: false as const, error: DEVICE_LIMIT_ERROR, limitReached: true as const };
+    }
+
     const server = await addCredential({
       kind: data.kind,
       name: new URL(normalizeUrl(data.serverUrl)).host,

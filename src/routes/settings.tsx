@@ -21,6 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { loadTheme, saveTheme, type ThemeName } from "@/lib/theme";
 import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
+import { DevicesPanel } from "@/components/DevicesPanel";
+
 
 
 export const Route = createFileRoute("/settings")({
@@ -151,6 +153,10 @@ function SettingsPage() {
             </p>
           </div>
         </section>
+
+        <DevicesPanel />
+
+
 
 
         <PlayerSettingsPanel />
