@@ -129,6 +129,10 @@ export type StreamOptions = {
   audioChannels?: number;
   subtitleIndex?: number;
   container?: string;
+  /** Stable id for one playback attempt — keeps the server transcode session warm. */
+  session?: string;
+  /** Seek offset in seconds for transcoded playback. */
+  start?: number;
 };
 
 export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
@@ -139,8 +143,11 @@ export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   if (opts.audioChannels) params.set("audioChannels", String(opts.audioChannels));
   if (opts.subtitleIndex !== undefined) params.set("subtitleIndex", String(opts.subtitleIndex));
   if (opts.container) params.set("container", opts.container);
+  if (opts.session) params.set("session", opts.session);
+  if (opts.start) params.set("start", String(opts.start));
   return `${STREAM_PATH}?${params}`;
 }
+
 
 // ── Legacy stream URLs (Emby / Jellyfin only — built client-side) ───────────
 // Plex needs an extra round-trip to resolve Media.Part.key; that lives in
