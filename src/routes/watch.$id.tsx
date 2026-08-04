@@ -54,6 +54,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefs, setPrefs] = useState<PlayerPrefs>(loadPlayerPrefs);
   const [caps, setCaps] = useState<CodecCap[]>([]);
+  const [hdr, setHdr] = useState<HdrSupport>(NO_HDR);
+
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
