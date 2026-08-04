@@ -221,27 +221,45 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                 </dl>
               )}
 
-              {!isFolder && (
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {!isFolder && (
                   <Link to="/watch/$id" params={{ id: item.Id }}>
                     <Button size="lg">▶ Play</Button>
                   </Link>
-                  {check && (
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs ${
-                        check.canDirectPlay
-                          ? "bg-emerald-500/15 text-emerald-500"
-                          : "bg-amber-500/15 text-amber-500"
-                      }`}
-                    >
-                      {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
-                    </span>
-                  )}
-                  <Link to="/settings" className="text-xs text-muted-foreground underline">
-                    Player settings
+                )}
+                {isFolder && nextUp && (
+                  <Link to="/watch/$id" params={{ id: nextUp.Id }}>
+                    <Button size="lg">
+                      ▶ Play{" "}
+                      {nextUp.ParentIndexNumber != null && nextUp.IndexNumber != null
+                        ? `S${nextUp.ParentIndexNumber}·E${nextUp.IndexNumber}`
+                        : nextUp.IndexNumber != null
+                          ? `episode ${nextUp.IndexNumber}`
+                          : ""}
+                    </Button>
                   </Link>
-                </div>
-              )}
+                )}
+                {isFolder && !nextUp && childrenLoading && (
+                  <Button size="lg" disabled>
+                    Loading episodes…
+                  </Button>
+                )}
+                {check && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      check.canDirectPlay
+                        ? "bg-emerald-500/15 text-emerald-500"
+                        : "bg-amber-500/15 text-amber-500"
+                    }`}
+                  >
+                    {check.canDirectPlay ? "Direct play supported" : "Will transcode"}
+                  </span>
+                )}
+                <Link to="/settings" className="text-xs text-muted-foreground underline">
+                  Player settings
+                </Link>
+              </div>
+
               {check && check.notes.length > 0 && (
                 <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
                   {check.notes.map((n) => (
