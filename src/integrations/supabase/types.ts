@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      devices: {
+        Row: {
+          created_at: string
+          device_key: string
+          id: string
+          label: string
+          last_seen_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_key: string
+          id?: string
+          label?: string
+          last_seen_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_key?: string
+          id?: string
+          label?: string
+          last_seen_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       purchases: {
         Row: {
           amount_total: number | null
