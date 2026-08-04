@@ -92,6 +92,20 @@ function SettingsPage() {
             Switch between connected <ServerLabel kind="emby" />,{" "}
             <ServerLabel kind="jellyfin" /> or <ServerLabel kind="plex" /> servers, or remove ones you no longer use.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {isPro ? (
+              <>Relay Pro: up to {PRO_SERVER_LIMIT} connected servers.</>
+            ) : (
+              <>
+                Free plan: {FREE_SERVER_LIMIT} connected server.{" "}
+                <Link to="/upgrade" className="underline">
+                  Unlock up to {PRO_SERVER_LIMIT} with Relay Pro
+                </Link>
+                .
+              </>
+            )}
+          </p>
+
           <ul className="mt-4 divide-y">
             {servers.map((s) => {
               const isActive = s.id === active.id;
