@@ -22,6 +22,15 @@ import {
   type HdrSupport,
   type PlayerPrefs,
 } from "@/lib/player-prefs";
+import {
+  AFR_OFF,
+  measureRefreshRate,
+  planFrameRate,
+  readFrameStats,
+  sourceFrameRate,
+  type AfrMode,
+  type FrameStats,
+} from "@/lib/afr";
 
 
 export const Route = createFileRoute("/watch/$id")({
