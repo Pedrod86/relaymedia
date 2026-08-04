@@ -88,10 +88,17 @@ type Probe = Omit<CodecCap, "supported" | "hardware">;
 const VIDEO_PROBES: Probe[] = [
   { name: "h264", label: "H.264 / AVC", track: "video", contentType: 'video/mp4; codecs="avc1.640028"' },
   { name: "hevc", label: "H.265 / HEVC", track: "video", contentType: 'video/mp4; codecs="hvc1.1.6.L93.B0"' },
+  // 10-bit HEVC Main10 at Level 5.1 = the 4K HDR10 / HLG profile.
+  { name: "hevc10", label: "HEVC Main10 (4K HDR)", track: "video", contentType: 'video/mp4; codecs="hvc1.2.4.L153.B0"' },
+  // Dolby Vision: profile 5 (single-layer IPTPQc2) and profile 8.1 (HDR10 base).
+  { name: "dvhe5", label: "Dolby Vision (profile 5)", track: "video", contentType: 'video/mp4; codecs="dvh1.05.06"' },
+  { name: "dvhe8", label: "Dolby Vision (profile 8.1)", track: "video", contentType: 'video/mp4; codecs="dvh1.08.06"' },
   { name: "vp9", label: "VP9", track: "video", contentType: 'video/webm; codecs="vp9"' },
   { name: "av1", label: "AV1", track: "video", contentType: 'video/mp4; codecs="av01.0.08M.08"' },
+  { name: "av1_10bit", label: "AV1 10-bit (HDR)", track: "video", contentType: 'video/mp4; codecs="av01.0.12M.10"' },
   { name: "mpeg2video", label: "MPEG-2", track: "video", contentType: 'video/mp4; codecs="mp4v.20.8"' },
 ];
+
 
 const AUDIO_PROBES: Probe[] = [
   { name: "aac", label: "AAC", track: "audio", contentType: 'audio/mp4; codecs="mp4a.40.2"' },
