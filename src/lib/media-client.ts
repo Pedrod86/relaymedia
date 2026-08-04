@@ -137,6 +137,8 @@ export type StreamOptions = {
   hdr?: "passthrough" | "tonemap";
   /** Vertical resolution ceiling (2160 = 4K). */
   maxHeight?: number;
+  /** Frame-rate ceiling — set to the source fps so AFR cadence is preserved. */
+  maxFps?: number;
 };
 
 export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
