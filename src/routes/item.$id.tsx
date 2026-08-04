@@ -57,10 +57,15 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
 
   const [prefs, setPrefs] = useState<PlayerPrefs>(DEFAULT_PREFS);
   const [caps, setCaps] = useState<CodecCap[]>([]);
+  const [hdrSupport, setHdrSupport] = useState<HdrSupport>(NO_HDR);
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
-    void probeCodecs().then(setCaps);
+    void probeCodecs().then((c) => {
+      setCaps(c);
+      void probeHdr(c).then(setHdrSupport);
+    });
   }, []);
+
 
   const itemQ = useQuery({
     queryKey: ["item", server.id, id],
