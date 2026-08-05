@@ -148,6 +148,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const cast = people.filter((p) => p.Type === "Actor").slice(0, 18);
   const directors = people.filter((p) => p.Type === "Director").map((p) => p.Name);
   const writers = people.filter((p) => p.Type === "Writer").map((p) => p.Name);
+  const producers = people.filter((p) => p.Type === "Producer").map((p) => p.Name);
+
 
   const source = item.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item.MediaStreams ?? [];
