@@ -148,6 +148,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const cast = people.filter((p) => p.Type === "Actor").slice(0, 18);
   const directors = people.filter((p) => p.Type === "Director").map((p) => p.Name);
   const writers = people.filter((p) => p.Type === "Writer").map((p) => p.Name);
+  const producers = people.filter((p) => p.Type === "Producer").map((p) => p.Name);
+
 
   const source = item.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item.MediaStreams ?? [];
@@ -166,6 +168,34 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
     item.CommunityRating ? `★ ${Number(item.CommunityRating).toFixed(1)}` : null,
     item.CriticRating ? `${item.CriticRating}% critics` : null,
   ].filter(Boolean);
+
+  const facts: Array<[string, string]> = (
+    [
+      ["Type", item.Type === "Series" ? "TV series" : item.Type],
+      ["Released", item.PremiereDate ? new Date(item.PremiereDate).toLocaleDateString() : null],
+      ["Year", item.ProductionYear ? String(item.ProductionYear) : null],
+      ["Runtime", ticksToTime(item.RunTimeTicks) || null],
+      ["Rated", item.OfficialRating],
+      ["Rating", item.CommunityRating ? `★ ${Number(item.CommunityRating).toFixed(1)}/10` : null],
+      ["Critics", item.CriticRating ? `${item.CriticRating}%` : null],
+      ["Status", item.Status],
+      ["Seasons", item.ChildCount != null && item.Type === "Series" ? String(item.ChildCount) : null],
+      [
+        "Episodes",
+        item.RecursiveItemCount != null && item.Type === "Series"
+          ? String(item.RecursiveItemCount)
+          : null,
+      ],
+      ["Series", item.Type === "Episode" ? item.SeriesName : null],
+      ["Genres", genres.length ? genres.slice(0, 4).join(", ") : null],
+      ["Studio", studios.length ? studios.slice(0, 2).join(", ") : null],
+      ["Cast size", cast.length ? `${people.filter((p) => p.Type === "Actor").length} credited` : null],
+    ] as Array<[string, string | null | undefined]>
+  )
+    .filter((f): f is [string, string] => Boolean(f[1]))
+    .map(([l, v]) => [l, String(v)]);
+
+
 
   return (
     <main className="min-h-screen bg-background">
@@ -301,7 +331,49 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         </div>
       </div>
 
+      {/* Storyline + details */}
+      <section className="mx-auto max-w-6xl px-6 pt-12">
+        <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+          <div>
+            <h2 className="mb-3 text-xl font-semibold">Storyline</h2>
+            <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+              {item.Overview || "No synopsis available for this title yet."}
+            </p>
+            {(directors.length > 0 || writers.length > 0 || producers.length > 0) && (
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                {[
+                  ["Directed by", directors],
+                  ["Written by", writers],
+                  ["Produced by", producers],
+                ]
+                  .filter(([, v]) => (v as string[]).length > 0)
+                  .map(([label, v]) => (
+                    <div key={label as string}>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+                      <p className="mt-1 text-sm">{(v as string[]).slice(0, 5).join(", ")}</p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Details
+            </h3>
+            <dl className="space-y-2 text-sm">
+              {facts.map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="text-right">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
+
       {/* Media / technical info */}
+
       {(videoStreams.length > 0 || audioStreams.length > 0) && (
         <section className="mx-auto max-w-6xl px-6 pt-12">
           <h2 className="mb-4 text-xl font-semibold">Media info</h2>
