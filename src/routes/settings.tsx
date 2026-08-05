@@ -23,6 +23,7 @@ import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
 import { AccountPanel } from "@/components/AccountPanel";
+import { TorboxPanel } from "@/components/TorboxPanel";
 
 
 
@@ -161,6 +162,8 @@ function SettingsPage() {
 
 
 
+
+        <TorboxPanel />
 
         <PlayerSettingsPanel />
 
