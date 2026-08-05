@@ -160,3 +160,36 @@ export async function requireCredential(id: string): Promise<MediaCredential> {
   if (!cred) throw new Error("SERVER_SESSION_EXPIRED");
   return cred;
 }
+
+/**
+ * Generic encrypted-payload helpers, reused by other server-only credential
+ * stores (e.g. the TorBox API token) so no second key or format exists.
+ */
+export async function sealJson(value: unknown): Promise<string> {
+  const key = await getKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      new TextEncoder().encode(JSON.stringify(value)),
+    ),
+  );
+  return `v1.${b64urlEncode(iv)}.${b64urlEncode(ct)}`;
+}
+
+export async function openJson<T>(value: string): Promise<T | null> {
+  const [version, ivPart, ctPart] = value.split(".");
+  if (version !== "v1" || !ivPart || !ctPart) return null;
+  try {
+    const key = await getKey();
+    const plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64urlDecode(ivPart) },
+      key,
+      b64urlDecode(ctPart),
+    );
+    return JSON.parse(new TextDecoder().decode(plaintext)) as T;
+  } catch {
+    return null;
+  }
+}
