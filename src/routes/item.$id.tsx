@@ -441,32 +441,39 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
       {cast.length > 0 && (
         <section className="mx-auto max-w-6xl px-6 pt-12">
           <h2 className="mb-4 text-xl font-semibold">Cast</h2>
-          <div className="flex gap-4 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-3 sm:gap-4">
             {cast.map((p) => {
               const img = p.PrimaryImageTag
                 ? imageUrl(
                     server,
                     { Id: p.Id, ImageTags: { Primary: p.PrimaryImageTag } },
                     "Primary",
-                    { maxWidth: 200 },
+                    { maxWidth: 300 },
                   )
                 : null;
               return (
-                <div key={`${p.Id}-${p.Name}`} className="w-28 shrink-0 text-center">
+                <div
+                  key={`${p.Id}-${p.Name}`}
+                  className="w-24 shrink-0 text-center sm:w-28 md:w-32"
+                >
                   {img ? (
                     <img
                       src={img}
                       alt={cleanName(p.Name)}
                       loading="lazy"
-                      className="aspect-[2/3] w-full rounded-lg object-cover object-top ring-1 ring-border"
+                      className="aspect-[3/4] w-full rounded-lg object-cover object-[center_15%] ring-1 ring-border"
                     />
                   ) : (
-                    <div className="aspect-[2/3] w-full rounded-lg bg-muted" />
+                    <div className="aspect-[3/4] w-full rounded-lg bg-muted" />
                   )}
-                  <p className="mt-2 truncate text-xs font-medium">{cleanName(p.Name)}</p>
-                  {p.Role && (
-                    <p className="truncate text-[11px] text-foreground/70">{p.Role}</p>
-                  )}
+                  <div className="px-0.5 pb-1">
+                    <p className="mt-2 truncate text-xs font-medium">{cleanName(p.Name)}</p>
+                    {p.Role && (
+                      <p className="mt-0.5 truncate text-[11px] leading-tight text-foreground/70">
+                        {p.Role}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}
