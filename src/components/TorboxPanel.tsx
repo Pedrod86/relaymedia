@@ -37,7 +37,8 @@ export function TorboxPanel() {
   const [busy, setBusy] = useState(false);
 
   const status = useQuery({ queryKey: ["torbox-status"], queryFn: () => statusFn({}) });
-  const connected = status.data?.connected === true;
+  const account = status.data?.connected === true ? status.data : null;
+  const connected = account !== null;
 
   const downloads = useQuery({
     queryKey: ["torbox-downloads"],
@@ -129,9 +130,9 @@ export function TorboxPanel() {
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 p-3">
             <div className="min-w-0 text-sm">
-              <p className="truncate font-medium">{status.data.email}</p>
+              <p className="truncate font-medium">{account!.email}</p>
               <p className="text-xs text-muted-foreground">
-                {status.data.plan} plan · token {status.data.tokenHint}
+                {account!.plan} plan · token {account!.tokenHint}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
