@@ -287,6 +287,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                     Loading episodes…
                   </Button>
                 )}
+                <TrailerPreview server={server} itemId={item.Id} title={cleanName(item.Name)} />
+
                 {check && (
                   <span
                     className={`rounded-full px-3 py-1 text-xs ${
