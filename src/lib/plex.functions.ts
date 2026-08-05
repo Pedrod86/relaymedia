@@ -351,3 +351,38 @@ export const plexSearch = createServerFn({ method: "POST" })
         .map((m) => normalizeMetadata(m)),
     };
   });
+
+/**
+ * Plex trailers/extras. Plex stores them as child "clip" items with their own
+ * Media parts, so they stream through the media proxy just like a full title.
+ */
+export const plexGetTrailers = createServerFn({ method: "POST" })
+  .inputValidator(serverRef.extend({ itemId: z.string().min(1).max(100) }))
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const trailers: Array<
+      | { source: "part"; partKey: string; name: string }
+      | { source: "external"; url: string; name: string }
+    > = [];
+    try {
+      const json = await plexFetch(
+        c,
+        `/library/metadata/${encodeURIComponent(data.itemId)}?includeExtras=1`,
+      );
+      const m = (json.MediaContainer?.Metadata ?? [])[0];
+      const extras: any[] = m?.Extras?.Metadata ?? [];
+      for (const e of extras) {
+        const isTrailer = e?.subtype === "trailer" || e?.extraType === 1 || extras.length > 0;
+        if (!isTrailer) continue;
+        const part = e?.Media?.[0]?.Part?.[0];
+        const name = e?.title ?? "Trailer";
+        if (part?.key) trailers.push({ source: "part", partKey: String(part.key), name });
+        else if (typeof e?.url === "string" && e.url.startsWith("http"))
+          trailers.push({ source: "external", url: e.url, name });
+      }
+    } catch {
+      /* extras unavailable */
+    }
+    return { trailers };
+  });
