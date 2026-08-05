@@ -198,3 +198,44 @@ export const embySearch = createServerFn({ method: "POST" })
     const json = (await embyFetch(c, `/Users/${c.userId}/Items?${params}`)) as { Items: any[] };
     return { items: json.Items ?? [] };
   });
+
+/**
+ * Trailers for a movie/series. Two sources:
+ *  - local trailer files on the server (playable through /api/public/stream)
+ *  - RemoteTrailers metadata (usually YouTube links) — embedded in an iframe
+ */
+export const embyGetTrailers = createServerFn({ method: "POST" })
+  .inputValidator(serverRef.extend({ itemId: z.string().min(1).max(100) }))
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+
+    const trailers: Array<
+      | { source: "local"; id: string; name: string }
+      | { source: "external"; url: string; name: string }
+    > = [];
+
+    try {
+      const local = (await embyFetch(
+        c,
+        `/Users/${c.userId}/Items/${data.itemId}/LocalTrailers`,
+      )) as any;
+      const items: any[] = Array.isArray(local) ? local : (local?.Items ?? []);
+      for (const t of items) {
+        if (t?.Id) trailers.push({ source: "local", id: String(t.Id), name: t.Name ?? "Trailer" });
+      }
+    } catch {
+      /* server may not expose local trailers */
+    }
+
+    try {
+      const item = (await embyFetch(c, `/Users/${c.userId}/Items/${data.itemId}`)) as any;
+      for (const t of (item?.RemoteTrailers ?? []) as any[]) {
+        if (t?.Url) trailers.push({ source: "external", url: t.Url, name: t.Name ?? "Trailer" });
+      }
+    } catch {
+      /* ignore */
+    }
+
+    return { trailers };
+  });

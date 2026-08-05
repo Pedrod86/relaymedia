@@ -7,6 +7,8 @@ import { plexGetItem } from "@/lib/plex.functions";
 import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
+import { TrailerPreview } from "@/components/TrailerPreview";
+
 import {
   checkItemPlayback,
   loadPlayerPrefs,
@@ -287,6 +289,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                     Loading episodes…
                   </Button>
                 )}
+                <TrailerPreview server={server} itemId={item.Id} title={cleanName(item.Name)} />
+
                 {check && (
                   <span
                     className={`rounded-full px-3 py-1 text-xs ${
