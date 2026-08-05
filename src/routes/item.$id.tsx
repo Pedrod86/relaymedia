@@ -169,6 +169,34 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
     item.CriticRating ? `${item.CriticRating}% critics` : null,
   ].filter(Boolean);
 
+  const facts: Array<[string, string]> = (
+    [
+      ["Type", item.Type === "Series" ? "TV series" : item.Type],
+      ["Released", item.PremiereDate ? new Date(item.PremiereDate).toLocaleDateString() : null],
+      ["Year", item.ProductionYear ? String(item.ProductionYear) : null],
+      ["Runtime", ticksToTime(item.RunTimeTicks) || null],
+      ["Rated", item.OfficialRating],
+      ["Rating", item.CommunityRating ? `★ ${Number(item.CommunityRating).toFixed(1)}/10` : null],
+      ["Critics", item.CriticRating ? `${item.CriticRating}%` : null],
+      ["Status", item.Status],
+      ["Seasons", item.ChildCount != null && item.Type === "Series" ? String(item.ChildCount) : null],
+      [
+        "Episodes",
+        item.RecursiveItemCount != null && item.Type === "Series"
+          ? String(item.RecursiveItemCount)
+          : null,
+      ],
+      ["Series", item.Type === "Episode" ? item.SeriesName : null],
+      ["Genres", genres.length ? genres.slice(0, 4).join(", ") : null],
+      ["Studio", studios.length ? studios.slice(0, 2).join(", ") : null],
+      ["Cast size", cast.length ? `${people.filter((p) => p.Type === "Actor").length} credited` : null],
+    ] as Array<[string, string | null | undefined]>
+  )
+    .filter((f): f is [string, string] => Boolean(f[1]))
+    .map(([l, v]) => [l, String(v)]);
+
+
+
   return (
     <main className="min-h-screen bg-background">
       <div className="relative">
