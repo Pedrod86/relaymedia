@@ -7,6 +7,8 @@ import { plexGetItem } from "@/lib/plex.functions";
 import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
+import { TrailerPreview } from "@/components/TrailerPreview";
+
 import {
   checkItemPlayback,
   loadPlayerPrefs,
