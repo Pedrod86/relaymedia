@@ -15,9 +15,65 @@ import { normalizeUrl, plexFetch, plexHeaders, plexRequest } from "./media.serve
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
+function tags(list: any): string[] {
+  return Array.isArray(list) ? list.map((t: any) => t?.tag).filter(Boolean) : [];
+}
+
+function plexPeople(m: any): any[] {
+  const people: any[] = [];
+  const push = (list: any, type: string) => {
+    if (!Array.isArray(list)) return;
+    for (const p of list) {
+      if (!p?.tag) continue;
+      people.push({
+        Id: String(p.id ?? p.tag),
+        Name: p.tag,
+        Type: type,
+        Role: p.role ?? undefined,
+        PrimaryImageTag: p.thumb ?? undefined,
+      });
+    }
+  };
+  push(m.Role, "Actor");
+  push(m.Director, "Director");
+  push(m.Writer, "Writer");
+  push(m.Producer, "Producer");
+  return people;
+}
+
+function plexStreams(m: any): any[] {
+  const media = Array.isArray(m.Media) ? m.Media : [];
+  const out: any[] = [];
+  let index = 0;
+  for (const md of media) {
+    const parts = Array.isArray(md.Part) ? md.Part : [];
+    for (const part of parts) {
+      const streams = Array.isArray(part.Stream) ? part.Stream : [];
+      for (const s of streams) {
+        out.push({
+          Index: index++,
+          Type: s.streamType === 1 ? "Video" : s.streamType === 2 ? "Audio" : "Subtitle",
+          Codec: s.codec,
+          Width: s.width ?? md.width,
+          Height: s.height ?? md.height,
+          BitDepth: s.bitDepth,
+          AverageFrameRate: typeof md.videoFrameRate === "string" ? undefined : md.frameRate,
+          VideoRange: s.colorTrc === "smpte2084" ? "HDR" : undefined,
+          ChannelLayout: s.audioChannelLayout,
+          Language: s.language,
+          DisplayTitle: s.displayTitle ?? s.extendedDisplayTitle,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 function normalizeMetadata(m: any): any {
   const isFolder = m.type === "show" || m.type === "season" || m.type === "artist" || m.type === "album";
   const runtimeMs = typeof m.duration === "number" ? m.duration : 0;
+  const streams = plexStreams(m);
+  const container = m.Media?.[0]?.Part?.[0]?.container ?? m.Media?.[0]?.container;
   return {
     Id: String(m.ratingKey ?? m.key ?? ""),
     Name: m.title ?? m.parentTitle ?? "Untitled",
@@ -30,6 +86,22 @@ function normalizeMetadata(m: any): any {
     IsFolder: isFolder,
     ProductionYear: m.year,
     Overview: m.summary,
+    Taglines: m.tagline ? [m.tagline] : undefined,
+    OfficialRating: m.contentRating,
+    CommunityRating: typeof m.rating === "number" ? m.rating : undefined,
+    CriticRating:
+      typeof m.audienceRating === "number" ? Math.round(m.audienceRating * 10) : undefined,
+    PremiereDate: m.originallyAvailableAt,
+    Genres: tags(m.Genre),
+    Studios: m.studio ? [{ Name: m.studio }] : tags(m.Studio).map((n) => ({ Name: n })),
+    People: plexPeople(m),
+    Status: m.status,
+    ChildCount: m.childCount,
+    RecursiveItemCount: m.leafCount,
+    SeriesName: m.grandparentTitle ?? (m.type === "episode" ? m.parentTitle : undefined),
+    ParentIndexNumber: m.parentIndex,
+    MediaStreams: streams,
+    MediaSources: streams.length ? [{ Container: container, MediaStreams: streams }] : undefined,
     RunTimeTicks: runtimeMs * 10_000, // ms → 100ns ticks
     IndexNumber: m.index,
     ImageTags: {
@@ -46,6 +118,7 @@ function normalizeMetadata(m: any): any {
       : undefined,
   };
 }
+
 
 /**
  * Connect a Plex server. Either plex.tv credentials or a pasted token is
