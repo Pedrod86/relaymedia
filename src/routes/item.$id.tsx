@@ -49,7 +49,7 @@ function ItemPage() {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border bg-card/60 px-2.5 py-1 text-xs text-muted-foreground">
+    <span className="rounded-full border bg-card/70 px-2.5 py-1 text-xs text-foreground/80">
       {children}
     </span>
   );
@@ -227,9 +227,9 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
             <div className="flex-1">
               <h1 className="text-4xl font-bold tracking-tight">{cleanName(item.Name)}</h1>
               {item.Taglines?.[0] && (
-                <p className="mt-1 italic text-muted-foreground">{item.Taglines[0]}</p>
+                <p className="mt-1 italic text-foreground/80">{item.Taglines[0]}</p>
               )}
-              <p className="mt-2 text-sm text-muted-foreground">{meta.join(" • ")}</p>
+              <p className="mt-2 text-sm font-medium text-foreground/90">{meta.join(" • ")}</p>
 
               {genres.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -240,26 +240,26 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
               )}
 
               {item.Overview && (
-                <p className="mt-4 max-w-2xl text-muted-foreground">{item.Overview}</p>
+                <p className="mt-4 max-w-2xl text-foreground/90">{item.Overview}</p>
               )}
 
               {(directors.length > 0 || writers.length > 0 || studios.length > 0) && (
                 <dl className="mt-4 space-y-1 text-sm">
                   {directors.length > 0 && (
                     <div className="flex gap-2">
-                      <dt className="text-muted-foreground">Director</dt>
+                      <dt className="text-foreground/70">Director</dt>
                       <dd>{directors.join(", ")}</dd>
                     </div>
                   )}
                   {writers.length > 0 && (
                     <div className="flex gap-2">
-                      <dt className="text-muted-foreground">Writer</dt>
+                      <dt className="text-foreground/70">Writer</dt>
                       <dd>{writers.slice(0, 4).join(", ")}</dd>
                     </div>
                   )}
                   {studios.length > 0 && (
                     <div className="flex gap-2">
-                      <dt className="text-muted-foreground">Studio</dt>
+                      <dt className="text-foreground/70">Studio</dt>
                       <dd>{studios.slice(0, 3).join(", ")}</dd>
                     </div>
                   )}
@@ -340,7 +340,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
           <div>
             <h2 className="mb-3 text-xl font-semibold">Storyline</h2>
-            <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
+            <p className="whitespace-pre-line leading-relaxed text-foreground/90">
               {item.Overview || "No synopsis available for this title yet."}
             </p>
             {(directors.length > 0 || writers.length > 0 || producers.length > 0) && (
@@ -354,7 +354,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   .map(([label, v]) => (
                     <div key={label as string}>
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-                      <p className="mt-1 text-sm">{(v as string[]).slice(0, 5).join(", ")}</p>
+                      <p className="mt-1 text-sm text-foreground/90">{(v as string[]).slice(0, 5).join(", ")}</p>
                     </div>
                   ))}
               </div>
@@ -367,7 +367,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
             <dl className="space-y-2 text-sm">
               {facts.map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{label}</dt>
+                  <dt className="text-foreground/70">{label}</dt>
                   <dd className="text-right">{value}</dd>
                 </div>
               ))}
@@ -458,14 +458,14 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                       src={img}
                       alt={cleanName(p.Name)}
                       loading="lazy"
-                      className="aspect-[2/3] w-full rounded-lg object-cover ring-1 ring-border"
+                      className="aspect-[2/3] w-full rounded-lg object-cover object-top ring-1 ring-border"
                     />
                   ) : (
                     <div className="aspect-[2/3] w-full rounded-lg bg-muted" />
                   )}
                   <p className="mt-2 truncate text-xs font-medium">{cleanName(p.Name)}</p>
                   {p.Role && (
-                    <p className="truncate text-[11px] text-muted-foreground">{p.Role}</p>
+                    <p className="truncate text-[11px] text-foreground/70">{p.Role}</p>
                   )}
                 </div>
               );
@@ -519,7 +519,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                         .join(" • ")}
                     </p>
                     {ep.Overview && (
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{ep.Overview}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-foreground/80">{ep.Overview}</p>
                     )}
                   </div>
                 </Link>
