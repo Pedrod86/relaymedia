@@ -49,13 +49,14 @@ export function TrailerPreview({
   const [index, setIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const q = useQuery({
+  const q = useQuery<{ trailers: Trailer[] }>({
     queryKey: ["trailers", server.id, itemId],
-    queryFn: () =>
-      isPlex
-        ? getPlex({ data: { serverId: server.id, itemId } })
-        : getEmby({ data: { serverId: server.id, itemId } }),
+    queryFn: async () =>
+      (isPlex
+        ? await getPlex({ data: { serverId: server.id, itemId } })
+        : await getEmby({ data: { serverId: server.id, itemId } })) as { trailers: Trailer[] },
   });
+
 
   const trailers = (q.data?.trailers ?? []) as Trailer[];
   const current = trailers[index];
