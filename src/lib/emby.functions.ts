@@ -109,14 +109,81 @@ export const embyGetItems = createServerFn({ method: "POST" })
     return { items: json.Items ?? [], total: json.TotalRecordCount ?? 0 };
   });
 
+// Full metadata for one item. Emby only returns the richer metadata blocks
+// (overview, cast, genres, studios, streams, ratings) when they are requested
+// explicitly via Fields — without it, titles whose scrape is thinner come back
+// with almost nothing, which is why some copies showed info and others didn't.
+const ITEM_FIELDS = [
+  "Overview",
+  "Taglines",
+  "Genres",
+  "Studios",
+  "People",
+  "ProductionYear",
+  "PremiereDate",
+  "OfficialRating",
+  "CommunityRating",
+  "CriticRating",
+  "ProductionLocations",
+  "RunTimeTicks",
+  "MediaStreams",
+  "MediaSources",
+  "Path",
+  "SeriesName",
+  "ParentIndexNumber",
+  "IndexNumber",
+  "ChildCount",
+  "RecursiveItemCount",
+  "PrimaryImageAspectRatio",
+  "BackdropImageTags",
+  "RemoteTrailers",
+  "ExternalUrls",
+  "ProviderIds",
+].join(",");
+
 export const embyGetItem = createServerFn({ method: "POST" })
   .inputValidator(serverRef.extend({ itemId: z.string().min(1).max(100) }))
   .handler(async ({ data }) => {
     const { requireCredential } = await import("./vault.server");
     const c = await requireCredential(data.serverId);
-    const item = (await embyFetch(c, `/Users/${c.userId}/Items/${data.itemId}`)) as any;
+    const params = new URLSearchParams({
+      Fields: ITEM_FIELDS,
+      EnableImageTypes: "Primary,Backdrop,Thumb,Logo",
+    });
+    const item = (await embyFetch(
+      c,
+      `/Users/${c.userId}/Items/${data.itemId}?${params}`,
+    )) as any;
+
+    // Fall back to parent metadata so episodes/seasons and thinly-scraped
+    // copies still render a synopsis, cast and genres.
+    const parentId: string | undefined = item?.SeriesId ?? item?.ParentId;
+    const needsFallback =
+      item &&
+      (!item.Overview ||
+        !(item.People?.length) ||
+        !(item.Genres?.length));
+    if (parentId && needsFallback) {
+      try {
+        const parent = (await embyFetch(
+          c,
+          `/Users/${c.userId}/Items/${parentId}?${params}`,
+        )) as any;
+        if (!item.Overview && parent?.Overview) item.Overview = parent.Overview;
+        if (!item.People?.length && parent?.People?.length) item.People = parent.People;
+        if (!item.Genres?.length && parent?.Genres?.length) item.Genres = parent.Genres;
+        if (!item.Studios?.length && parent?.Studios?.length) item.Studios = parent.Studios;
+        if (item.CommunityRating == null && parent?.CommunityRating != null)
+          item.CommunityRating = parent.CommunityRating;
+        if (!item.OfficialRating && parent?.OfficialRating)
+          item.OfficialRating = parent.OfficialRating;
+      } catch {
+        /* parent unavailable */
+      }
+    }
     return { item };
   });
+
 
 export const embyGetResume = createServerFn({ method: "POST" })
   .inputValidator(serverRef)
