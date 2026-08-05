@@ -86,6 +86,24 @@ function AuthPage() {
     }
   }
 
+  async function onApple() {
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Apple sign-in failed. Please try again.");
+        return;
+      }
+      if (result.redirected) return;
+    } catch {
+      toast.error("Apple sign-in failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (sentConfirmation) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -125,6 +143,19 @@ function AuthPage() {
             disabled={busy}
           >
             Continue with Google
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2 w-full"
+            onClick={onApple}
+            disabled={busy}
+          >
+            <svg viewBox="0 0 384 512" aria-hidden="true" className="mr-2 h-4 w-4 fill-current">
+              <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-36.8-2.8-77 21.3-91.7 21.3-15.5 0-51.2-20.3-79.2-20.3C56.5 141.2 0 189.3 0 285.2c0 28.3 5.2 57.5 15.5 87.6 13.8 39.6 46.3 109.2 80.2 108.2 17.7-.4 30.2-12.6 53.3-12.6 22.4 0 34 12.2 53.7 12.2 34.2-.5 63.6-63.8 76.7-103.5-45.8-21.6-60.7-62.4-60.7-108.4zM255.3 84.6c17.5-21.2 26.8-46.2 26.8-71.9 0-3.5-.3-7.1-.8-10.7-25.4 1.2-53.6 15.4-70.3 35.8-15.4 18.6-27.5 43.4-27.5 68.5 0 3.9.6 7.8 1 9 1.5.3 3.9.6 6.3.6 22.7 0 51.3-13.2 64.5-31.3z" />
+            </svg>
+            Continue with Apple
           </Button>
 
           <div className="my-4 flex items-center gap-3">
