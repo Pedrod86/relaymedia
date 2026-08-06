@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "android:apk": "cd android && ./gradlew assembleRelease",
+    "android:bundle": "cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
