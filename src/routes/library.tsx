@@ -148,19 +148,19 @@ function LibraryContent({
 
   const topNav = (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4">
+      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:flex sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">
+          <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
             {server.kind} · {server.name}
           </p>
-          <h1 className="text-lg font-semibold">Hi, {server.userName}</h1>
+          <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {servers.length > 1 && (
             <select
               value={server.id}
               onChange={(e) => onSwitch(e.target.value)}
-              className="rounded-md border bg-background px-2 py-1 text-sm"
+              className="hidden max-w-[9rem] rounded-md border bg-background px-2 py-1 text-sm sm:block"
               aria-label="Switch server"
             >
               {servers.map((s) => (
@@ -170,8 +170,11 @@ function LibraryContent({
               ))}
             </select>
           )}
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/search">🔍 Search</Link>
+          <Button variant="outline" size="sm" asChild aria-label="Search">
+            <Link to="/search">
+              <span>🔍</span>
+              <span className="hidden sm:inline">Search</span>
+            </Link>
           </Button>
           <Button
             variant={tvMode ? "default" : "outline"}
@@ -180,9 +183,11 @@ function LibraryContent({
             aria-pressed={tvMode}
             aria-label={tvMode ? "Exit TV mode" : "Enter TV mode"}
           >
-            <span className="mr-1">📺</span>
-            {tvMode ? "Exit TV" : "TV mode"}
-            {!isPro && <span className="ml-1 text-[10px] uppercase opacity-70">Pro</span>}
+            <span>📺</span>
+            <span className="hidden sm:inline">{tvMode ? "Exit TV" : "TV mode"}</span>
+            {!isPro && (
+              <span className="hidden text-[10px] uppercase opacity-70 sm:inline">Pro</span>
+            )}
           </Button>
           {isPro ? (
             <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
@@ -190,18 +195,23 @@ function LibraryContent({
             </span>
           ) : (
             <Button size="sm" asChild>
-              <Link to="/upgrade">Upgrade to Pro</Link>
+              <Link to="/upgrade">
+                <span className="sm:hidden">Pro</span>
+                <span className="hidden sm:inline">Upgrade to Pro</span>
+              </Link>
             </Button>
           )}
-          <Button variant="ghost" asChild>
-            <Link to="/settings">Settings</Link>
+          <Button variant="ghost" size="sm" asChild aria-label="Settings">
+            <Link to="/settings">
+              <span className="sm:hidden">⚙️</span>
+              <span className="hidden sm:inline">Settings</span>
+            </Link>
           </Button>
-
-
         </div>
       </div>
     </header>
   );
+
 
   if (tvMode) {
     return (
