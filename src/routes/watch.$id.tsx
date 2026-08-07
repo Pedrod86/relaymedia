@@ -23,6 +23,10 @@ import {
   type PlayerPrefs,
 } from "@/lib/player-prefs";
 import {
+  scrobbleTargetFromEmbyItem,
+  useTraktScrobble,
+} from "@/lib/use-trakt-scrobble";
+import {
   AFR_OFF,
   measureRefreshRate,
   planFrameRate,
@@ -100,6 +104,13 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     queryKey: ["watch-item", server.id, itemId],
     queryFn: () => getItemEmby({ data: { serverId: server.id, itemId } }),
   });
+
+  // Trakt scrobbling: start/pause/stop follow the <video> element.
+  const scrobbleTarget = useMemo(
+    () => (isEmbyFamily ? scrobbleTargetFromEmbyItem(itemQ.data?.item) : null),
+    [itemQ.data, isEmbyFamily],
+  );
+  useTraktScrobble(videoRef, scrobbleTarget);
 
   const check = useMemo(
     () =>
