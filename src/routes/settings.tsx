@@ -24,6 +24,7 @@ import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
 import { AccountPanel } from "@/components/AccountPanel";
 import { TorboxPanel } from "@/components/TorboxPanel";
+import { TraktPanel } from "@/components/TraktPanel";
 
 
 
@@ -162,6 +163,8 @@ function SettingsPage() {
 
 
 
+
+        <TraktPanel />
 
         <TorboxPanel />
 
