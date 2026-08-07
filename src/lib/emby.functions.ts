@@ -238,11 +238,13 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
+      console.error(`Emby library refresh failed [${res.status}]: ${text.slice(0, 200)}`);
       return {
         ok: false as const,
-        error: `Refresh failed (${res.status}). ${text.slice(0, 200)}`,
+        error: `Refresh failed (${res.status}).`,
       };
     }
+
     return { ok: true as const, startedAt: new Date().toISOString() };
   });
 
