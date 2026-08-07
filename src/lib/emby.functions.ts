@@ -6,7 +6,7 @@
 // an opaque serverId.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
+import { assertSafeServerUrl, embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
@@ -20,6 +20,7 @@ export const embyLogin = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    assertSafeServerUrl(data.serverUrl);
     const url = `${normalizeUrl(data.serverUrl)}/Users/AuthenticateByName`;
     const res = await fetch(url, {
       method: "POST",
@@ -32,9 +33,18 @@ export const embyLogin = createServerFn({ method: "POST" })
       body: JSON.stringify({ Username: data.username, Pw: data.password }),
     });
     if (!res.ok) {
+      // Never reflect the upstream body to the caller (SSRF response disclosure).
       const text = await res.text().catch(() => "");
-      return { ok: false as const, error: `Login failed (${res.status}). ${text.slice(0, 200)}` };
+      console.error(`Emby login failed [${res.status}]: ${text.slice(0, 200)}`);
+      return {
+        ok: false as const,
+        error:
+          res.status === 401
+            ? "Login failed: incorrect username or password."
+            : `Login failed (${res.status}). Check the server address and try again.`,
+      };
     }
+
     const json = (await res.json()) as {
       AccessToken: string;
       User: { Id: string; Name: string };
@@ -238,11 +248,13 @@ export const embyRefreshLibrary = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
+      console.error(`Emby library refresh failed [${res.status}]: ${text.slice(0, 200)}`);
       return {
         ok: false as const,
-        error: `Refresh failed (${res.status}). ${text.slice(0, 200)}`,
+        error: `Refresh failed (${res.status}).`,
       };
     }
+
     return { ok: true as const, startedAt: new Date().toISOString() };
   });
 
