@@ -16,6 +16,36 @@ export function normalizeUrl(url: string) {
   return url.replace(/\/+$/, "");
 }
 
+// Cloud/link-local metadata endpoints reachable from the hosting infrastructure.
+// User LAN servers stay allowed; only these well-known SSRF targets are blocked.
+const BLOCKED_HOSTS = new Set([
+  "169.254.169.254",
+  "metadata.google.internal",
+  "metadata",
+  "instance-data",
+  "100.100.100.200",
+]);
+
+/** Throws if the URL targets a known cloud metadata endpoint. */
+export function assertSafeServerUrl(url: string) {
+  let host: string;
+  let protocol: string;
+  try {
+    const u = new URL(url);
+    host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    protocol = u.protocol;
+  } catch {
+    throw new Error("Invalid server URL.");
+  }
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new Error("Only http and https server URLs are supported.");
+  }
+  if (BLOCKED_HOSTS.has(host) || host.startsWith("169.254.") || host === "fd00:ec2::254") {
+    throw new Error("This address is not allowed.");
+  }
+}
+
+
 export function embyAuthHeader(token?: string, userId?: string) {
   const parts = [
     `MediaBrowser Client="${CLIENT_NAME}"`,
