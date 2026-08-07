@@ -6,7 +6,7 @@
 // an opaque serverId.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
+import { assertSafeServerUrl, embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
