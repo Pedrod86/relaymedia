@@ -119,7 +119,7 @@ export const embyGetItems = createServerFn({ method: "POST" })
       SortBy: data.sortBy,
       SortOrder: "Ascending",
       Limit: String(data.limit),
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
@@ -216,7 +216,7 @@ export const embyGetResume = createServerFn({ method: "POST" })
     const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "20",
-      Fields: "PrimaryImageAspectRatio,Overview",
+      Fields: "PrimaryImageAspectRatio,Overview,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
       MediaTypes: "Video",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
@@ -234,7 +234,7 @@ export const embyGetLatest = createServerFn({ method: "POST" })
     const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "24",
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
       IncludeItemTypes: "Movie,Series",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
@@ -284,7 +284,7 @@ export const embySearch = createServerFn({ method: "POST" })
       Recursive: "true",
       Limit: "48",
       IncludeItemTypes: "Movie,Series,Episode",
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
