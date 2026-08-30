@@ -45,6 +45,36 @@ export function assertSafeServerUrl(url: string) {
   }
 }
 
+/** True when the host is a bare IPv4/IPv6 literal rather than a DNS name. */
+export function isBareIpHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith("[");
+  } catch {
+    return false;
+  }
+}
+
+export const DIRECT_IP_ERROR =
+  "The hosting network blocks connections made to a bare IP address. Use a domain name for your server (e.g. https://media.yourdomain.com:42420 or a free DDNS hostname) and try again.";
+
+/**
+ * The published app runs behind a network that refuses outbound requests to raw
+ * IP addresses (it answers with "error code: 1003"). Translate that into advice
+ * instead of a bare HTTP status.
+ */
+export function upstreamBlockMessage(
+  status: number,
+  body: string,
+  serverUrl: string,
+): string | null {
+  const blocked = /error code:\s*1003|direct ip access/i.test(body);
+  if (blocked || (status === 403 && isBareIpHost(serverUrl))) return DIRECT_IP_ERROR;
+  return null;
+}
+
+
+
 
 export function embyAuthHeader(token?: string, userId?: string) {
   const parts = [

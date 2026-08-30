@@ -11,7 +11,13 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { normalizeUrl, plexFetch, plexHeaders, plexRequest } from "./media.server";
+import {
+  normalizeUrl,
+  plexFetch,
+  plexHeaders,
+  plexRequest,
+  upstreamBlockMessage,
+} from "./media.server";
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
@@ -172,8 +178,11 @@ export const plexAddServer = createServerFn({ method: "POST" })
       machineId = (mc.machineIdentifier as string | undefined) ?? "";
       friendlyName = (mc.friendlyName as string | undefined) ?? friendlyName;
     } catch (e: any) {
-      return { ok: false as const, error: e?.message ?? "Could not reach Plex server" };
+      const raw = String(e?.message ?? "");
+      const blocked = upstreamBlockMessage(/403/.test(raw) ? 403 : 0, raw, data.serverUrl);
+      return { ok: false as const, error: blocked ?? raw ?? "Could not reach Plex server" };
     }
+
 
     const { addCredential, readVault } = await import("./vault.server");
     const { callerHasPro } = await import("./entitlements.server");

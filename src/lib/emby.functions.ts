@@ -6,7 +6,13 @@
 // an opaque serverId.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { assertSafeServerUrl, embyAuthHeader, embyFetch, normalizeUrl } from "./media.server";
+import {
+  assertSafeServerUrl,
+  embyAuthHeader,
+  embyFetch,
+  normalizeUrl,
+  upstreamBlockMessage,
+} from "./media.server";
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
@@ -36,14 +42,17 @@ export const embyLogin = createServerFn({ method: "POST" })
       // Never reflect the upstream body to the caller (SSRF response disclosure).
       const text = await res.text().catch(() => "");
       console.error(`Emby login failed [${res.status}]: ${text.slice(0, 200)}`);
+      const blocked = upstreamBlockMessage(res.status, text, data.serverUrl);
       return {
         ok: false as const,
         error:
-          res.status === 401
+          blocked ??
+          (res.status === 401
             ? "Login failed: incorrect username or password."
-            : `Login failed (${res.status}). Check the server address and try again.`,
+            : `Login failed (${res.status}). Check the server address and try again.`),
       };
     }
+
 
     const json = (await res.json()) as {
       AccessToken: string;
