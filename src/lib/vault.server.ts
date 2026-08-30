@@ -118,7 +118,13 @@ async function writeVault(creds: MediaCredential[]) {
   setCookie(COOKIE_NAME, await seal(creds.slice(0, MAX_SERVERS)), {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    // The Lovable preview and installed mobile shell can render the app in an
+    // embedded context. A Lax cookie is rejected there, which made login report
+    // success and then immediately return an empty server list. Partitioning
+    // keeps the credential isolated to the embedding site while allowing it to
+    // accompany subsequent same-app server-function and media-proxy requests.
+    sameSite: "none",
+    partitioned: true,
     path: "/",
     maxAge: creds.length > 0 ? MAX_AGE_SECONDS : 0,
   });
