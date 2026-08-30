@@ -100,6 +100,16 @@ export function buildResponse(upstream: Response, kind: BodyKind, request: Reque
     if (v) headers.set(h, v);
   }
 
+  // The runtime already decompressed the body, so the upstream length no longer
+  // describes what we send. A wrong content-length truncates the image/segment.
+  if (upstream.headers.get("content-encoding")) headers.delete("content-length");
+
+  // `nosniff` means a missing/incorrect type stops the image rendering at all.
+  if (kind === "image" && !(headers.get("content-type") ?? "").startsWith("image/")) {
+    headers.set("content-type", "image/jpeg");
+  }
+
+
   // Seeking needs byte ranges. Emby/Jellyfin static files support them but do
   // not always advertise it on a plain 200.
   if ((kind === "video" || kind === "segment") && !headers.has("accept-ranges")) {
