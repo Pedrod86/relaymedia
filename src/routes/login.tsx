@@ -76,7 +76,15 @@ function LoginPage() {
         navigate({ to: "/library" });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reach server");
+      // Low-level network failures ("fetch failed", "Load failed") mean the
+      // address is unreachable — show something a person can act on.
+      const raw = err instanceof Error ? err.message : "";
+      const unreachable = /fetch failed|load failed|network|timeout|ECONN|ENOTFOUND|EHOSTUNREACH/i.test(raw);
+      setError(
+        unreachable || !raw
+          ? "Could not reach that server. Check the address, port and that it's online from this device."
+          : raw,
+      );
     } finally {
       setBusy(false);
     }

@@ -181,8 +181,10 @@ export const plexAddServer = createServerFn({ method: "POST" })
     const { serverLimitFor, SERVER_LIMIT_ERROR, DEVICE_LIMIT_ERROR } = await import("./limits");
     const isPro = await callerHasPro();
     const existing = await readVault();
+    // Same address + same account = re-login (replaces the old credential);
+    // a different account is a new connection and counts against the limit.
     const alreadyConnected = existing.some(
-      (c) => c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl),
+      (c) => c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl) && c.userName === userName,
     );
     if (!alreadyConnected && existing.length >= serverLimitFor(isPro)) {
       return { ok: false as const, error: SERVER_LIMIT_ERROR, limitReached: true as const };
