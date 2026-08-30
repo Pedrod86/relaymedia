@@ -35,7 +35,6 @@ export const PASS_RES_HEADERS = [
   "accept-ranges",
   "etag",
   "last-modified",
-  "content-encoding",
 ];
 
 /** Copy through the request headers that matter for ranges and revalidation. */
