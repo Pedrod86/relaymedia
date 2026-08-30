@@ -20,9 +20,9 @@ export const Route = createFileRoute("/login")({
 });
 
 const KINDS: { value: ServerKind; label: string; hint: string }[] = [
-  { value: "emby", label: "Emby", hint: "e.g. http://192.168.1.10:8096" },
+  { value: "emby", label: "Emby", hint: "e.g. https://emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "e.g. https://jellyfin.example.com" },
-  { value: "plex", label: "Plex", hint: "e.g. http://192.168.1.10:32400" },
+  { value: "plex", label: "Plex", hint: "e.g. https://plex.example.com:32400" },
 ];
 
 function LoginPage() {
