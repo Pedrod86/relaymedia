@@ -90,14 +90,58 @@ export function proxiedPath(serverId: string, path: string) {
 // For emby/jellyfin: ImageTags.Primary/Thumb are the tag strings.
 // For plex: ImageTags.Primary/Thumb are the raw thumb paths
 // (e.g. "/library/metadata/123/thumb/456"). BackdropImageTags[0] holds art.
+type ImageType = "Primary" | "Backdrop" | "Thumb";
+
+type ImageItem = {
+  Id: string;
+  ImageTags?: Record<string, string>;
+  BackdropImageTags?: string[];
+  ParentBackdropImageTags?: string[];
+  ParentBackdropItemId?: string;
+  ParentThumbImageTag?: string;
+  ParentThumbItemId?: string;
+  SeriesPrimaryImageTag?: string;
+  SeriesId?: string;
+  AlbumPrimaryImageTag?: string;
+};
+
+// Preferred image, then sensible substitutes. Many Emby/Jellyfin libraries only
+// have one artwork type per item (posters but no thumbs, or backdrops only), so
+// asking for a single type left cards blank.
+const FALLBACKS: Record<ImageType, ImageType[]> = {
+  Primary: ["Primary", "Thumb", "Backdrop"],
+  Thumb: ["Thumb", "Backdrop", "Primary"],
+  Backdrop: ["Backdrop", "Thumb", "Primary"],
+};
+
+function embyTag(item: ImageItem, type: ImageType): { itemId: string; tag: string } | null {
+  if (type === "Backdrop") {
+    const own = item.BackdropImageTags?.[0];
+    if (own) return { itemId: item.Id, tag: own };
+    const parent = item.ParentBackdropImageTags?.[0];
+    if (parent && item.ParentBackdropItemId)
+      return { itemId: item.ParentBackdropItemId, tag: parent };
+    return null;
+  }
+  const own = item.ImageTags?.[type];
+  if (own) return { itemId: item.Id, tag: own };
+  if (type === "Thumb" && item.ParentThumbImageTag && item.ParentThumbItemId)
+    return { itemId: item.ParentThumbItemId, tag: item.ParentThumbImageTag };
+  if (type === "Primary" && item.SeriesPrimaryImageTag && item.SeriesId)
+    return { itemId: item.SeriesId, tag: item.SeriesPrimaryImageTag };
+  return null;
+}
+
 export function imageUrl(
   s: MediaServer,
-  item: { Id: string; ImageTags?: Record<string, string>; BackdropImageTags?: string[] },
-  type: "Primary" | "Backdrop" | "Thumb" = "Primary",
+  item: ImageItem,
+  type: ImageType = "Primary",
   opts: { maxWidth?: number } = {},
 ): string | null {
   if (s.kind === "plex") {
-    const path = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
+    const pick = (t: ImageType) =>
+      t === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[t];
+    const path = FALLBACKS[type].map(pick).find(Boolean);
     if (!path) return null;
     const w = opts.maxWidth ?? 400;
     const h = type === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
@@ -108,11 +152,14 @@ export function imageUrl(
     );
   }
   // Emby / Jellyfin
-  const tag = type === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[type];
-  if (!tag) return null;
-  const params = new URLSearchParams({ quality: "90", tag });
-  if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
-  return proxiedPath(s.id, `/Items/${item.Id}/Images/${type}?${params}`);
+  for (const candidate of FALLBACKS[type]) {
+    const hit = embyTag(item, candidate);
+    if (!hit) continue;
+    const params = new URLSearchParams({ quality: "90", tag: hit.tag });
+    if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
+    return proxiedPath(s.id, `/Items/${hit.itemId}/Images/${candidate}?${params}`);
+  }
+  return null;
 }
 
 // ── Streaming endpoint ─────────────────────────────────────────────────────
