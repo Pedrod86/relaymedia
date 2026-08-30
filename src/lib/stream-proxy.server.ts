@@ -14,6 +14,11 @@
 //  • Caching: segments and images are content-addressed and safely cacheable in
 //    the *private* browser cache; playlists and manifests never are.
 
+// NOTE: `accept-encoding` is deliberately NOT forwarded. The server runtime
+// transparently decompresses upstream bodies, so echoing the upstream
+// `content-encoding` (and its compressed `content-length`) back to the browser
+// makes it try to gunzip plain bytes — images and playlists then fail to
+// decode. Asking upstream for identity keeps byte ranges honest too.
 export const PASS_REQ_HEADERS = [
   "range",
   "if-range",
@@ -21,7 +26,6 @@ export const PASS_REQ_HEADERS = [
   "if-modified-since",
   "accept",
   "accept-language",
-  "accept-encoding",
 ];
 
 export const PASS_RES_HEADERS = [
@@ -31,7 +35,6 @@ export const PASS_RES_HEADERS = [
   "accept-ranges",
   "etag",
   "last-modified",
-  "content-encoding",
 ];
 
 /** Copy through the request headers that matter for ranges and revalidation. */
@@ -96,6 +99,16 @@ export function buildResponse(upstream: Response, kind: BodyKind, request: Reque
     const v = upstream.headers.get(h);
     if (v) headers.set(h, v);
   }
+
+  // The runtime already decompressed the body, so the upstream length no longer
+  // describes what we send. A wrong content-length truncates the image/segment.
+  if (upstream.headers.get("content-encoding")) headers.delete("content-length");
+
+  // `nosniff` means a missing/incorrect type stops the image rendering at all.
+  if (kind === "image" && !(headers.get("content-type") ?? "").startsWith("image/")) {
+    headers.set("content-type", "image/jpeg");
+  }
+
 
   // Seeking needs byte ranges. Emby/Jellyfin static files support them but do
   // not always advertise it on a plain 200.
