@@ -14,6 +14,11 @@
 //  • Caching: segments and images are content-addressed and safely cacheable in
 //    the *private* browser cache; playlists and manifests never are.
 
+// NOTE: `accept-encoding` is deliberately NOT forwarded. The server runtime
+// transparently decompresses upstream bodies, so echoing the upstream
+// `content-encoding` (and its compressed `content-length`) back to the browser
+// makes it try to gunzip plain bytes — images and playlists then fail to
+// decode. Asking upstream for identity keeps byte ranges honest too.
 export const PASS_REQ_HEADERS = [
   "range",
   "if-range",
@@ -21,7 +26,6 @@ export const PASS_REQ_HEADERS = [
   "if-modified-since",
   "accept",
   "accept-language",
-  "accept-encoding",
 ];
 
 export const PASS_RES_HEADERS = [
