@@ -55,8 +55,13 @@ export const embyLogin = createServerFn({ method: "POST" })
     const { serverLimitFor, SERVER_LIMIT_ERROR, DEVICE_LIMIT_ERROR } = await import("./limits");
     const isPro = await callerHasPro();
     const existing = await readVault();
+    // Only a re-login of the SAME server + SAME user replaces an existing entry.
+    // A different account on the same address adds a new connection, so it must
+    // still count against the plan limit.
     const alreadyConnected = existing.some(
-      (c) => c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl),
+      (c) =>
+        c.serverUrl.replace(/\/+$/, "") === normalizeUrl(data.serverUrl) &&
+        c.userName === json.User.Name,
     );
     if (!alreadyConnected && existing.length >= serverLimitFor(isPro)) {
       return { ok: false as const, error: SERVER_LIMIT_ERROR, limitReached: true as const };
