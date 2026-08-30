@@ -384,8 +384,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Video</p>
-              {videoStreams.map((s) => (
-                <p key={s.Index} className="mt-1 text-sm">
+              {videoStreams.map((s, i) => (
+                <p key={s.Index ?? i} className="mt-1 text-sm">
                   {[
                     (s.Codec || "").toUpperCase(),
                     s.Width && s.Height ? `${s.Width}×${s.Height}` : null,
@@ -411,8 +411,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
             </div>
             <div className="rounded-lg border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Audio</p>
-              {audioStreams.map((s) => (
-                <p key={s.Index} className="mt-1 text-sm">
+              {audioStreams.map((s, i) => (
+                <p key={s.Index ?? i} className="mt-1 text-sm">
                   {[
                     (s.Codec || "").toUpperCase(),
                     s.ChannelLayout,
@@ -427,8 +427,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
             <div className="rounded-lg border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Subtitles</p>
               {subStreams.length === 0 && <p className="mt-1 text-sm text-muted-foreground">None</p>}
-              {subStreams.slice(0, 6).map((s) => (
-                <p key={s.Index} className="mt-1 text-sm">
+              {subStreams.slice(0, 6).map((s, i) => (
+                <p key={s.Index ?? i} className="mt-1 text-sm">
                   {s.DisplayTitle || s.Language || `Track ${s.Index}`}
                 </p>
               ))}

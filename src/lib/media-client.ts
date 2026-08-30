@@ -225,8 +225,8 @@ export function ticksToTime(ticks?: number) {
 // Some servers / metadata plugins append IMDb/TMDb IDs to titles. Strip them
 // so the UI shows clean, readable names everywhere.
 
-const IMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:IMDb|IMDB|imdb)\s*[:\s]\s*(tt\d{5,})\s*[\]\)\}]?/gi;
-const TMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:TMDb|Tmdb|TMDB|tmdb)\s*[:\s]\s*(\d{4,})\s*[\]\)\}]?/gi;
+const IMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:imdb|imdbid)\s*(?:[:\s-]\s*)(tt\d{5,})\s*[\]\)\}]?/gi;
+const TMDB_ID_RE = /(?:\s*[-–—]\s*)?[\[\(\{]?\s*(?:tmdb|tmdbid|tvdb|tvdbid)\s*(?:[:\s-]\s*)(\d{2,})\s*[\]\)\}]?/gi;
 const TRAILING_ID_RE = /\s*[\[\(\{]\s*(tt\d{5,}|\d{6,})\s*[\]\)\}]/gi;
 const LONE_ID_RE = /\s*[-–—]\s*(tt\d{5,}|\d{6,})\b/gi;
 
