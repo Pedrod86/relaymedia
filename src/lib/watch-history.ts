@@ -112,8 +112,8 @@ export function recordWatch(
     genres: Array.isArray(item.Genres)
       ? item.Genres.map((g: unknown) => String(g))
       : (prev?.genres ?? []),
-    progress: Math.max(pct, prev && !prev.completed ? 0 : 0) || pct,
-    completed: pct >= 90 || Boolean(prev?.completed && pct < 5),
+    progress: pct,
+    completed: pct >= 90 || Boolean(prev?.completed),
     watchedAt: Date.now(),
     item: { ...(prev?.item ?? {}), ...snapshot(item) },
   };
