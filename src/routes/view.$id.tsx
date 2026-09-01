@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { embyGetItems, embyGetViews } from "@/lib/emby.functions";
 import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
-import { imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
+import { cleanName, itemTypesFor, type MediaServer } from "@/lib/media-client";
+import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
@@ -46,7 +47,8 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
   const view = views.data?.views.find((v) => v.Id === viewId);
 
   const items = useQuery({
-    queryKey: ["view-items", server.id, viewId],
+    queryKey: ["view-items", server.id, viewId, view?.CollectionType ?? ""],
+    enabled: isPlex || views.isSuccess,
     queryFn: () =>
       isPlex
         ? getItemsPlex({
@@ -64,9 +66,11 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
               limit: 200,
               sortBy: "SortName",
               recursive: true,
+              includeItemTypes: itemTypesFor(view?.CollectionType),
             },
           }),
   });
+
 
 
   return (
@@ -95,7 +99,6 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
         )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {items.data?.items.map((it: any) => {
-            const src = imageUrl(server, it, "Primary", { maxWidth: 400 });
             return (
               <Link
                 key={it.Id}
@@ -107,19 +110,21 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
                   className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
                   style={{ aspectRatio: "2/3" }}
                 >
-                  {src ? (
-                    <img
-                      src={src}
-                      alt={cleanName(it.Name)}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                      {cleanName(it.Name)}
-                    </div>
-                  )}
+                  <MediaImage
+                    server={server}
+                    item={it}
+                    type="Primary"
+                    maxWidth={400}
+                    alt={cleanName(it.Name)}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    fallback={
+                      <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                        {cleanName(it.Name)}
+                      </div>
+                    }
+                  />
                 </div>
+
                 <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
                 {it.ProductionYear && (
                   <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>

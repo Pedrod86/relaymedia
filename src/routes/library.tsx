@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
-import { loadHiddenViews, imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
+import { loadHiddenViews, imageUrl, itemTypesFor, cleanName, type MediaServer } from "@/lib/media-client";
+import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { toast } from "sonner";
@@ -509,7 +510,6 @@ function TVCard({
   kind: "primary" | "thumb";
 }) {
   const portrait = kind === "primary";
-  const src = imageUrl(server, item, portrait ? "Primary" : "Thumb", { maxWidth: 500 });
   const width = portrait ? 200 : 340;
 
   return (
@@ -521,18 +521,20 @@ function TVCard({
       className="tv-card group relative flex-shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border"
       style={{ width, aspectRatio: portrait ? "2/3" : "16/9" }}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={cleanName(item.Name)}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-          {cleanName(item.Name)}
-        </div>
-      )}
+      <MediaImage
+        server={server}
+        item={item}
+        type={portrait ? "Primary" : "Thumb"}
+        maxWidth={500}
+        alt={cleanName(item.Name)}
+        className="h-full w-full object-cover"
+        fallback={
+          <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+            {cleanName(item.Name)}
+          </div>
+        }
+      />
+
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
         <p className="truncate text-sm font-semibold text-white">{cleanName(item.Name)}</p>
         {item.ProductionYear && (
@@ -566,9 +568,14 @@ function LibrarySection({
               parentId: view.Id,
               limit: 30,
               sortBy: "DateCreated,SortName",
+              // Recursive + explicit types so folder-organised libraries return
+              // the actual movies/series (which have artwork) not folder rows.
+              recursive: true,
+              includeItemTypes: itemTypesFor(view.CollectionType),
             },
           }),
   });
+
   if (!q.data || q.data.items.length === 0) return null;
   return (
     <section>
@@ -614,7 +621,6 @@ function Row({
       {items.map((it) => {
         const portrait = kind === "primary";
         const imgType = kind === "thumb" ? "Thumb" : "Primary";
-        const src = imageUrl(server, it, imgType, { maxWidth: 400 });
         return (
           <Link
             key={it.Id}
@@ -627,19 +633,21 @@ function Row({
               className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
               style={{ aspectRatio: portrait ? "2/3" : "16/9" }}
             >
-              {src ? (
-                <img
-                  src={src}
-                  alt={cleanName(it.Name)}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                  {cleanName(it.Name)}
-                </div>
-              )}
+              <MediaImage
+                server={server}
+                item={it}
+                type={imgType}
+                maxWidth={400}
+                alt={cleanName(it.Name)}
+                className="h-full w-full object-cover transition group-hover:scale-105"
+                fallback={
+                  <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                    {cleanName(it.Name)}
+                  </div>
+                }
+              />
             </div>
+
             <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
             {it.ProductionYear && (
               <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>
