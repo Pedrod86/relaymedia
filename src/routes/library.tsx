@@ -87,7 +87,7 @@ function LibraryContent({
   const toggleTv = () => {
     if (!isPro) {
       toast.info("TV mode is part of Relay Pro", {
-        description: "Unlock it once for $15 — no subscription.",
+        description: "Unlock it once for $1 — no subscription.",
         action: { label: "Unlock", onClick: () => navigate({ to: "/upgrade" }) },
       });
       return;

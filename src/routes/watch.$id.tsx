@@ -436,7 +436,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 to="/upgrade"
                 className="rounded bg-primary px-2 py-1 font-medium text-primary-foreground"
               >
-                Unlock for $15
+                Unlock for $1
               </Link>
             </div>
           )}
