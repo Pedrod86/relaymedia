@@ -189,7 +189,10 @@ export function PlayerSettingsPanel() {
             { label: "HEVC Main10", ok: hdr.hevcMain10 },
             { label: "4K hardware", ok: hdr.uhdHardware },
             { label: "MKV container", ok: env.mkv },
-            { label: "Dolby Digital+ (E-AC3)", ok: env.eac3 || hdr.hdr10 === undefined },
+            {
+              label: "Dolby Digital+ (E-AC3)",
+              ok: env.eac3 || !!caps?.find((c) => c.name === "eac3")?.supported,
+            },
             { label: "HDR10 passthrough", ok: hdr.hdr10 || env.hdr10 },
           ].map((b) => (
             <span
