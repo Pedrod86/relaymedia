@@ -58,8 +58,19 @@ function proxyHref(sid: string, path: string) {
   return `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
 }
 
-function embyPath(q: z.infer<typeof querySchema>, userId: string) {
+function embyPath(
+  q: z.infer<typeof querySchema>,
+  userId: string,
+  kind: "emby" | "jellyfin",
+) {
   const session = q.session || `lovable-${q.item}`;
+  const jellyfin = kind === "jellyfin";
+  // Jellyfin requires MediaSourceId on both /stream and /master.m3u8 (it is
+  // optional on Emby). For a normal library item the media source id equals the
+  // item id, so sending it is always safe and stops Jellyfin 400ing the
+  // request — which is what surfaced as "loads then breaks".
+  const mediaSourceId = q.item;
+
 
   if (q.mode === "direct") {
     if (q.remux) {
@@ -68,6 +79,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
       const params = new URLSearchParams({
         UserId: userId,
         DeviceId: DEVICE_ID,
+        MediaSourceId: mediaSourceId,
         Static: "false",
         PlaySessionId: session,
         Container: q.container,
@@ -85,6 +97,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     const params = new URLSearchParams({
       UserId: userId,
       DeviceId: DEVICE_ID,
+      MediaSourceId: mediaSourceId,
       Static: "true",
       PlaySessionId: session,
     });
@@ -102,11 +115,12 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
   const params = new URLSearchParams({
     UserId: userId,
     DeviceId: DEVICE_ID,
+    MediaSourceId: mediaSourceId,
     PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
     AudioCodec: audioCodecs,
-    AudioStreamIndex: "1",
     VideoBitrate: String(q.maxBitrate),
+
     AudioBitrate: dolbyAudio ? "768000" : "192000",
     MaxAudioChannels: String(channels),
     TranscodingMaxAudioChannels: String(channels),
@@ -203,14 +217,16 @@ async function handle(request: Request) {
     headers.set("X-Plex-Token", cred.token);
     headers.set("X-Plex-Client-Identifier", DEVICE_ID);
   } else {
-    path = embyPath(q, cred.userId);
+    path = embyPath(q, cred.userId, cred.kind === "jellyfin" ? "jellyfin" : "emby");
+    const auth = `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="${DEVICE_ID}", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`;
     headers.set("X-Emby-Token", cred.token);
-    headers.set(
-      "X-Emby-Authorization",
-      `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="${DEVICE_ID}", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`,
-    );
-    headers.set("Authorization", `MediaBrowser Token="${cred.token}"`);
+    headers.set("X-Emby-Authorization", auth);
+    // Jellyfin 10.9+ validates the full MediaBrowser scheme on Authorization; a
+    // token-only header is rejected, which showed up as playback failing.
+    headers.set("Authorization", auth);
   }
+
+
 
   let targetUrl: URL;
   try {
