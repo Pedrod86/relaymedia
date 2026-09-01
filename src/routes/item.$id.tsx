@@ -14,6 +14,8 @@ import {
   loadPlayerPrefs,
   probeCodecs,
   probeHdr,
+  detectPlaybackEnv,
+  WEB_ENV,
   NO_HDR,
   type CodecCap,
   type HdrSupport,
@@ -115,12 +117,15 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
     queryFn: () => getItemPlex({ data: { serverId: server.id, itemId: firstPlexFolder!.Id } }),
   });
 
+  // Platform playback capability (MKV / E-AC3 / HDR10 via device decoders).
+  const playbackEnv = useMemo(() => (typeof window === "undefined" ? WEB_ENV : detectPlaybackEnv()), []);
+
   const check = useMemo(
     () =>
       !isPlex && item && !isFolder && caps.length
-        ? checkItemPlayback(item, caps, prefs, hdrSupport)
+        ? checkItemPlayback(item, caps, prefs, hdrSupport, playbackEnv)
         : null,
-    [item, caps, prefs, isPlex, isFolder, hdrSupport],
+    [item, caps, prefs, isPlex, isFolder, hdrSupport, playbackEnv],
   );
 
 

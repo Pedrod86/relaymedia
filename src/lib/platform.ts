@@ -24,3 +24,14 @@ export function isTvDevice(): boolean {
     return true;
   return false;
 }
+
+/** True on any Android browser or WebView. */
+export function isAndroid(): boolean {
+  if (typeof window === "undefined") return false;
+  return /Android/i.test(navigator.userAgent || "");
+}
+
+/** True inside the Capacitor APK running on Android (phone, tablet or TV). */
+export function isAndroidNative(): boolean {
+  return isNativeApp() && isAndroid();
+}

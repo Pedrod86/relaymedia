@@ -3,6 +3,8 @@
 // Stored in localStorage — these are non-sensitive UI/playback preferences only.
 
 import type { AfrMode } from "./afr";
+import { isAndroidNative, isTvDevice } from "./platform";
+
 
 export type DecodeMode = "auto" | "hardware" | "software";
 export type PlaybackMode = "auto" | "hls" | "direct";
@@ -78,6 +80,64 @@ export const RESOLUTION_OPTIONS = [
   { value: 1440, label: "1440p" },
   { value: 2160, label: "4K (2160p)" },
 ];
+
+// ── Container & platform playback environment ──────────────────────────────
+// The Android APK plays through the platform media stack, which handles things
+// the plain web player cannot: Matroska (MKV) containers, Dolby Digital /
+// Digital Plus (AC3 / E-AC3) audio, and 10-bit HDR10 video. Detect that so the
+// player asks the server to stream-copy instead of transcoding.
+
+export type PlaybackEnv = {
+  /** Running inside the Android APK — platform decoders are available. */
+  androidNative: boolean;
+  /** MKV / Matroska can be played without remuxing. */
+  mkv: boolean;
+  /** AC3 / E-AC3 audio can be passed through untouched. */
+  eac3: boolean;
+  /** HDR10 (PQ, 10-bit) can be displayed without tone mapping. */
+  hdr10: boolean;
+};
+
+export const WEB_ENV: PlaybackEnv = { androidNative: false, mkv: false, eac3: false, hdr10: false };
+
+const MKV_TYPES = [
+  'video/x-matroska; codecs="avc1.640028,mp4a.40.2"',
+  "video/x-matroska",
+  "video/mkv",
+];
+const EAC3_TYPES = ['audio/mp4; codecs="ec-3"', 'audio/mp4; codecs="ac-3"', "audio/eac3", "audio/ac3"];
+
+export function detectPlaybackEnv(): PlaybackEnv {
+  if (typeof window === "undefined") return WEB_ENV;
+  const v = document.createElement("video");
+  const can = (t: string) => {
+    try {
+      return v.canPlayType(t) !== "";
+    } catch {
+      return false;
+    }
+  };
+  const androidNative = isAndroidNative();
+  const hdrDisplay =
+    isTvDevice() ||
+    window.matchMedia?.("(dynamic-range: high)").matches === true ||
+    window.matchMedia?.("(video-dynamic-range: high)").matches === true;
+  return {
+    androidNative,
+    // Trust the player itself: Chromium/WebView exposes the platform decoders it
+    // actually has, so a positive canPlayType is the reliable signal.
+    mkv: MKV_TYPES.some(can),
+    eac3: EAC3_TYPES.some(can),
+    // Android TV boxes and HDR panels report a high dynamic range display; the
+    // APK also runs full-screen on the TV's own pipeline, so trust it there.
+    hdr10: hdrDisplay,
+  };
+}
+
+/** Containers the current environment can play without a server-side remux. */
+export function playableContainers(env: PlaybackEnv): string[] {
+  return env.mkv ? [...DIRECT_CONTAINERS, "mkv", "matroska"] : DIRECT_CONTAINERS;
+}
 
 
 // ── Codec probing ──────────────────────────────────────────────────────────
@@ -307,8 +367,15 @@ export type StreamCheck = {
   hdrPassthrough: boolean;
   /** True when the server must tone-map HDR down to SDR. */
   toneMapping: boolean;
+  /** Container to ask for on a direct stream ("mkv" = original, no remux). */
+  directContainer: string;
+  /** True when the container is repackaged (stream-copy) rather than transcoded. */
+  remux: boolean;
+  /** True when the original audio track (e.g. E-AC3) is sent untouched. */
+  audioPassthrough: boolean;
   notes: string[];
 };
+
 
 const DIRECT_CONTAINERS = ["mp4", "m4v", "mov", "webm"];
 
@@ -332,7 +399,9 @@ export function checkItemPlayback(
   caps: CodecCap[],
   prefs: PlayerPrefs,
   hdrSupport: HdrSupport = NO_HDR,
+  env: PlaybackEnv = WEB_ENV,
 ): StreamCheck {
+
   const source = item?.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item?.MediaStreams ?? [];
   const v = streams.find((s) => s.Type === "Video");
@@ -362,23 +431,37 @@ export function checkItemPlayback(
   const notes: string[] = [];
   const videoSupported = !!vCap?.supported;
   const videoHardware = !!vCap?.hardware;
-  const audioSupported = !!aCap?.supported;
+  // AC3 / E-AC3 (Dolby Digital / Digital Plus) are decoded — or bitstreamed to
+  // the receiver — by the Android media stack, so no re-encode is needed.
+  const nativeAudioOk = env.eac3 && ["eac3", "ec-3", "ac3", "ac-3"].includes(audioCodec ?? "");
+  const audioSupported = !!aCap?.supported || nativeAudioOk;
+  const audioPassthrough = audioSupported;
 
   const passthroughWanted = isHdr && wantsHdrPassthrough(prefs, hdrSupport);
   const canPassHdr =
     passthroughWanted &&
     videoSupported &&
-    (isDolbyVision ? hdrSupport.dolbyVision || prefs.hdr === "passthrough" : hdrSupport.hdr10 || hdrSupport.hlg || prefs.hdr === "passthrough");
+    (isDolbyVision
+      ? hdrSupport.dolbyVision || env.androidNative || prefs.hdr === "passthrough"
+      : hdrSupport.hdr10 || hdrSupport.hlg || env.hdr10 || prefs.hdr === "passthrough");
   const toneMapping = isHdr && !canPassHdr;
+
+  const directContainers = playableContainers(env);
+  const containerOk = !!container && directContainers.includes(container);
+  const directContainer = containerOk && (container === "mkv" || container === "matroska") ? "mkv" : "mp4";
+
+
 
   if (videoCodec && !videoSupported)
     notes.push(`${videoCodec.toUpperCase()}${needsMain10 ? " 10-bit" : ""} video isn't decodable here — will transcode.`);
   if (videoSupported && !videoHardware) notes.push(`${videoCodec?.toUpperCase()} decodes in software on this device.`);
   if (audioCodec && !audioSupported) notes.push(`${audioCodec.toUpperCase()} audio isn't supported — will be re-encoded to AAC.`);
-  if (container && !DIRECT_CONTAINERS.includes(container)) notes.push(`${container.toUpperCase()} container needs remuxing.`);
+  else if (nativeAudioOk) notes.push(`${audioCodec?.toUpperCase()} audio passed through to the device decoder.`);
+  if (container && !containerOk) notes.push(`${container.toUpperCase()} container will be repackaged (no re-encode).`);
+  else if (directContainer === "mkv") notes.push("MKV played directly — original container kept.");
   if (prefs.decode === "hardware" && videoSupported && !videoHardware)
     notes.push("Hardware-only decoding is on, so the server will transcode to a GPU-friendly codec.");
-  if (is4K && !hdrSupport.uhdHardware)
+  if (is4K && !hdrSupport.uhdHardware && !env.androidNative)
     notes.push("4K isn't confirmed as hardware-decodable here — playback may drop frames.");
   if (isDolbyVision)
     notes.push(
@@ -390,12 +473,11 @@ export function checkItemPlayback(
     notes.push(canPassHdr ? `${videoRange} passthrough — original grade sent untouched.` : `${videoRange} will be tone-mapped to SDR.`);
   if (is4K && prefs.maxHeight < 2160) notes.push(`4K source downscaled to ${prefs.maxHeight}p by your resolution cap.`);
 
-  let canDirectPlay =
-    videoSupported &&
-    audioSupported &&
-    !!container &&
-    DIRECT_CONTAINERS.includes(container) &&
-    !toneMapping;
+  // Direct play covers stream-copy remuxes too: when the codecs are decodable
+  // but the container isn't (MKV in the web player), the server repackages the
+  // same elementary streams into MP4 instead of re-encoding.
+  let canDirectPlay = videoSupported && audioSupported && !!container && !toneMapping;
+
   if (prefs.decode === "hardware" && !videoHardware) canDirectPlay = false;
   if (is4K && prefs.maxHeight < 2160) canDirectPlay = false;
 
@@ -426,7 +508,11 @@ export function checkItemPlayback(
     is4K,
     hdrPassthrough: canPassHdr,
     toneMapping,
+    directContainer,
+    remux: canDirectPlay && !containerOk,
+    audioPassthrough,
     notes,
+
   };
 }
 

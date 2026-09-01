@@ -43,6 +43,13 @@ const querySchema = z.object({
    * original cadence instead of converting to a fixed 30/60 fps.
    */
   maxFps: z.coerce.number().min(1).max(300).optional(),
+  /**
+   * Direct mode: repackage (stream-copy) the source into `container` instead of
+   * serving the original file. Lets MKV sources play in players that only
+   * understand MP4 while keeping E-AC3 audio and HDR10 video untouched.
+   */
+  remux: z.coerce.boolean().optional(),
+
 });
 
 const DEVICE_ID = "lovable-media-web";
@@ -55,6 +62,26 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
   const session = q.session || `lovable-${q.item}`;
 
   if (q.mode === "direct") {
+    if (q.remux) {
+      // Stream-copy remux: same video + audio bitstreams, new container. Keeps
+      // HEVC 10-bit HDR10 and E-AC3 intact — the server only repackages.
+      const params = new URLSearchParams({
+        UserId: userId,
+        DeviceId: DEVICE_ID,
+        Static: "false",
+        PlaySessionId: session,
+        Container: q.container,
+        VideoCodec: "copy",
+        AudioCodec: "copy",
+        AllowVideoStreamCopy: "true",
+        AllowAudioStreamCopy: "true",
+        CopyTimestamps: "true",
+        EnableTonemapping: "false",
+        RequireAvc: "false",
+      });
+      if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+      return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
+    }
     const params = new URLSearchParams({
       UserId: userId,
       DeviceId: DEVICE_ID,
@@ -64,19 +91,26 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
   }
 
+
   const hdrPass = q.hdr === "passthrough";
+  const audioCodecs = q.audioCodec || "aac,mp3";
+  // Dolby Digital / Digital Plus is multichannel by nature: when the client can
+  // take it, allow up to 5.1/7.1 so the original track is copied, not downmixed.
+  const dolbyAudio = /\b(eac3|ec-3|ac3|ac-3)\b/.test(audioCodecs);
+  const channels = dolbyAudio ? Math.max(q.audioChannels, 6) : q.audioChannels;
 
   const params = new URLSearchParams({
     UserId: userId,
     DeviceId: DEVICE_ID,
     PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
-    AudioCodec: q.audioCodec || "aac,mp3",
+    AudioCodec: audioCodecs,
     AudioStreamIndex: "1",
     VideoBitrate: String(q.maxBitrate),
-    AudioBitrate: "192000",
-    MaxAudioChannels: String(q.audioChannels),
-    TranscodingMaxAudioChannels: String(q.audioChannels),
+    AudioBitrate: dolbyAudio ? "768000" : "192000",
+    MaxAudioChannels: String(channels),
+    TranscodingMaxAudioChannels: String(channels),
+
     SegmentContainer: "ts",
     // Shorter segments = faster first frame and cheaper seeks; the decoder gets
     // a keyframe sooner and hls.js can fill its buffer in parallel.
