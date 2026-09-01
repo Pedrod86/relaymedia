@@ -505,12 +505,14 @@ function TVSection({
 function TVLibrarySection({
   id,
   title,
+  collectionType,
   server,
   isActive,
   onRowRef,
 }: {
   id: string;
   title: string;
+  collectionType?: string;
   server: MediaServer;
   isActive: boolean;
   onRowRef: (el: HTMLDivElement | null) => void;
@@ -531,9 +533,14 @@ function TVLibrarySection({
               parentId: id,
               limit: 30,
               sortBy: "DateCreated,SortName",
+              // Same recursive query the standard layout uses, so folder-based
+              // libraries return real movies/series that actually have artwork.
+              recursive: true,
+              includeItemTypes: itemTypesFor(collectionType),
             },
           }),
   });
+
 
   const rowRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
