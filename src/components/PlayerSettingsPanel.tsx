@@ -8,12 +8,15 @@ import {
   probeCodecs,
   probeHdr,
   savePlayerPrefs,
+  detectPlaybackEnv,
+  WEB_ENV,
   type CodecCap,
   type DecodeMode,
   type HdrMode,
   type HdrSupport,
   type PlaybackMode,
   type PlayerPrefs,
+  type PlaybackEnv,
 } from "@/lib/player-prefs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,8 +43,10 @@ export function PlayerSettingsPanel() {
   const [prefs, setPrefs] = useState<PlayerPrefs>(DEFAULT_PREFS);
   const [caps, setCaps] = useState<CodecCap[] | null>(null);
   const [hdr, setHdr] = useState<HdrSupport>(NO_HDR);
+  const [env, setEnv] = useState<PlaybackEnv>(WEB_ENV);
 
   function retest() {
+    setEnv(detectPlaybackEnv());
     void probeCodecs().then((c) => {
       setCaps(c);
       void probeHdr(c).then(setHdr);
@@ -183,6 +188,9 @@ export function PlayerSettingsPanel() {
             { label: "Dolby Vision", ok: hdr.dolbyVision },
             { label: "HEVC Main10", ok: hdr.hevcMain10 },
             { label: "4K hardware", ok: hdr.uhdHardware },
+            { label: "MKV container", ok: env.mkv },
+            { label: "Dolby Digital+ (E-AC3)", ok: env.eac3 || hdr.hdr10 === undefined },
+            { label: "HDR10 passthrough", ok: hdr.hdr10 || env.hdr10 },
           ].map((b) => (
             <span
               key={b.label}
