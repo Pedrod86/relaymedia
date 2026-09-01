@@ -65,9 +65,11 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
               limit: 200,
               sortBy: "SortName",
               recursive: true,
+              includeItemTypes: itemTypesFor(view?.CollectionType),
             },
           }),
   });
+
 
 
   return (
