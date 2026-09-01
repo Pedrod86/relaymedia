@@ -406,7 +406,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
   return (
     <main className="flex min-h-screen flex-col bg-black text-white">
-      <header className="flex flex-wrap items-center justify-between gap-2 px-6 py-3">
+      <header
+        className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
+          paused ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!paused}
+      >
         <Link to="/item/$id" params={{ id: itemId }} className="text-sm opacity-80 hover:opacity-100">
           ← Back
         </Link>
