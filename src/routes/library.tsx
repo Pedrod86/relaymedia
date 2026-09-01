@@ -8,6 +8,8 @@ import { loadHiddenViews, imageUrl, itemTypesFor, cleanName, type MediaServer } 
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
+import { isTvDevice } from "@/lib/platform";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -73,8 +75,17 @@ function LibraryContent({
   const { isPro } = useProAccess();
   const [tvMode, setTvMode] = useState(false);
   useEffect(() => {
+    // On a TV/box the 10-foot layout is the only usable one, so default to it
+    // unless the user has explicitly chosen otherwise on this device.
+    const stored = window.localStorage.getItem(TV_MODE_KEY);
+    if (stored === null && isTvDevice()) {
+      setTvMode(true);
+      saveTvMode(true);
+      return;
+    }
     setTvMode(loadTvMode());
   }, []);
+
 
   // TV mode is a Pro feature — drop back to the standard layout if access ends.
   useEffect(() => {

@@ -1,5 +1,20 @@
 apply plugin: 'com.android.application'
 
+// Optional release signing. Create android/keystore.properties (never commit it):
+//   storeFile=/absolute/path/relay-release.jks
+//   storePassword=...
+//   keyAlias=relay
+//   keyPassword=...
+// Environment variables (RELAY_STORE_FILE, RELAY_STORE_PASSWORD, RELAY_KEY_ALIAS,
+// RELAY_KEY_PASSWORD) take precedence, which is what CI uses.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def storeFilePath = System.getenv('RELAY_STORE_FILE') ?: keystoreProps['storeFile']
+def hasReleaseKey = storeFilePath != null && !storeFilePath.toString().isEmpty() && file(storeFilePath).exists()
+
 android {
     namespace = "app.lovable.streamrelay"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,13 +31,27 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasReleaseKey) {
+            release {
+                storeFile file(storeFilePath)
+                storePassword System.getenv('RELAY_STORE_PASSWORD') ?: keystoreProps['storePassword']
+                keyAlias System.getenv('RELAY_KEY_ALIAS') ?: keystoreProps['keyAlias']
+                keyPassword System.getenv('RELAY_KEY_PASSWORD') ?: keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Signed with the release key when configured; otherwise the debug key so
+            // `gradlew assembleRelease` still produces an installable APK for sideloading.
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 }
+
 
 repositories {
     flatDir{
