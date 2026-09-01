@@ -347,6 +347,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     sessionId,
     prefs.afr,
     sourceFps,
+    check?.directContainer,
+    check?.remux,
   ]);
 
 
