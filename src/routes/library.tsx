@@ -566,9 +566,14 @@ function LibrarySection({
               parentId: view.Id,
               limit: 30,
               sortBy: "DateCreated,SortName",
+              // Recursive + explicit types so folder-organised libraries return
+              // the actual movies/series (which have artwork) not folder rows.
+              recursive: true,
+              includeItemTypes: itemTypesFor(view.CollectionType),
             },
           }),
   });
+
   if (!q.data || q.data.items.length === 0) return null;
   return (
     <section>
