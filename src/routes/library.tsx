@@ -141,7 +141,13 @@ function LibraryContent({
   }, [latest.data, server]);
 
   const sections = useMemo(() => {
-    const list: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[] = [];
+    const list: {
+      id: string;
+      title: string;
+      items: any[];
+      kind: "primary" | "thumb";
+      collectionType?: string;
+    }[] = [];
     if (resume.data?.items.length) {
       list.push({ id: "resume", title: "Continue watching", items: resume.data.items, kind: "thumb" });
     }
@@ -152,9 +158,16 @@ function LibraryContent({
       views.data.views
         .filter((v) => !hidden.has(v.Id))
         .forEach((v) => {
-          list.push({ id: v.Id, title: v.Name, items: [], kind: "primary" });
+          list.push({
+            id: v.Id,
+            title: v.Name,
+            items: [],
+            kind: "primary",
+            collectionType: v.CollectionType,
+          });
         });
     }
+
     return list;
   }, [resume.data, latest.data, views.data, hidden]);
 
@@ -278,7 +291,14 @@ function TVLayout({
 }: {
   server: MediaServer;
   topNav: React.ReactNode;
-  sections: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[];
+  sections: {
+    id: string;
+    title: string;
+    items: any[];
+    kind: "primary" | "thumb";
+    collectionType?: string;
+  }[];
+
   backdropItems: any[];
 }) {
   const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "resume");
@@ -430,6 +450,7 @@ function TVLayout({
                 key={s.id}
                 id={s.id}
                 title={s.title}
+                collectionType={s.collectionType}
                 server={server}
                 isActive={s.id === activeSectionId}
                 onRowRef={(el) => (rowsRef.current[s.id] = el)}
@@ -484,12 +505,14 @@ function TVSection({
 function TVLibrarySection({
   id,
   title,
+  collectionType,
   server,
   isActive,
   onRowRef,
 }: {
   id: string;
   title: string;
+  collectionType?: string;
   server: MediaServer;
   isActive: boolean;
   onRowRef: (el: HTMLDivElement | null) => void;
@@ -510,9 +533,14 @@ function TVLibrarySection({
               parentId: id,
               limit: 30,
               sortBy: "DateCreated,SortName",
+              // Same recursive query the standard layout uses, so folder-based
+              // libraries return real movies/series that actually have artwork.
+              recursive: true,
+              includeItemTypes: itemTypesFor(collectionType),
             },
           }),
   });
+
 
   const rowRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
