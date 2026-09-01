@@ -336,3 +336,51 @@ export const embyGetTrailers = createServerFn({ method: "POST" })
 
     return { trailers };
   });
+
+/**
+ * Suggestions built from the viewer's own history: items sharing the genres
+ * they watch most, excluding anything already watched.
+ */
+export const embyGetSuggestions = createServerFn({ method: "POST" })
+  .inputValidator(
+    serverRef.extend({
+      genres: z.array(z.string().max(80)).max(6).default([]),
+      excludeIds: z.array(z.string().max(100)).max(60).default([]),
+      limit: z.number().int().min(1).max(40).default(24),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+
+    async function query(genres: string[]) {
+      const params = new URLSearchParams({
+        Recursive: "true",
+        IncludeItemTypes: "Movie,Series",
+        Limit: String(Math.min(60, data.limit * 2)),
+        SortBy: "CommunityRating,Random",
+        SortOrder: "Descending",
+        Fields:
+          "PrimaryImageAspectRatio,Overview,ProductionYear,Genres,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
+        EnableImages: "true",
+        ImageTypeLimit: "1",
+        EnableImageTypes: "Primary,Backdrop,Thumb",
+      });
+      // Emby/Jellyfin treat a pipe-separated Genres list as "any of".
+      if (genres.length) params.set("Genres", genres.join("|"));
+      const json = (await embyFetch(c, `/Users/${c.userId}/Items?${params}`)) as {
+        Items?: any[];
+      };
+      return json.Items ?? [];
+    }
+
+    let items = await query(data.genres);
+    // No genre overlap on this server (or no history yet) — fall back to
+    // highly-rated titles so the row is still useful.
+    if (items.length === 0 && data.genres.length) items = await query([]);
+
+    const skip = new Set(data.excludeIds);
+    return {
+      items: items.filter((it) => !skip.has(String(it?.Id))).slice(0, data.limit),
+    };
+  });
