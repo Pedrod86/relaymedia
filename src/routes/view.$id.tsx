@@ -47,7 +47,8 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
   const view = views.data?.views.find((v) => v.Id === viewId);
 
   const items = useQuery({
-    queryKey: ["view-items", server.id, viewId],
+    queryKey: ["view-items", server.id, viewId, view?.CollectionType ?? ""],
+    enabled: isPlex || views.isSuccess,
     queryFn: () =>
       isPlex
         ? getItemsPlex({
