@@ -102,7 +102,7 @@ function SettingsPage() {
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             {isPro ? (
-              <>Relay Pro: up to {PRO_SERVER_LIMIT} connected servers.</>
+              <>Up to {PRO_SERVER_LIMIT} connected servers — free right now.</>
             ) : (
               <>
                 Free plan: {FREE_SERVER_LIMIT} connected server.{" "}

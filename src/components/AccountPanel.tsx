@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { useProAccess } from "@/lib/use-pro";
 import { Button } from "@/components/ui/button";
+import { FREE_ACCESS } from "@/lib/free-access";
 
 /**
  * Relay account (separate from the media-server sign-ins). Purchases hang off
@@ -46,7 +47,9 @@ export function AccountPanel() {
             Signed in as <span className="font-medium text-foreground">{user.email}</span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {isPro ? (
+            {FREE_ACCESS ? (
+              <>All Relay Pro features — free for everyone right now.</>
+            ) : isPro ? (
               <>
                 Relay Pro — unlocked
                 {purchasedAt
