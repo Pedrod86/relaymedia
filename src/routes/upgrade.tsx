@@ -23,13 +23,13 @@ export const Route = createFileRoute("/upgrade")({
       {
         name: "description",
         content:
-          "Unlock Relay Pro for a one-time $15: 4K Dolby Vision playback, HDR10, TV mode, decoder control and unlimited server connections.",
+          "Unlock Relay Pro for a one-time $1: 4K Dolby Vision playback, HDR10, TV mode, decoder control and unlimited server connections.",
       },
       { property: "og:title", content: "Relay Pro — unlock 4K HDR & TV mode" },
       {
         property: "og:description",
         content:
-          "One-time $15 unlock: 4K Dolby Vision, HDR10, TV mode and unlimited server connections.",
+          "One-time $1 unlock: 4K Dolby Vision, HDR10, TV mode and unlimited server connections.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -110,7 +110,7 @@ function UpgradePage() {
                 />
               ) : (
                 <>
-                  <p className="text-3xl font-semibold">$15</p>
+                  <p className="text-3xl font-semibold">$1</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     one-time payment · lifetime unlock
                   </p>

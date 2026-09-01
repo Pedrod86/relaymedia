@@ -38,4 +38,4 @@ export function isPaymentsConfigured(): boolean {
 }
 
 export const PRO_PRICE_ID = "pro_unlock_lifetime";
-export const PRO_PRICE_LABEL = "$15 one-time";
+export const PRO_PRICE_LABEL = "$1 one-time";
