@@ -73,8 +73,17 @@ function LibraryContent({
   const { isPro } = useProAccess();
   const [tvMode, setTvMode] = useState(false);
   useEffect(() => {
+    // On a TV/box the 10-foot layout is the only usable one, so default to it
+    // unless the user has explicitly chosen otherwise on this device.
+    const stored = window.localStorage.getItem(TV_MODE_KEY);
+    if (stored === null && isTvDevice()) {
+      setTvMode(true);
+      saveTvMode(true);
+      return;
+    }
     setTvMode(loadTvMode());
   }, []);
+
 
   // TV mode is a Pro feature — drop back to the standard layout if access ends.
   useEffect(() => {
