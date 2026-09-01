@@ -7,6 +7,7 @@ import { PRO_PRICE_ID, PRO_PRICE_LABEL, isPaymentsConfigured } from "@/lib/strip
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Button } from "@/components/ui/button";
+import { FREE_ACCESS } from "@/lib/free-access";
 
 const PERKS = [
   "4K Dolby Vision & HDR10 passthrough",
@@ -43,7 +44,7 @@ function UpgradePage() {
   const { user, isLoading: authLoading } = useAuth();
   const { isPro, isLoading: proLoading } = useProAccess();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const configured = isPaymentsConfigured();
+  const configured = isPaymentsConfigured() && !FREE_ACCESS;
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth", replace: true });
@@ -51,7 +52,7 @@ function UpgradePage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <PaymentTestModeBanner />
+      {!FREE_ACCESS && <PaymentTestModeBanner />}
 
       <header className="border-b">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
@@ -70,10 +71,24 @@ function UpgradePage() {
           <p className="text-muted-foreground">Checking your account…</p>
         ) : isPro ? (
           <section className="rounded-lg border p-6">
-            <h2 className="text-xl font-semibold">You're on Relay Pro 🎉</h2>
+            <h2 className="text-xl font-semibold">
+              {FREE_ACCESS ? "Everything's unlocked — free 🎉" : "You're on Relay Pro 🎉"}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Every Pro feature is unlocked on this account. Thanks for supporting Relay.
+              {FREE_ACCESS
+                ? "Relay Pro is free for everyone right now — 4K Dolby Vision, HDR10, TV mode, decoder control and unlimited servers, at no cost. No payment needed."
+                : "Every Pro feature is unlocked on this account. Thanks for supporting Relay."}
             </p>
+            {FREE_ACCESS && (
+              <ul className="mt-5 space-y-3">
+                {PERKS.map((perk) => (
+                  <li key={perk} className="flex items-start gap-2 text-sm">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{perk}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button className="mt-5" asChild>
               <Link to="/library">Start watching</Link>
             </Button>
