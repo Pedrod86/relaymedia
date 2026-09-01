@@ -130,7 +130,7 @@ export function detectPlaybackEnv(): PlaybackEnv {
     eac3: EAC3_TYPES.some(can),
     // Android TV boxes and HDR panels report a high dynamic range display; the
     // APK also runs full-screen on the TV's own pipeline, so trust it there.
-    hdr10: hdrDisplay && (androidNative || MKV_TYPES.length > 0),
+    hdr10: hdrDisplay,
   };
 }
 
