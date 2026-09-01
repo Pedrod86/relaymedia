@@ -7,6 +7,7 @@ import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { embyGetItem } from "@/lib/emby.functions";
+import { PlaybackDetails } from "@/components/PlaybackDetails";
 import {
   allowedCodecs,
   checkItemPlayback,
