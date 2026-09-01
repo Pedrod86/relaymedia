@@ -291,7 +291,14 @@ function TVLayout({
 }: {
   server: MediaServer;
   topNav: React.ReactNode;
-  sections: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[];
+  sections: {
+    id: string;
+    title: string;
+    items: any[];
+    kind: "primary" | "thumb";
+    collectionType?: string;
+  }[];
+
   backdropItems: any[];
 }) {
   const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "resume");
