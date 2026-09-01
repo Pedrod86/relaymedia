@@ -364,6 +364,7 @@ function LibraryContent({
         topNav={topNav}
         sections={sections}
         backdropItems={backdropItems}
+        customizePanel={customizePanel}
       />
     );
   }
@@ -408,9 +409,11 @@ function TVLayout({
   topNav,
   sections,
   backdropItems,
+  customizePanel,
 }: {
   server: MediaServer;
   topNav: React.ReactNode;
+  customizePanel?: React.ReactNode;
   sections: {
     id: string;
     title: string;
@@ -525,6 +528,7 @@ function TVLayout({
 
         {/* Main scrollable area */}
         <div className="tv-scroll flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+          {customizePanel && <div className="mb-6">{customizePanel}</div>}
           {hero && (
             <div className="relative mb-8 h-[32vh] min-h-[220px] w-full overflow-hidden rounded-2xl">
               <img
