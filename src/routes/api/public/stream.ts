@@ -224,6 +224,8 @@ async function handle(request: Request) {
     // Jellyfin 10.9+ validates the full MediaBrowser scheme on Authorization; a
     // token-only header is rejected, which showed up as playback failing.
     headers.set("Authorization", auth);
+  }
+
 
 
   let targetUrl: URL;
