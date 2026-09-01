@@ -15,12 +15,15 @@ import {
   probeHdr,
   savePlayerPrefs,
   wantsHdrPassthrough,
+  detectPlaybackEnv,
   NO_HDR,
+  WEB_ENV,
   type CodecCap,
   type DecodeMode,
   type HdrMode,
   type HdrSupport,
   type PlayerPrefs,
+  type PlaybackEnv,
 } from "@/lib/player-prefs";
 import {
   scrobbleTargetFromEmbyItem,
@@ -69,6 +72,9 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [prefs, setPrefs] = useState<PlayerPrefs>(loadPlayerPrefs);
   const [caps, setCaps] = useState<CodecCap[]>([]);
   const [hdr, setHdr] = useState<HdrSupport>(NO_HDR);
+  // MKV / E-AC3 / HDR10 capability of the surrounding platform (the Android APK
+  // plays all three through the device's own decoders).
+  const [env, setEnv] = useState<PlaybackEnv>(WEB_ENV);
 
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +94,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       setCaps(c);
       void probeHdr(c).then(setHdr);
     });
+    setEnv(detectPlaybackEnv());
     void measureRefreshRate().then(setDisplayHz);
   }, []);
 
@@ -115,9 +122,9 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const check = useMemo(
     () =>
       isEmbyFamily && itemQ.data?.item && caps.length
-        ? checkItemPlayback(itemQ.data.item, caps, prefs, hdr)
+        ? checkItemPlayback(itemQ.data.item, caps, prefs, hdr, env)
         : null,
-    [itemQ.data, caps, prefs, isEmbyFamily, hdr],
+    [itemQ.data, caps, prefs, isEmbyFamily, hdr, env],
   );
 
   // HDR request mode: pass the grade through when the display can show it.
@@ -216,7 +223,14 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   }, [prefs.autoSubtitles, textSubs, subIndex]);
 
   const videoCodecs = useMemo(() => allowedCodecs(caps, prefs, "video"), [caps, prefs]);
-  const audioCodecs = useMemo(() => allowedCodecs(caps, prefs, "audio"), [caps, prefs]);
+  const audioCodecs = useMemo(() => {
+    const list = allowedCodecs(caps, prefs, "audio");
+    // Ask for Dolby Digital / Digital Plus only where the platform can decode
+    // it; MSE-based HLS in the browser cannot, so keep it to direct playback.
+    if (env.eac3 && mode === "direct" && prefs.decode !== "software")
+      return [...new Set([...list, "eac3", "ac3"])];
+    return list;
+  }, [caps, prefs, env.eac3, mode]);
 
   // One stable session id per mounted playback, so switching quality/subtitles
   // reuses the same server-side transcode session instead of spawning new ones.
@@ -242,6 +256,10 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       maxHeight: prefs.maxHeight,
       // AFR: keep the transcode at the source cadence instead of 30/60 fps.
       maxFps: prefs.afr !== "off" ? sourceFps : undefined,
+      // MKV stays untouched where the platform can play it; elsewhere the server
+      // stream-copies it into MP4 (no re-encode, E-AC3 and HDR10 preserved).
+      container: mode === "direct" ? (check?.directContainer ?? "mp4") : undefined,
+      remux: mode === "direct" ? check?.remux : undefined,
     });
 
 
