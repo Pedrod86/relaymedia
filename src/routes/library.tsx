@@ -377,27 +377,28 @@ function LibraryContent({
       )}
 
       <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
-        {resume.data && resume.data.items.length > 0 && (
-          <Section title="Continue watching">
-            <Row items={resume.data.items} server={server} kind="thumb" />
-          </Section>
-        )}
-
-        {latest.data && latest.data.items.length > 0 && (
-          <Section title="Recently added">
-            <Row items={latest.data.items} server={server} kind="primary" />
-          </Section>
-        )}
+        {customizePanel}
 
         {views.isLoading && <p className="text-muted-foreground">Loading library…</p>}
         {views.error && (
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
-          <LibrarySection key={v.Id} view={v} server={server} />
-        ))}
+        {sections.map((s) =>
+          s.id === "resume" || s.id === "latest" ? (
+            <Section key={s.id} title={s.title}>
+              <Row items={s.items} server={server} kind={s.kind} />
+            </Section>
+          ) : (
+            <LibrarySection
+              key={s.id}
+              view={{ Id: s.id, Name: s.title, CollectionType: s.collectionType }}
+              server={server}
+            />
+          ),
+        )}
       </div>
+
     </main>
   );
 }
