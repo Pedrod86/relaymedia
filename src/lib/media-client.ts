@@ -244,7 +244,14 @@ export type StreamOptions = {
   maxHeight?: number;
   /** Frame-rate ceiling — set to the source fps so AFR cadence is preserved. */
   maxFps?: number;
+  /**
+   * Direct mode only: repackage the original streams into `container` instead of
+   * serving the source file as-is. Used for MKV → MP4 stream-copy so E-AC3 and
+   * HDR10 survive without re-encoding.
+   */
+  remux?: boolean;
 };
+
 
 export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   const params = new URLSearchParams({ sid: s.id, item: itemId, mode: opts.mode });
