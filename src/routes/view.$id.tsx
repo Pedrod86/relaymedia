@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { embyGetItems, embyGetViews } from "@/lib/emby.functions";
 import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
-import { imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
+import { cleanName, itemTypesFor, type MediaServer } from "@/lib/media-client";
+import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 
