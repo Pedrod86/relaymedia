@@ -8,6 +8,8 @@ import { loadHiddenViews, imageUrl, itemTypesFor, cleanName, type MediaServer } 
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
+import { isTvDevice } from "@/lib/platform";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
