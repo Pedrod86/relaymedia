@@ -371,11 +371,38 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     }
   }, [subIndex, subtitles]);
 
+  // Track play/pause so the overlay chrome can hide itself during playback.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const sync = () => setPaused(video.paused || video.ended);
+    sync();
+    video.addEventListener("play", sync);
+    video.addEventListener("playing", sync);
+    video.addEventListener("pause", sync);
+    video.addEventListener("ended", sync);
+    return () => {
+      video.removeEventListener("play", sync);
+      video.removeEventListener("playing", sync);
+      video.removeEventListener("pause", sync);
+      video.removeEventListener("ended", sync);
+    };
+  }, [mode]);
+
+  // Collapse the expanded panels as soon as playback resumes.
+  useEffect(() => {
+    if (!paused) {
+      setShowPanel(false);
+      setShowDetails(false);
+    }
+  }, [paused]);
+
   const decodeOptions: { id: DecodeMode; label: string }[] = [
     { id: "auto", label: "Auto" },
     { id: "hardware", label: "Hardware" },
     { id: "software", label: "Software" },
   ];
+
 
   return (
     <main className="flex min-h-screen flex-col bg-black text-white">
