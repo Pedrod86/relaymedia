@@ -266,6 +266,7 @@ export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   if (opts.hdr) params.set("hdr", opts.hdr);
   if (opts.maxHeight) params.set("maxHeight", String(opts.maxHeight));
   if (opts.maxFps) params.set("maxFps", String(Math.round(opts.maxFps * 1000) / 1000));
+  if (opts.remux) params.set("remux", "1");
   return `${STREAM_PATH}?${params}`;
 }
 
