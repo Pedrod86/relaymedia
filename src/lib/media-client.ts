@@ -159,7 +159,16 @@ export function imageUrl(
     if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
     return proxiedPath(s.id, `/Items/${hit.itemId}/Images/${candidate}?${params}`);
   }
-  return null;
+
+  // Some Emby versions omit ImageTags from regular /Items responses even when
+  // artwork exists (while /Items/Latest still includes them). The image API does
+  // not require a tag, so make an optimistic request instead of rendering an
+  // empty card. Prefer series artwork for episodes when that parent is known.
+  const fallbackItemId = item.SeriesId || item.ParentThumbItemId || item.Id;
+  if (!fallbackItemId) return null;
+  const params = new URLSearchParams({ quality: "90" });
+  if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
+  return proxiedPath(s.id, `/Items/${fallbackItemId}/Images/${type}?${params}`);
 }
 
 // ── Streaming endpoint ─────────────────────────────────────────────────────

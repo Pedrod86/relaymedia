@@ -119,7 +119,8 @@ export const embyGetItems = createServerFn({ method: "POST" })
       SortBy: data.sortBy,
       SortOrder: "Ascending",
       Limit: String(data.limit),
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
+      EnableImages: "true",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
@@ -216,8 +217,9 @@ export const embyGetResume = createServerFn({ method: "POST" })
     const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "20",
-      Fields: "PrimaryImageAspectRatio,Overview,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
+      Fields: "PrimaryImageAspectRatio,Overview,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
       MediaTypes: "Video",
+      EnableImages: "true",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
@@ -234,8 +236,9 @@ export const embyGetLatest = createServerFn({ method: "POST" })
     const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       Limit: "24",
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
       IncludeItemTypes: "Movie,Series",
+      EnableImages: "true",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
       GroupItems: "true",
@@ -284,7 +287,8 @@ export const embySearch = createServerFn({ method: "POST" })
       Recursive: "true",
       Limit: "48",
       IncludeItemTypes: "Movie,Series,Episode",
-      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber,ParentBackdropImageTags,ParentThumbImageTag,SeriesPrimaryImageTag,ImageTags",
+      Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,SeriesName,ParentIndexNumber,IndexNumber,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
+      EnableImages: "true",
       ImageTypeLimit: "1",
       EnableImageTypes: "Primary,Backdrop,Thumb",
     });
