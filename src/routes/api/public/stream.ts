@@ -58,7 +58,11 @@ function proxyHref(sid: string, path: string) {
   return `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
 }
 
-function embyPath(q: z.infer<typeof querySchema>, userId: string) {
+function embyPath(
+  q: z.infer<typeof querySchema>,
+  userId: string,
+  kind: "emby" | "jellyfin",
+) {
   const session = q.session || `lovable-${q.item}`;
 
   if (q.mode === "direct") {
