@@ -141,7 +141,13 @@ function LibraryContent({
   }, [latest.data, server]);
 
   const sections = useMemo(() => {
-    const list: { id: string; title: string; items: any[]; kind: "primary" | "thumb" }[] = [];
+    const list: {
+      id: string;
+      title: string;
+      items: any[];
+      kind: "primary" | "thumb";
+      collectionType?: string;
+    }[] = [];
     if (resume.data?.items.length) {
       list.push({ id: "resume", title: "Continue watching", items: resume.data.items, kind: "thumb" });
     }
@@ -152,9 +158,16 @@ function LibraryContent({
       views.data.views
         .filter((v) => !hidden.has(v.Id))
         .forEach((v) => {
-          list.push({ id: v.Id, title: v.Name, items: [], kind: "primary" });
+          list.push({
+            id: v.Id,
+            title: v.Name,
+            items: [],
+            kind: "primary",
+            collectionType: v.CollectionType,
+          });
         });
     }
+
     return list;
   }, [resume.data, latest.data, views.data, hidden]);
 
