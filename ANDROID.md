@@ -49,13 +49,40 @@ Release builds are always signed, so they install immediately:
   or set `RELAY_STORE_FILE`, `RELAY_STORE_PASSWORD`, `RELAY_KEY_ALIAS`,
   `RELAY_KEY_PASSWORD` as environment variables (CI uses these).
 
-## Automated builds (GitHub Actions)
+## Automated builds (GitHub Actions) — persistent release key
 
 `.github/workflows/android.yml` builds the APK and AAB on any `v*` tag or via
-**Run workflow**, and uploads both as artifacts. Add the repo secrets
-`ANDROID_KEYSTORE_BASE64` (`base64 -w0 relay-release.jks`),
-`ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` to get
-release-signed output.
+**Run workflow**, signs them with your permanent release keystore, and uploads
+both as artifacts. Every build gets a higher `versionCode`
+(`1000 + run number`), so a new APK installs straight over the old one without
+uninstalling.
+
+A release keystore was generated for this project (`relay-release.jks`,
+alias `relay`, RSA 4096, valid ~30 years). Keep it and its passwords forever —
+losing it means future APKs can no longer update installed copies.
+
+Add these GitHub repository secrets (Settings → Secrets and variables →
+Actions):
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | contents of `relay-release.jks.base64` |
+| `ANDROID_STORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | `relay` |
+| `ANDROID_KEY_PASSWORD` | key password (same as store password) |
+
+Then release with:
+
+```bash
+git tag v1.1 && git push origin v1.1
+```
+
+or run the workflow manually and pass a `version_name`. Download the APK/AAB
+from the run's **Artifacts** section. The workflow prints the signing
+certificate so you can confirm every build uses the same key.
+
+Local builds use the same key by creating `android/keystore.properties`
+(git-ignored) pointing at `relay-release.jks`.
 
 ## Installing on Android TV / Fire TV
 
