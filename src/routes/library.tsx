@@ -450,6 +450,7 @@ function TVLayout({
                 key={s.id}
                 id={s.id}
                 title={s.title}
+                collectionType={s.collectionType}
                 server={server}
                 isActive={s.id === activeSectionId}
                 onRowRef={(el) => (rowsRef.current[s.id] = el)}
