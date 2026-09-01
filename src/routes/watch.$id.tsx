@@ -81,6 +81,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
   const { isPro } = useProAccess();
   const [showPanel, setShowPanel] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const getItemEmby = useServerFn(embyGetItem);
 
   const isEmbyFamily = server.kind !== "plex";
