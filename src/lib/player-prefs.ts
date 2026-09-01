@@ -79,6 +79,60 @@ export const RESOLUTION_OPTIONS = [
   { value: 2160, label: "4K (2160p)" },
 ];
 
+// ── Container & platform playback environment ──────────────────────────────
+// The Android APK plays through the platform media stack, which handles things
+// the plain web player cannot: Matroska (MKV) containers, Dolby Digital /
+// Digital Plus (AC3 / E-AC3) audio, and 10-bit HDR10 video. Detect that so the
+// player asks the server to stream-copy instead of transcoding.
+
+export type PlaybackEnv = {
+  /** Running inside the Android APK — platform decoders are available. */
+  androidNative: boolean;
+  /** MKV / Matroska can be played without remuxing. */
+  mkv: boolean;
+  /** AC3 / E-AC3 audio can be passed through untouched. */
+  eac3: boolean;
+  /** HDR10 (PQ, 10-bit) can be displayed without tone mapping. */
+  hdr10: boolean;
+};
+
+export const WEB_ENV: PlaybackEnv = { androidNative: false, mkv: false, eac3: false, hdr10: false };
+
+const MKV_TYPES = [
+  'video/x-matroska; codecs="avc1.640028,mp4a.40.2"',
+  "video/x-matroska",
+  "video/mkv",
+];
+const EAC3_TYPES = ['audio/mp4; codecs="ec-3"', 'audio/mp4; codecs="ac-3"', "audio/eac3", "audio/ac3"];
+
+export function detectPlaybackEnv(): PlaybackEnv {
+  if (typeof window === "undefined") return WEB_ENV;
+  const v = document.createElement("video");
+  const can = (t: string) => {
+    try {
+      return v.canPlayType(t) !== "";
+    } catch {
+      return false;
+    }
+  };
+  const androidNative = isAndroidNative();
+  const hdrDisplay =
+    isTvDevice() ||
+    window.matchMedia?.("(dynamic-range: high)").matches === true ||
+    window.matchMedia?.("(video-dynamic-range: high)").matches === true;
+  return {
+    androidNative,
+    mkv: androidNative || MKV_TYPES.some(can),
+    eac3: androidNative || EAC3_TYPES.some(can),
+    hdr10: androidNative && hdrDisplay,
+  };
+}
+
+/** Containers the current environment can play without a server-side remux. */
+export function playableContainers(env: PlaybackEnv): string[] {
+  return env.mkv ? [...DIRECT_CONTAINERS, "mkv", "matroska"] : DIRECT_CONTAINERS;
+}
+
 
 // ── Codec probing ──────────────────────────────────────────────────────────
 
