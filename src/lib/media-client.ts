@@ -207,7 +207,7 @@ export function itemTypesFor(collectionType?: string): string | undefined {
     case "movies":
       return "Movie";
     case "tvshows":
-ății      return "Series";
+return "Series";
     case "homevideos":
       return "Video,Movie";
     case "music":
