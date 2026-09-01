@@ -83,6 +83,10 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const { isPro } = useProAccess();
   const [showPanel, setShowPanel] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  // Screen chrome (status chips, subtitle picker, settings) only appears while
+  // playback is paused — during playback the picture is left clean, which
+  // matters most on a TV.
+  const [paused, setPaused] = useState(true);
   const getItemEmby = useServerFn(embyGetItem);
 
   const isEmbyFamily = server.kind !== "plex";
