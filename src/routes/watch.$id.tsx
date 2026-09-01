@@ -7,6 +7,7 @@ import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { embyGetItem } from "@/lib/emby.functions";
+import { PlaybackDetails } from "@/components/PlaybackDetails";
 import {
   allowedCodecs,
   checkItemPlayback,
@@ -81,6 +82,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
   const { isPro } = useProAccess();
   const [showPanel, setShowPanel] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const getItemEmby = useServerFn(embyGetItem);
 
   const isEmbyFamily = server.kind !== "plex";
@@ -437,6 +439,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             </label>
           )}
           <button
+            onClick={() => setShowDetails((v) => !v)}
+            className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
+          >
+            ⓘ Playback details
+          </button>
+          <button
             onClick={() => setShowPanel((v) => !v)}
             className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
           >
@@ -444,6 +452,19 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           </button>
         </div>
       </header>
+
+      {showDetails && (
+        <div className="mx-6 mb-3">
+          <PlaybackDetails
+            check={check}
+            mode={mode ?? null}
+            env={env}
+            hdrParam={hdrParam}
+            videoCodecs={videoCodecs}
+            audioCodecs={audioCodecs}
+          />
+        </div>
+      )}
 
       {showPanel && (
         <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
