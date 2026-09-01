@@ -37,7 +37,7 @@ function AuthPage() {
   const [sentConfirmation, setSentConfirmation] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user) navigate({ to: "/upgrade", replace: true });
+    if (!isLoading && user) navigate({ to: "/library", replace: true });
   }, [isLoading, user, navigate]);
 
   async function onSubmit(e: React.FormEvent) {
@@ -48,7 +48,7 @@ function AuthPage() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/upgrade` },
+          options: { emailRedirectTo: `${window.location.origin}/library` },
         });
         if (error) throw error;
         // With email confirmation on, signUp returns no session — the user is

@@ -65,6 +65,10 @@ function paymentsEnvironment(): "sandbox" | "live" {
 
 /** True when the caller is signed in AND has a paid Relay Pro purchase. */
 export async function callerHasPro(): Promise<boolean> {
+  // Free-access period: every account gets Pro limits.
+  const { FREE_ACCESS } = await import("@/lib/free-access");
+  if (FREE_ACCESS) return true;
+
   const supabase = callerClient();
   if (!supabase) return false;
 

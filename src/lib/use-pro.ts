@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getProStatus } from "@/lib/payments.functions";
 import { getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
 import { useAuth } from "@/lib/use-auth";
+import { FREE_ACCESS } from "@/lib/free-access";
 
 export type ProAccess = {
   isPro: boolean;
@@ -26,14 +27,16 @@ export function useProAccess(): ProAccess {
 
   const query = useQuery({
     queryKey: ["pro-status", user?.id],
-    enabled: Boolean(user) && configured,
+    enabled: !FREE_ACCESS && Boolean(user) && configured,
     queryFn: () => fetchStatus({ data: { environment: getStripeEnvironment() } }),
   });
 
   return {
-    isPro: query.data?.isPro ?? false,
+    isPro: FREE_ACCESS || (query.data?.isPro ?? false),
     isSignedIn: Boolean(user),
-    isLoading: authLoading || (Boolean(user) && configured && query.isLoading),
+    isLoading: FREE_ACCESS
+      ? false
+      : authLoading || (Boolean(user) && configured && query.isLoading),
     purchasedAt: query.data?.purchasedAt ?? null,
     refresh: () => {
       void queryClient.invalidateQueries({ queryKey: ["pro-status"] });
