@@ -508,7 +508,11 @@ export function checkItemPlayback(
     is4K,
     hdrPassthrough: canPassHdr,
     toneMapping,
+    directContainer,
+    remux: canDirectPlay && !containerOk,
+    audioPassthrough,
     notes,
+
   };
 }
 
