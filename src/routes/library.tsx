@@ -293,12 +293,33 @@ function LibraryContent({
               ))}
             </select>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh servers"
+          >
+            <span className={refreshing ? "animate-spin" : undefined}>⟳</span>
+            <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
+          </Button>
+          <Button
+            variant={customizing ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCustomizing((v) => !v)}
+            aria-pressed={customizing}
+            aria-label="Customize content order"
+          >
+            <span>↕</span>
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
           <Button variant="outline" size="sm" asChild aria-label="Search">
             <Link to="/search">
               <span>🔍</span>
               <span className="hidden sm:inline">Search</span>
             </Link>
           </Button>
+
           <Button
             variant={tvMode ? "default" : "outline"}
             size="sm"
