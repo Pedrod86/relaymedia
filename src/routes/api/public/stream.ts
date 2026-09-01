@@ -79,6 +79,7 @@ function embyPath(
       const params = new URLSearchParams({
         UserId: userId,
         DeviceId: DEVICE_ID,
+        MediaSourceId: mediaSourceId,
         Static: "false",
         PlaySessionId: session,
         Container: q.container,
@@ -96,6 +97,7 @@ function embyPath(
     const params = new URLSearchParams({
       UserId: userId,
       DeviceId: DEVICE_ID,
+      MediaSourceId: mediaSourceId,
       Static: "true",
       PlaySessionId: session,
     });
@@ -113,11 +115,12 @@ function embyPath(
   const params = new URLSearchParams({
     UserId: userId,
     DeviceId: DEVICE_ID,
+    MediaSourceId: mediaSourceId,
     PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
     AudioCodec: audioCodecs,
-    AudioStreamIndex: "1",
     VideoBitrate: String(q.maxBitrate),
+
     AudioBitrate: dolbyAudio ? "768000" : "192000",
     MaxAudioChannels: String(channels),
     TranscodingMaxAudioChannels: String(channels),
