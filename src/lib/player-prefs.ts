@@ -3,6 +3,8 @@
 // Stored in localStorage — these are non-sensitive UI/playback preferences only.
 
 import type { AfrMode } from "./afr";
+import { isAndroidNative, isTvDevice } from "./platform";
+
 
 export type DecodeMode = "auto" | "hardware" | "software";
 export type PlaybackMode = "auto" | "hls" | "direct";
