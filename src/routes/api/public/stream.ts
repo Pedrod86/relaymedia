@@ -43,6 +43,13 @@ const querySchema = z.object({
    * original cadence instead of converting to a fixed 30/60 fps.
    */
   maxFps: z.coerce.number().min(1).max(300).optional(),
+  /**
+   * Direct mode: repackage (stream-copy) the source into `container` instead of
+   * serving the original file. Lets MKV sources play in players that only
+   * understand MP4 while keeping E-AC3 audio and HDR10 video untouched.
+   */
+  remux: z.coerce.boolean().optional(),
+
 });
 
 const DEVICE_ID = "lovable-media-web";
