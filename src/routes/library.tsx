@@ -621,7 +621,6 @@ function Row({
       {items.map((it) => {
         const portrait = kind === "primary";
         const imgType = kind === "thumb" ? "Thumb" : "Primary";
-        const src = imageUrl(server, it, imgType, { maxWidth: 400 });
         return (
           <Link
             key={it.Id}
@@ -634,19 +633,21 @@ function Row({
               className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
               style={{ aspectRatio: portrait ? "2/3" : "16/9" }}
             >
-              {src ? (
-                <img
-                  src={src}
-                  alt={cleanName(it.Name)}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
-                  {cleanName(it.Name)}
-                </div>
-              )}
+              <MediaImage
+                server={server}
+                item={it}
+                type={imgType}
+                maxWidth={400}
+                alt={cleanName(it.Name)}
+                className="h-full w-full object-cover transition group-hover:scale-105"
+                fallback={
+                  <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                    {cleanName(it.Name)}
+                  </div>
+                }
+              />
             </div>
+
             <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
             {it.ProductionYear && (
               <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>
