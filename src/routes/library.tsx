@@ -142,10 +142,8 @@ function LibraryContent({
 
   // ── Watch history & suggestions ──────────────────────────────────────────
   const { history, watched, genres } = useWatchHistory(server.id);
-  const historyItems = useMemo(
-    () => history.map(historyToItem),
-    [history],
-  );
+  const historyItems = useMemo(() => history.map(historyToItem), [history]);
+  const watchedItems = useMemo(() => watched.map(historyToItem), [watched]);
   const getSuggestions = useServerFn(embyGetSuggestions);
   const suggestions = useQuery({
     enabled: !isPlex && history.length > 0,
@@ -222,6 +220,14 @@ function LibraryContent({
     if (historyItems.length) {
       list.push({ id: "history", title: "Watch history", items: historyItems, kind: "thumb" });
     }
+    if (watchedItems.length) {
+      list.push({
+        id: "watched",
+        title: "Previously watched",
+        items: watchedItems,
+        kind: "primary",
+      });
+    }
     if (suggestions.data?.items.length) {
       list.push({
         id: "suggested",
@@ -246,7 +252,7 @@ function LibraryContent({
     }
 
     return applySectionOrder(list, order);
-  }, [resume.data, latest.data, views.data, hidden, order, historyItems, suggestions.data, genres]);
+  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres]);
 
   function move(id: string, dir: -1 | 1) {
     const ids = sections.map((s) => s.id);
@@ -774,6 +780,15 @@ function TVCard({
         }
       />
 
+      {typeof item.__progress === "number" && item.__progress > 1 && (
+        <div className="absolute inset-x-0 bottom-0 z-10 h-1.5 bg-black/60">
+          <div
+            className="h-full bg-primary"
+            style={{ width: `${Math.min(100, item.__progress)}%` }}
+          />
+        </div>
+      )}
+
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
         <p className="truncate text-sm font-semibold text-white">{cleanName(item.Name)}</p>
         {item.ProductionYear && (
@@ -885,6 +900,14 @@ function Row({
                   </div>
                 }
               />
+              {typeof it.__progress === "number" && it.__progress > 1 && (
+                <div className="relative -mt-1 h-1 w-full bg-black/50">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${Math.min(100, it.__progress)}%` }}
+                  />
+                </div>
+              )}
             </div>
 
             <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
