@@ -363,8 +363,15 @@ export type StreamCheck = {
   hdrPassthrough: boolean;
   /** True when the server must tone-map HDR down to SDR. */
   toneMapping: boolean;
+  /** Container to ask for on a direct stream ("mkv" = original, no remux). */
+  directContainer: string;
+  /** True when the container is repackaged (stream-copy) rather than transcoded. */
+  remux: boolean;
+  /** True when the original audio track (e.g. E-AC3) is sent untouched. */
+  audioPassthrough: boolean;
   notes: string[];
 };
+
 
 const DIRECT_CONTAINERS = ["mp4", "m4v", "mov", "webm"];
 
