@@ -124,9 +124,13 @@ export function detectPlaybackEnv(): PlaybackEnv {
     window.matchMedia?.("(video-dynamic-range: high)").matches === true;
   return {
     androidNative,
-    mkv: androidNative || MKV_TYPES.some(can),
-    eac3: androidNative || EAC3_TYPES.some(can),
-    hdr10: androidNative && hdrDisplay,
+    // Trust the player itself: Chromium/WebView exposes the platform decoders it
+    // actually has, so a positive canPlayType is the reliable signal.
+    mkv: MKV_TYPES.some(can),
+    eac3: EAC3_TYPES.some(can),
+    // Android TV boxes and HDR panels report a high dynamic range display; the
+    // APK also runs full-screen on the TV's own pipeline, so trust it there.
+    hdr10: hdrDisplay && (androidNative || MKV_TYPES.length > 0),
   };
 }
 
@@ -425,12 +429,8 @@ export function checkItemPlayback(
   const aCap = caps.find((c) => c.track === "audio" && c.name === audioCodec);
 
   const notes: string[] = [];
-  // The Android APK plays HEVC / HEVC Main10 through the platform decoder even
-  // when MediaCapabilities (a MSE-only API) reports nothing for it.
-  const nativeVideoOk =
-    env.androidNative && ["h264", "hevc", "av1", "vp9", "mpeg2video"].includes(videoCodec ?? "");
-  const videoSupported = !!vCap?.supported || nativeVideoOk;
-  const videoHardware = !!vCap?.hardware || nativeVideoOk;
+  const videoSupported = !!vCap?.supported;
+  const videoHardware = !!vCap?.hardware;
   // AC3 / E-AC3 (Dolby Digital / Digital Plus) are decoded — or bitstreamed to
   // the receiver — by the Android media stack, so no re-encode is needed.
   const nativeAudioOk = env.eac3 && ["eac3", "ec-3", "ac3", "ac-3"].includes(audioCodec ?? "");
