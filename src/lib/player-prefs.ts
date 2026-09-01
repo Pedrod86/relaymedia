@@ -395,7 +395,9 @@ export function checkItemPlayback(
   caps: CodecCap[],
   prefs: PlayerPrefs,
   hdrSupport: HdrSupport = NO_HDR,
+  env: PlaybackEnv = WEB_ENV,
 ): StreamCheck {
+
   const source = item?.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item?.MediaStreams ?? [];
   const v = streams.find((s) => s.Type === "Video");
