@@ -64,6 +64,13 @@ function embyPath(
   kind: "emby" | "jellyfin",
 ) {
   const session = q.session || `lovable-${q.item}`;
+  const jellyfin = kind === "jellyfin";
+  // Jellyfin requires MediaSourceId on both /stream and /master.m3u8 (it is
+  // optional on Emby). For a normal library item the media source id equals the
+  // item id, so sending it is always safe and stops Jellyfin 400ing the
+  // request — which is what surfaced as "loads then breaks".
+  const mediaSourceId = q.item;
+
 
   if (q.mode === "direct") {
     if (q.remux) {
