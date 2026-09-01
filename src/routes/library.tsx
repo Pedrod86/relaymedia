@@ -292,24 +292,60 @@ function TVLayout({
   }, [sections, activeSectionId]);
 
   useEffect(() => {
+    const cardsIn = (id: string) =>
+      Array.from(rowsRef.current[id]?.querySelectorAll<HTMLElement>("[data-tv-card]") ?? []);
+
+    const focusCard = (card: HTMLElement | undefined) => {
+      if (!card) return false;
+      card.focus({ preventScroll: true });
+      card.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      return true;
+    };
+
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        const idx = sections.findIndex((s) => s.id === activeSectionId);
-        const nextIdx = e.key === "ArrowDown" ? Math.min(idx + 1, sections.length - 1) : Math.max(idx - 1, 0);
-        const nextId = sections[nextIdx]?.id;
-        if (nextId && nextId !== activeSectionId) {
-          setActiveSectionId(nextId);
-          const row = rowsRef.current[nextId];
-          const card = row?.querySelector<HTMLElement>("[data-tv-card]");
-          card?.focus();
-          row?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+      if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      const card = active?.closest<HTMLElement>("[data-tv-card]") ?? null;
+      const row = card?.closest<HTMLElement>("[data-section-id]") ?? null;
+      const rowId = row?.dataset.sectionId ?? activeSectionId;
+      const idx = sections.findIndex((s) => s.id === rowId);
+
+      // Take over navigation entirely so focus moves one item at a time.
+      e.preventDefault();
+
+      if (!card) {
+        // Nothing focused yet — enter the active row.
+        const target = sections[idx >= 0 ? idx : 0]?.id ?? activeSectionId;
+        setActiveSectionId(target);
+        focusCard(cardsIn(target)[0]);
+        return;
+      }
+
+      const cards = cardsIn(rowId);
+      const pos = cards.indexOf(card);
+
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const nextPos = e.key === "ArrowRight" ? pos + 1 : pos - 1;
+        if (nextPos >= 0 && nextPos < cards.length) focusCard(cards[nextPos]);
+        return;
+      }
+
+      // Vertical: move one row, keeping the same column where possible.
+      const dir = e.key === "ArrowDown" ? 1 : -1;
+      for (let i = idx + dir; i >= 0 && i < sections.length; i += dir) {
+        const nextId = sections[i]!.id;
+        const nextCards = cardsIn(nextId);
+        if (!nextCards.length) continue; // skip empty/unloaded rows only
+        setActiveSectionId(nextId);
+        focusCard(nextCards[Math.min(pos, nextCards.length - 1)]);
+        return;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [activeSectionId, sections]);
+
 
   const hero = backdropItems[0];
 
