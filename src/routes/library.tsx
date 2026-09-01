@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary } from "@/lib/emby.functions";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary, embyGetSuggestions } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest, plexRefreshLibrary } from "@/lib/plex.functions";
 import {
   loadHiddenViews,
@@ -18,6 +18,9 @@ import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { isTvDevice } from "@/lib/platform";
+import { ServerSwitcher } from "@/components/ServerSwitcher";
+import { useWatchHistory } from "@/lib/use-watch-history";
+import { clearHistory, type HistoryEntry } from "@/lib/watch-history";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,6 +140,28 @@ function LibraryContent({
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
+  // ── Watch history & suggestions ──────────────────────────────────────────
+  const { history, watched, genres } = useWatchHistory(server.id);
+  const historyItems = useMemo(
+    () => history.map(historyToItem),
+    [history],
+  );
+  const getSuggestions = useServerFn(embyGetSuggestions);
+  const suggestions = useQuery({
+    enabled: !isPlex && history.length > 0,
+    queryKey: ["suggestions", server.id, genres.join(","), watched.length],
+    queryFn: () =>
+      getSuggestions({
+        data: {
+          serverId: server.id,
+          genres,
+          excludeIds: history.map((h) => h.id).slice(0, 60),
+          limit: 24,
+        },
+      }),
+    staleTime: 5 * 60_000,
+  });
+
   const views = useQuery({
     queryKey: ["views", server.id],
     queryFn: () => (isPlex ? getViewsPlex({ data: arg }) : getViewsEmby({ data: arg })),
@@ -185,6 +210,7 @@ function LibraryContent({
       title: string;
       items: any[];
       kind: "primary" | "thumb";
+      library?: boolean;
       collectionType?: string;
     }[] = [];
     if (resume.data?.items.length) {
@@ -192,6 +218,17 @@ function LibraryContent({
     }
     if (latest.data?.items.length) {
       list.push({ id: "latest", title: "Recently added", items: latest.data.items, kind: "primary" });
+    }
+    if (historyItems.length) {
+      list.push({ id: "history", title: "Watch history", items: historyItems, kind: "thumb" });
+    }
+    if (suggestions.data?.items.length) {
+      list.push({
+        id: "suggested",
+        title: genres.length ? `Because you watched ${genres[0]}` : "Suggested for you",
+        items: suggestions.data.items,
+        kind: "primary",
+      });
     }
     if (views.data) {
       views.data.views
@@ -202,13 +239,14 @@ function LibraryContent({
             title: v.Name,
             items: [],
             kind: "primary",
+            library: true,
             collectionType: v.CollectionType,
           });
         });
     }
 
     return applySectionOrder(list, order);
-  }, [resume.data, latest.data, views.data, hidden, order]);
+  }, [resume.data, latest.data, views.data, hidden, order, historyItems, suggestions.data, genres]);
 
   function move(id: string, dir: -1 | 1) {
     const ids = sections.map((s) => s.id);
@@ -234,9 +272,23 @@ function LibraryContent({
             Move rows up or down. Saved on this device.
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={resetOrder}>
-          Reset
-        </Button>
+        <div className="flex shrink-0 gap-1">
+          {history.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearHistory(server.id);
+                toast.success("Watch history cleared");
+              }}
+            >
+              Clear history
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={resetOrder}>
+            Reset
+          </Button>
+        </div>
       </div>
       <ul className="mt-3 divide-y">
         {sections.map((s, i) => (
@@ -279,20 +331,7 @@ function LibraryContent({
           <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {servers.length > 1 && (
-            <select
-              value={server.id}
-              onChange={(e) => onSwitch(e.target.value)}
-              className="hidden max-w-[9rem] rounded-md border bg-background px-2 py-1 text-sm sm:block"
-              aria-label="Switch server"
-            >
-              {servers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.kind})
-                </option>
-              ))}
-            </select>
-          )}
+          <ServerSwitcher servers={servers} active={server} onSwitch={onSwitch} />
           <Button
             variant="outline"
             size="sm"
@@ -386,7 +425,7 @@ function LibraryContent({
         )}
 
         {sections.map((s) =>
-          s.id === "resume" || s.id === "latest" ? (
+          !s.library ? (
             <Section key={s.id} title={s.title}>
               <Row items={s.items} server={server} kind={s.kind} />
             </Section>
@@ -419,6 +458,7 @@ function TVLayout({
     title: string;
     items: any[];
     kind: "primary" | "thumb";
+    library?: boolean;
     collectionType?: string;
   }[];
 
@@ -558,7 +598,7 @@ function TVLayout({
           )}
 
           {sections.map((s) =>
-            s.id === "resume" || s.id === "latest" ? (
+            !s.library ? (
               <TVSection
                 key={s.id}
                 id={s.id}
@@ -936,4 +976,17 @@ function BackdropHero({
       </div>
     </div>
   );
+}
+
+
+/** History entries keep an artwork snapshot — reshape it into a library item. */
+function historyToItem(e: HistoryEntry) {
+  return {
+    ...(e.item as Record<string, unknown>),
+    Id: e.id,
+    Name: e.name,
+    ProductionYear: e.year,
+    __progress: e.progress,
+    __completed: e.completed,
+  } as any;
 }
