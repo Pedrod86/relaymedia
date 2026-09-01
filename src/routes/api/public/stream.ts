@@ -62,6 +62,26 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
   const session = q.session || `lovable-${q.item}`;
 
   if (q.mode === "direct") {
+    if (q.remux) {
+      // Stream-copy remux: same video + audio bitstreams, new container. Keeps
+      // HEVC 10-bit HDR10 and E-AC3 intact — the server only repackages.
+      const params = new URLSearchParams({
+        UserId: userId,
+        DeviceId: DEVICE_ID,
+        Static: "false",
+        PlaySessionId: session,
+        Container: q.container,
+        VideoCodec: "copy",
+        AudioCodec: "copy",
+        AllowVideoStreamCopy: "true",
+        AllowAudioStreamCopy: "true",
+        CopyTimestamps: "true",
+        EnableTonemapping: "false",
+        RequireAvc: "false",
+      });
+      if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+      return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
+    }
     const params = new URLSearchParams({
       UserId: userId,
       DeviceId: DEVICE_ID,
@@ -70,6 +90,7 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
     });
     return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
   }
+
 
   const hdrPass = q.hdr === "passthrough";
 
