@@ -55,12 +55,12 @@ async function handle(request: Request) {
     headers.set("X-Plex-Token", cred.token);
     headers.set("X-Plex-Client-Identifier", "lovable-media-web");
   } else {
+    // Jellyfin 10.9+ requires the full MediaBrowser scheme on Authorization
+    // (a token-only value is rejected), so send the same string on both headers.
+    const auth = `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="lovable-media-web", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`;
     headers.set("X-Emby-Token", cred.token);
-    headers.set(
-      "X-Emby-Authorization",
-      `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="lovable-media-web", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`,
-    );
-    headers.set("Authorization", `MediaBrowser Token="${cred.token}"`);
+    headers.set("X-Emby-Authorization", auth);
+    headers.set("Authorization", auth);
   }
 
   let upstream: Response;
