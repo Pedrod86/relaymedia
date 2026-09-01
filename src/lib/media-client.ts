@@ -132,44 +132,93 @@ function embyTag(item: ImageItem, type: ImageType): { itemId: string; tag: strin
   return null;
 }
 
+/**
+ * Every artwork URL worth trying for an item, best first. Servers vary a lot in
+ * which artwork types and tags they expose per endpoint, so the UI walks this
+ * list on <img> error instead of giving up on the first miss.
+ */
+export function imageCandidates(
+  s: MediaServer,
+  item: ImageItem,
+  type: ImageType = "Primary",
+  opts: { maxWidth?: number } = {},
+): string[] {
+  const out: string[] = [];
+  if (s.kind === "plex") {
+    const pick = (t: ImageType) =>
+      t === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[t];
+    for (const t of FALLBACKS[type]) {
+      const path = pick(t);
+      if (!path) continue;
+      const w = opts.maxWidth ?? 400;
+      const h = t === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
+      // Plex photo transcoder is widely supported and returns sensible sizes.
+      out.push(
+        proxiedPath(
+          s.id,
+          `/photo/:/transcode?width=${w}&height=${h}&minSize=1&upscale=1&url=${encodeURIComponent(path)}`,
+        ),
+      );
+      out.push(proxiedPath(s.id, path));
+    }
+    return [...new Set(out)];
+  }
+
+  // Emby / Jellyfin — tagged URLs first (cacheable, guaranteed to exist).
+  for (const candidate of FALLBACKS[type]) {
+    const hit = embyTag(item, candidate);
+    if (!hit) continue;
+    const params = new URLSearchParams({ quality: "90", tag: hit.tag });
+    if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
+    out.push(proxiedPath(s.id, `/Items/${hit.itemId}/Images/${candidate}?${params}`));
+  }
+
+  // Some Emby/Jellyfin versions omit ImageTags from regular /Items responses even
+  // when artwork exists (while /Items/Latest includes them). The image API does
+  // not require a tag, so try untagged URLs for the item and its parents too.
+  const ids = [item.Id, item.SeriesId, item.ParentThumbItemId, item.ParentBackdropItemId].filter(
+    (v): v is string => Boolean(v),
+  );
+  for (const candidate of FALLBACKS[type]) {
+    for (const id of ids) {
+      const params = new URLSearchParams({ quality: "90" });
+      if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
+      out.push(proxiedPath(s.id, `/Items/${id}/Images/${candidate}?${params}`));
+    }
+  }
+  return [...new Set(out)];
+}
+
 export function imageUrl(
   s: MediaServer,
   item: ImageItem,
   type: ImageType = "Primary",
   opts: { maxWidth?: number } = {},
 ): string | null {
-  if (s.kind === "plex") {
-    const pick = (t: ImageType) =>
-      t === "Backdrop" ? item.BackdropImageTags?.[0] : item.ImageTags?.[t];
-    const path = FALLBACKS[type].map(pick).find(Boolean);
-    if (!path) return null;
-    const w = opts.maxWidth ?? 400;
-    const h = type === "Primary" ? Math.round(w * 1.5) : Math.round(w * 0.5625);
-    // Plex photo transcoder is widely supported and returns sensible sizes.
-    return proxiedPath(
-      s.id,
-      `/photo/:/transcode?width=${w}&height=${h}&minSize=1&upscale=1&url=${encodeURIComponent(path)}`,
-    );
-  }
-  // Emby / Jellyfin
-  for (const candidate of FALLBACKS[type]) {
-    const hit = embyTag(item, candidate);
-    if (!hit) continue;
-    const params = new URLSearchParams({ quality: "90", tag: hit.tag });
-    if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
-    return proxiedPath(s.id, `/Items/${hit.itemId}/Images/${candidate}?${params}`);
-  }
-
-  // Some Emby versions omit ImageTags from regular /Items responses even when
-  // artwork exists (while /Items/Latest still includes them). The image API does
-  // not require a tag, so make an optimistic request instead of rendering an
-  // empty card. Prefer series artwork for episodes when that parent is known.
-  const fallbackItemId = item.SeriesId || item.ParentThumbItemId || item.Id;
-  if (!fallbackItemId) return null;
-  const params = new URLSearchParams({ quality: "90" });
-  if (opts.maxWidth) params.set("maxWidth", String(opts.maxWidth));
-  return proxiedPath(s.id, `/Items/${fallbackItemId}/Images/${type}?${params}`);
+  return imageCandidates(s, item, type, opts)[0] ?? null;
 }
+
+/**
+ * Item types to request for a library so recursive queries return real
+ * movies/series/albums instead of folder entries (folders have no artwork).
+ */
+export function itemTypesFor(collectionType?: string): string | undefined {
+  switch (collectionType) {
+    case "movies":
+      return "Movie";
+    case "tvshows":
+ății      return "Series";
+    case "homevideos":
+      return "Video,Movie";
+    case "music":
+      return "MusicAlbum";
+    case "boxsets":
+      return "BoxSet";
+    default:
+      return "Movie,Series";
+  }
+}
+
 
 // ── Streaming endpoint ─────────────────────────────────────────────────────
 // One endpoint for every server kind: /api/public/stream resolves the upstream
