@@ -93,18 +93,24 @@ function embyPath(q: z.infer<typeof querySchema>, userId: string) {
 
 
   const hdrPass = q.hdr === "passthrough";
+  const audioCodecs = q.audioCodec || "aac,mp3";
+  // Dolby Digital / Digital Plus is multichannel by nature: when the client can
+  // take it, allow up to 5.1/7.1 so the original track is copied, not downmixed.
+  const dolbyAudio = /\b(eac3|ec-3|ac3|ac-3)\b/.test(audioCodecs);
+  const channels = dolbyAudio ? Math.max(q.audioChannels, 6) : q.audioChannels;
 
   const params = new URLSearchParams({
     UserId: userId,
     DeviceId: DEVICE_ID,
     PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
-    AudioCodec: q.audioCodec || "aac,mp3",
+    AudioCodec: audioCodecs,
     AudioStreamIndex: "1",
     VideoBitrate: String(q.maxBitrate),
-    AudioBitrate: "192000",
-    MaxAudioChannels: String(q.audioChannels),
-    TranscodingMaxAudioChannels: String(q.audioChannels),
+    AudioBitrate: dolbyAudio ? "768000" : "192000",
+    MaxAudioChannels: String(channels),
+    TranscodingMaxAudioChannels: String(channels),
+
     SegmentContainer: "ts",
     // Shorter segments = faster first frame and cheaper seeks; the decoder gets
     // a keyframe sooner and hls.js can fill its buffer in parallel.
