@@ -425,16 +425,32 @@ export function checkItemPlayback(
   const aCap = caps.find((c) => c.track === "audio" && c.name === audioCodec);
 
   const notes: string[] = [];
-  const videoSupported = !!vCap?.supported;
-  const videoHardware = !!vCap?.hardware;
-  const audioSupported = !!aCap?.supported;
+  // The Android APK plays HEVC / HEVC Main10 through the platform decoder even
+  // when MediaCapabilities (a MSE-only API) reports nothing for it.
+  const nativeVideoOk =
+    env.androidNative && ["h264", "hevc", "av1", "vp9", "mpeg2video"].includes(videoCodec ?? "");
+  const videoSupported = !!vCap?.supported || nativeVideoOk;
+  const videoHardware = !!vCap?.hardware || nativeVideoOk;
+  // AC3 / E-AC3 (Dolby Digital / Digital Plus) are decoded — or bitstreamed to
+  // the receiver — by the Android media stack, so no re-encode is needed.
+  const nativeAudioOk = env.eac3 && ["eac3", "ec-3", "ac3", "ac-3"].includes(audioCodec ?? "");
+  const audioSupported = !!aCap?.supported || nativeAudioOk;
+  const audioPassthrough = audioSupported;
 
   const passthroughWanted = isHdr && wantsHdrPassthrough(prefs, hdrSupport);
   const canPassHdr =
     passthroughWanted &&
     videoSupported &&
-    (isDolbyVision ? hdrSupport.dolbyVision || prefs.hdr === "passthrough" : hdrSupport.hdr10 || hdrSupport.hlg || prefs.hdr === "passthrough");
+    (isDolbyVision
+      ? hdrSupport.dolbyVision || env.androidNative || prefs.hdr === "passthrough"
+      : hdrSupport.hdr10 || hdrSupport.hlg || env.hdr10 || prefs.hdr === "passthrough");
   const toneMapping = isHdr && !canPassHdr;
+
+  const directContainers = playableContainers(env);
+  const containerOk = !!container && directContainers.includes(container);
+  const directContainer = containerOk && (container === "mkv" || container === "matroska") ? "mkv" : "mp4";
+
+
 
   if (videoCodec && !videoSupported)
     notes.push(`${videoCodec.toUpperCase()}${needsMain10 ? " 10-bit" : ""} video isn't decodable here — will transcode.`);
