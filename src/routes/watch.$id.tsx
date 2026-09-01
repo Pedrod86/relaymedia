@@ -30,6 +30,7 @@ import {
   scrobbleTargetFromEmbyItem,
   useTraktScrobble,
 } from "@/lib/use-trakt-scrobble";
+import { useHistoryRecorder } from "@/lib/use-watch-history";
 import {
   AFR_OFF,
   measureRefreshRate,
@@ -124,6 +125,10 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     [itemQ.data, isEmbyFamily],
   );
   useTraktScrobble(videoRef, scrobbleTarget);
+
+  // Personal watch history (kept on this device) — powers the history row and
+  // the suggestions on the homepage.
+  useHistoryRecorder(videoRef, server.id, itemQ.data?.item);
 
   const check = useMemo(
     () =>
