@@ -456,10 +456,12 @@ export function checkItemPlayback(
     notes.push(`${videoCodec.toUpperCase()}${needsMain10 ? " 10-bit" : ""} video isn't decodable here — will transcode.`);
   if (videoSupported && !videoHardware) notes.push(`${videoCodec?.toUpperCase()} decodes in software on this device.`);
   if (audioCodec && !audioSupported) notes.push(`${audioCodec.toUpperCase()} audio isn't supported — will be re-encoded to AAC.`);
-  if (container && !DIRECT_CONTAINERS.includes(container)) notes.push(`${container.toUpperCase()} container needs remuxing.`);
+  else if (nativeAudioOk) notes.push(`${audioCodec?.toUpperCase()} audio passed through to the device decoder.`);
+  if (container && !containerOk) notes.push(`${container.toUpperCase()} container will be repackaged (no re-encode).`);
+  else if (directContainer === "mkv") notes.push("MKV played directly — original container kept.");
   if (prefs.decode === "hardware" && videoSupported && !videoHardware)
     notes.push("Hardware-only decoding is on, so the server will transcode to a GPU-friendly codec.");
-  if (is4K && !hdrSupport.uhdHardware)
+  if (is4K && !hdrSupport.uhdHardware && !env.androidNative)
     notes.push("4K isn't confirmed as hardware-decodable here — playback may drop frames.");
   if (isDolbyVision)
     notes.push(
@@ -471,12 +473,11 @@ export function checkItemPlayback(
     notes.push(canPassHdr ? `${videoRange} passthrough — original grade sent untouched.` : `${videoRange} will be tone-mapped to SDR.`);
   if (is4K && prefs.maxHeight < 2160) notes.push(`4K source downscaled to ${prefs.maxHeight}p by your resolution cap.`);
 
-  let canDirectPlay =
-    videoSupported &&
-    audioSupported &&
-    !!container &&
-    DIRECT_CONTAINERS.includes(container) &&
-    !toneMapping;
+  // Direct play covers stream-copy remuxes too: when the codecs are decodable
+  // but the container isn't (MKV in the web player), the server repackages the
+  // same elementary streams into MP4 instead of re-encoding.
+  let canDirectPlay = videoSupported && audioSupported && !!container && !toneMapping;
+
   if (prefs.decode === "hardware" && !videoHardware) canDirectPlay = false;
   if (is4K && prefs.maxHeight < 2160) canDirectPlay = false;
 
