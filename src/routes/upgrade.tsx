@@ -7,6 +7,7 @@ import { PRO_PRICE_ID, PRO_PRICE_LABEL, isPaymentsConfigured } from "@/lib/strip
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Button } from "@/components/ui/button";
+import { FREE_ACCESS } from "@/lib/free-access";
 
 const PERKS = [
   "4K Dolby Vision & HDR10 passthrough",
@@ -43,7 +44,7 @@ function UpgradePage() {
   const { user, isLoading: authLoading } = useAuth();
   const { isPro, isLoading: proLoading } = useProAccess();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const configured = isPaymentsConfigured();
+  const configured = isPaymentsConfigured() && !FREE_ACCESS;
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth", replace: true });
