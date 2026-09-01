@@ -127,6 +127,13 @@ function LibraryContent({
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
   const getLatestPlex = useServerFn(plexGetLatest);
+  const refreshEmby = useServerFn(embyRefreshLibrary);
+  const refreshPlex = useServerFn(plexRefreshLibrary);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const [customizing, setCustomizing] = useState(false);
+  const [order, setOrder] = useState<string[]>([]);
+  useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
@@ -142,6 +149,28 @@ function LibraryContent({
     queryKey: ["latest", server.id],
     queryFn: () => (isPlex ? getLatestPlex({ data: arg }) : getLatestEmby({ data: arg })),
   });
+
+  // Ask the server to rescan, then pull everything on this page again.
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      const res = isPlex
+        ? await refreshPlex({ data: arg })
+        : await refreshEmby({ data: arg });
+      if (res.ok) toast.success("Server sync started — reloading your library.");
+      else toast.error(res.error ?? "Could not start a server sync.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Refresh failed");
+    } finally {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["views", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["resume", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["latest", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["items", server.id] }),
+      ]);
+      setRefreshing(false);
+    }
+  }
 
   const backdropItems = useMemo(() => {
     const pool = latest.data?.items ?? [];
@@ -178,8 +207,67 @@ function LibraryContent({
         });
     }
 
-    return list;
-  }, [resume.data, latest.data, views.data, hidden]);
+    return applySectionOrder(list, order);
+  }, [resume.data, latest.data, views.data, hidden, order]);
+
+  function move(id: string, dir: -1 | 1) {
+    const ids = sections.map((s) => s.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    setOrder(ids);
+    saveSectionOrder(server.id, ids);
+  }
+
+  function resetOrder() {
+    setOrder([]);
+    saveSectionOrder(server.id, []);
+  }
+
+  const customizePanel = customizing ? (
+    <div className="rounded-lg border bg-card/60 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Content order</p>
+          <p className="text-xs text-muted-foreground">
+            Move rows up or down. Saved on this device.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={resetOrder}>
+          Reset
+        </Button>
+      </div>
+      <ul className="mt-3 divide-y">
+        {sections.map((s, i) => (
+          <li key={s.id} className="flex items-center justify-between gap-3 py-2">
+            <span className="truncate text-sm">{s.title}</span>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => move(s.id, -1)}
+                disabled={i === 0}
+                aria-label={`Move ${s.title} up`}
+              >
+                ↑
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => move(s.id, 1)}
+                disabled={i === sections.length - 1}
+                aria-label={`Move ${s.title} down`}
+              >
+                ↓
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
 
   const topNav = (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
