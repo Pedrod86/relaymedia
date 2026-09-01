@@ -1,10 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
-import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
-import { loadHiddenViews, imageUrl, itemTypesFor, cleanName, type MediaServer } from "@/lib/media-client";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary } from "@/lib/emby.functions";
+import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest, plexRefreshLibrary } from "@/lib/plex.functions";
+import {
+  loadHiddenViews,
+  loadSectionOrder,
+  saveSectionOrder,
+  applySectionOrder,
+  imageUrl,
+  itemTypesFor,
+  cleanName,
+  type MediaServer,
+} from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
@@ -12,6 +21,7 @@ import { isTvDevice } from "@/lib/platform";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -117,6 +127,13 @@ function LibraryContent({
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
   const getLatestPlex = useServerFn(plexGetLatest);
+  const refreshEmby = useServerFn(embyRefreshLibrary);
+  const refreshPlex = useServerFn(plexRefreshLibrary);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const [customizing, setCustomizing] = useState(false);
+  const [order, setOrder] = useState<string[]>([]);
+  useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
@@ -132,6 +149,28 @@ function LibraryContent({
     queryKey: ["latest", server.id],
     queryFn: () => (isPlex ? getLatestPlex({ data: arg }) : getLatestEmby({ data: arg })),
   });
+
+  // Ask the server to rescan, then pull everything on this page again.
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      const res = isPlex
+        ? await refreshPlex({ data: arg })
+        : await refreshEmby({ data: arg });
+      if (res.ok) toast.success("Server sync started — reloading your library.");
+      else toast.error(res.error ?? "Could not start a server sync.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Refresh failed");
+    } finally {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["views", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["resume", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["latest", server.id] }),
+        queryClient.invalidateQueries({ queryKey: ["items", server.id] }),
+      ]);
+      setRefreshing(false);
+    }
+  }
 
   const backdropItems = useMemo(() => {
     const pool = latest.data?.items ?? [];
@@ -168,8 +207,67 @@ function LibraryContent({
         });
     }
 
-    return list;
-  }, [resume.data, latest.data, views.data, hidden]);
+    return applySectionOrder(list, order);
+  }, [resume.data, latest.data, views.data, hidden, order]);
+
+  function move(id: string, dir: -1 | 1) {
+    const ids = sections.map((s) => s.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    setOrder(ids);
+    saveSectionOrder(server.id, ids);
+  }
+
+  function resetOrder() {
+    setOrder([]);
+    saveSectionOrder(server.id, []);
+  }
+
+  const customizePanel = customizing ? (
+    <div className="rounded-lg border bg-card/60 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Content order</p>
+          <p className="text-xs text-muted-foreground">
+            Move rows up or down. Saved on this device.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={resetOrder}>
+          Reset
+        </Button>
+      </div>
+      <ul className="mt-3 divide-y">
+        {sections.map((s, i) => (
+          <li key={s.id} className="flex items-center justify-between gap-3 py-2">
+            <span className="truncate text-sm">{s.title}</span>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => move(s.id, -1)}
+                disabled={i === 0}
+                aria-label={`Move ${s.title} up`}
+              >
+                ↑
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => move(s.id, 1)}
+                disabled={i === sections.length - 1}
+                aria-label={`Move ${s.title} down`}
+              >
+                ↓
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
 
   const topNav = (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
@@ -195,12 +293,33 @@ function LibraryContent({
               ))}
             </select>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh servers"
+          >
+            <span className={refreshing ? "animate-spin" : undefined}>⟳</span>
+            <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
+          </Button>
+          <Button
+            variant={customizing ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCustomizing((v) => !v)}
+            aria-pressed={customizing}
+            aria-label="Customize content order"
+          >
+            <span>↕</span>
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
           <Button variant="outline" size="sm" asChild aria-label="Search">
             <Link to="/search">
               <span>🔍</span>
               <span className="hidden sm:inline">Search</span>
             </Link>
           </Button>
+
           <Button
             variant={tvMode ? "default" : "outline"}
             size="sm"
@@ -245,6 +364,7 @@ function LibraryContent({
         topNav={topNav}
         sections={sections}
         backdropItems={backdropItems}
+        customizePanel={customizePanel}
       />
     );
   }
@@ -258,27 +378,28 @@ function LibraryContent({
       )}
 
       <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
-        {resume.data && resume.data.items.length > 0 && (
-          <Section title="Continue watching">
-            <Row items={resume.data.items} server={server} kind="thumb" />
-          </Section>
-        )}
-
-        {latest.data && latest.data.items.length > 0 && (
-          <Section title="Recently added">
-            <Row items={latest.data.items} server={server} kind="primary" />
-          </Section>
-        )}
+        {customizePanel}
 
         {views.isLoading && <p className="text-muted-foreground">Loading library…</p>}
         {views.error && (
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {views.data?.views.filter((v) => !hidden.has(v.Id)).map((v) => (
-          <LibrarySection key={v.Id} view={v} server={server} />
-        ))}
+        {sections.map((s) =>
+          s.id === "resume" || s.id === "latest" ? (
+            <Section key={s.id} title={s.title}>
+              <Row items={s.items} server={server} kind={s.kind} />
+            </Section>
+          ) : (
+            <LibrarySection
+              key={s.id}
+              view={{ Id: s.id, Name: s.title, CollectionType: s.collectionType }}
+              server={server}
+            />
+          ),
+        )}
       </div>
+
     </main>
   );
 }
@@ -288,9 +409,11 @@ function TVLayout({
   topNav,
   sections,
   backdropItems,
+  customizePanel,
 }: {
   server: MediaServer;
   topNav: React.ReactNode;
+  customizePanel?: React.ReactNode;
   sections: {
     id: string;
     title: string;
@@ -405,6 +528,7 @@ function TVLayout({
 
         {/* Main scrollable area */}
         <div className="tv-scroll flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+          {customizePanel && <div className="mb-6">{customizePanel}</div>}
           {hero && (
             <div className="relative mb-8 h-[32vh] min-h-[220px] w-full overflow-hidden rounded-2xl">
               <img

@@ -71,7 +71,42 @@ export function saveHiddenViews(serverId: string, ids: string[]) {
 export function clearHiddenViews(serverId: string) {
   if (typeof window === "undefined") return;
   localStorage.removeItem(HIDDEN_KEY_PREFIX + serverId);
+  localStorage.removeItem(ORDER_KEY_PREFIX + serverId);
 }
+
+// ── Home section order ─────────────────────────────────────────────────────
+// A saved list of section ids ("resume", "latest", library view ids). Any
+// section not in the list keeps its natural position at the end.
+const ORDER_KEY_PREFIX = "media:order:";
+
+export function loadSectionOrder(serverId: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(ORDER_KEY_PREFIX + serverId);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveSectionOrder(serverId: string, ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ORDER_KEY_PREFIX + serverId, JSON.stringify(ids));
+}
+
+export function applySectionOrder<T extends { id: string }>(
+  sections: T[],
+  order: string[],
+): T[] {
+  if (!order.length) return sections;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return [...sections].sort((a, b) => {
+    const ra = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const rb = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    return ra - rb;
+  });
+}
+
 
 // ── Media proxy URLs ───────────────────────────────────────────────────────
 // `p` is a path (plus query) on the upstream server. The proxy resolves the
