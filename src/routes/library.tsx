@@ -510,7 +510,6 @@ function TVCard({
   kind: "primary" | "thumb";
 }) {
   const portrait = kind === "primary";
-  const src = imageUrl(server, item, portrait ? "Primary" : "Thumb", { maxWidth: 500 });
   const width = portrait ? 200 : 340;
 
   return (
@@ -522,18 +521,20 @@ function TVCard({
       className="tv-card group relative flex-shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border"
       style={{ width, aspectRatio: portrait ? "2/3" : "16/9" }}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={cleanName(item.Name)}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-          {cleanName(item.Name)}
-        </div>
-      )}
+      <MediaImage
+        server={server}
+        item={item}
+        type={portrait ? "Primary" : "Thumb"}
+        maxWidth={500}
+        alt={cleanName(item.Name)}
+        className="h-full w-full object-cover"
+        fallback={
+          <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+            {cleanName(item.Name)}
+          </div>
+        }
+      />
+
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
         <p className="truncate text-sm font-semibold text-white">{cleanName(item.Name)}</p>
         {item.ProductionYear && (
