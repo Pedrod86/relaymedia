@@ -1,10 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest } from "@/lib/emby.functions";
-import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
-import { loadHiddenViews, imageUrl, itemTypesFor, cleanName, type MediaServer } from "@/lib/media-client";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary } from "@/lib/emby.functions";
+import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest, plexRefreshLibrary } from "@/lib/plex.functions";
+import {
+  loadHiddenViews,
+  loadSectionOrder,
+  saveSectionOrder,
+  applySectionOrder,
+  imageUrl,
+  itemTypesFor,
+  cleanName,
+  type MediaServer,
+} from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
@@ -12,6 +21,7 @@ import { isTvDevice } from "@/lib/platform";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/library")({
   head: () => ({
