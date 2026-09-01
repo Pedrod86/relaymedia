@@ -408,7 +408,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <header
         className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
-          paused ? "opacity-100" : "pointer-events-none opacity-0"
+          paused ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
         aria-hidden={!paused}
       >
