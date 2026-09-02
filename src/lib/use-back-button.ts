@@ -2,13 +2,15 @@ import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { isNativeApp } from "./platform";
 
+export const EXIT_REQUEST_EVENT = "relay:request-exit";
+
 /**
  * Android hardware/remote BACK inside the APK.
  *
  * Default Capacitor behaviour closes the app whenever the WebView thinks it
  * cannot go back, which happens constantly with client-side routing. Here we
- * step back through router history instead, and only exit when we are already
- * on a top-level screen with nothing behind us.
+ * step back through router history instead, and only ask to exit when we are
+ * already on a top-level screen with nothing behind us.
  */
 export function useAndroidBackButton() {
   const router = useRouter();
@@ -42,13 +44,14 @@ export function useAndroidBackButton() {
             return;
           }
 
-          // Nothing behind us: land on the library once, then allow exit.
+          // Nothing behind us: land on the library once, then ask to exit.
           if (path !== "/library" && path !== "/login" && path !== "/") {
             void router.navigate({ to: "/library" });
             return;
           }
 
-          void App.exitApp();
+          // Show the in-app exit confirmation instead of leaving immediately.
+          document.dispatchEvent(new CustomEvent(EXIT_REQUEST_EVENT));
         });
         if (cancelled) void handle.remove();
         else remove = () => void handle.remove();
