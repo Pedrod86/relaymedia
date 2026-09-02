@@ -220,7 +220,20 @@ export async function probeCodecs(): Promise<CodecCap[]> {
     return { ...p, supported, hardware };
   }
 
-  return Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
+  const list = await Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
+
+  // Android TV boxes (NVIDIA SHIELD, Fire TV, Chromecast/Google TV) run their
+  // video through the platform MediaCodec pipeline, but the WebView's
+  // canPlayType / MediaCapabilities tables do not advertise HEVC Main10,
+  // Dolby Vision or Dolby audio even though the SoC decodes them. Trust the
+  // device class instead of the browser table there.
+  if (isTvDevice() || isAndroidNative()) {
+    const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3"]);
+    return list.map((c) => (forced.has(c.name) ? { ...c, supported: true, hardware: true } : c));
+  }
+
+  return list;
+
 }
 
 // ── HDR / Dolby Vision display capability ──────────────────────────────────
@@ -255,10 +268,17 @@ export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
   const list = caps ?? (await probeCodecs());
   const mc = (navigator as any).mediaCapabilities;
 
+  // Leanback devices (SHIELD, Fire TV, Google TV) are wired to a TV panel and
+  // negotiate HDR/DV on the HDMI link themselves; the WebView media queries
+  // usually report "standard" regardless, so treat the device class as HDR.
+  const tvPipeline = isTvDevice() || isAndroidNative();
+
   const hdrDisplay =
+    tvPipeline ||
     window.matchMedia?.("(dynamic-range: high)").matches ||
     window.matchMedia?.("(video-dynamic-range: high)").matches ||
     false;
+
 
   async function transfer(fn: "pq" | "hlg") {
     if (!mc?.decodingInfo) return false;
@@ -307,12 +327,13 @@ export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
 
   return {
     hdrDisplay,
-    hdr10: pq && hevcMain10,
-    hlg: hlg && hevcMain10,
+    hdr10: (pq || tvPipeline) && hevcMain10,
+    hlg: (hlg || tvPipeline) && hevcMain10,
     dolbyVision,
     hevcMain10,
-    uhdHardware,
+    uhdHardware: uhdHardware || tvPipeline,
   };
+
 }
 
 /** Should HDR/DV be passed through untouched, given prefs + capabilities? */
