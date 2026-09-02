@@ -7,12 +7,13 @@ const config: CapacitorConfig = {
   webDir: 'capacitor-www',
   server: {
     // The app is server-rendered, so the APK loads the hosted build.
-    url: 'https://streamrelay.lovable.app',
+    url: 'https://relay-media.lovable.app',
     cleartext: false,
     androidScheme: 'https',
-    // Allow direct connections to local media servers (Emby/Jellyfin/Plex).
+    // Allow direct connections to the hosted app and local media servers.
     allowNavigation: [
-      'streamrelay.lovable.app',
+      'relay-media.lovable.app',
+      '*.relay-media.lovable.app',
       'relay-media.store',
       '*.relay-media.store',
       'stream-vault.live',
