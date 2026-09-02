@@ -22,6 +22,7 @@ import { ServerSwitcher } from "@/components/ServerSwitcher";
 import { useWatchHistory } from "@/lib/use-watch-history";
 import { clearHistory, type HistoryEntry } from "@/lib/watch-history";
 import { useSavedList } from "@/lib/use-saved-items";
+import { usePersonalization } from "@/lib/personalization";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -209,11 +210,12 @@ function LibraryContent({
   }
 
   const backdropItems = useMemo(() => {
+    if (!prefs.mediaBar) return [];
     const pool = latest.data?.items ?? [];
     return pool
       .filter((it: any) => imageUrl(server, it, "Backdrop", { maxWidth: 1600 }))
-      .slice(0, 5);
-  }, [latest.data, server]);
+      .slice(0, prefs.mediaBarCount);
+  }, [latest.data, server, prefs.mediaBar, prefs.mediaBarCount]);
 
   const sections = useMemo(() => {
     const list: {
@@ -255,7 +257,7 @@ function LibraryContent({
         kind: "primary",
       });
     }
-    if (views.data) {
+    if (views.data && prefs.showLibraryRows) {
       views.data.views
         .filter((v) => !hidden.has(v.Id))
         .forEach((v) => {
@@ -271,7 +273,7 @@ function LibraryContent({
     }
 
     return applySectionOrder(list, order);
-  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres, favourites.items, watchLater.items]);
+  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres, favourites.items, watchLater.items, prefs.showLibraryRows]);
 
   function move(id: string, dir: -1 | 1) {
     const ids = sections.map((s) => s.id);
@@ -456,12 +458,37 @@ function LibraryContent({
             {navItems}
           </SheetContent>
         </Sheet>
-        <div className="min-w-0">
-          <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
-            {server.kind} · {server.name}
-          </p>
-          <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
-        </div>
+        {prefs.showServerGreeting && (
+          <div className="min-w-0">
+            <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
+              {server.kind} · {server.name}
+            </p>
+            <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
+          </div>
+        )}
+        {prefs.quickActions && (
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="min-h-11 min-w-11" asChild aria-label="Search">
+              <Link to="/search">
+                <Search className="size-5" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-11 min-w-11"
+              aria-label="Refresh"
+              onClick={onRefresh}
+            >
+              <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+            <Button variant="ghost" size="icon" className="min-h-11 min-w-11" asChild aria-label="Settings">
+              <Link to="/settings">
+                <Settings className="size-5" />
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );
@@ -976,11 +1003,13 @@ function Row({
   server: MediaServer;
   kind: "primary" | "thumb";
 }) {
+  const { prefs } = usePersonalization();
+  const effectiveKind = prefs.imageType === "thumb" ? "thumb" : kind;
   return (
     <div className="flex gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
       {items.map((it) => {
-        const portrait = kind === "primary";
-        const imgType = kind === "thumb" ? "Thumb" : "Primary";
+        const portrait = effectiveKind === "primary";
+        const imgType = effectiveKind === "thumb" ? "Thumb" : "Primary";
         return (
           <Link
             key={it.Id}
@@ -1006,7 +1035,7 @@ function Row({
                   </div>
                 }
               />
-              {typeof it.__progress === "number" && it.__progress > 1 && (
+              {prefs.showProgress && typeof it.__progress === "number" && it.__progress > 1 && (
                 <div className="relative -mt-1 h-1 w-full bg-black/50">
                   <div
                     className="h-full bg-primary"
@@ -1016,8 +1045,10 @@ function Row({
               )}
             </div>
 
-            <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
-            {it.ProductionYear && (
+            {prefs.showTitles && (
+              <p className="mt-2 line-clamp-1 text-sm font-medium">{cleanName(it.Name)}</p>
+            )}
+            {prefs.showYears && it.ProductionYear && (
               <p className="text-xs text-muted-foreground">{it.ProductionYear}</p>
             )}
           </Link>
@@ -1035,11 +1066,15 @@ function BackdropHero({
   server: MediaServer;
 }) {
   const [idx, setIdx] = useState(0);
+  const { prefs } = usePersonalization();
   useEffect(() => {
     if (items.length < 2) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % items.length), 6000);
+    const t = setInterval(
+      () => setIdx((i) => (i + 1) % items.length),
+      Math.max(3, prefs.mediaBarRotateSeconds) * 1000,
+    );
     return () => clearInterval(t);
-  }, [items.length]);
+  }, [items.length, prefs.mediaBarRotateSeconds]);
 
   if (!items.length) return null;
   const current = items[idx] ?? items[0];
