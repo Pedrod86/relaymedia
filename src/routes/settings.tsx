@@ -192,6 +192,7 @@ function ThemePanel() {
   const options: { id: ThemeName; label: string; desc: string }[] = [
     { id: "default", label: "Cinematic", desc: "Default dark theme tuned for video." },
     { id: "neon", label: "Neon", desc: "Magenta & cyan glow, cyberpunk vibes." },
+    { id: "cyber", label: "Cyber", desc: "Deep violet with cyan & pink neon type." },
     { id: "minimal", label: "Minimal", desc: "Clean light theme, no neon." },
   ];
 
@@ -206,7 +207,7 @@ function ThemePanel() {
       <p className="mt-1 text-sm text-muted-foreground">
         Choose how the app looks. Saved on this device.
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {options.map((o) => {
           const active = theme === o.id;
           return (
