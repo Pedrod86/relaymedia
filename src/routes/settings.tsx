@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Info, Lock, Palette, PlayCircle, Search, Share2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ function SettingsPage() {
     id: string;
     title: string;
     desc: string;
-    icon: typeof Lock;
+    icon: React.ComponentType<{ className?: string }>;
     keywords: string;
     render: () => ReactNode;
   }[] = [
