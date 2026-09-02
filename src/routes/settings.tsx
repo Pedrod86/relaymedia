@@ -3,12 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { embyGetViews, embyRefreshLibrary } from "@/lib/emby.functions";
-import { plexGetViews, plexRefreshLibrary } from "@/lib/plex.functions";
+import { embyGetViews, embyGetViewCounts, embyRefreshLibrary } from "@/lib/emby.functions";
+import { plexGetViews, plexGetViewCounts, plexRefreshLibrary } from "@/lib/plex.functions";
 import { removeMediaServer, signOutAllServers } from "@/lib/servers.functions";
 import {
   clearActiveServerId,
   clearHiddenViews,
+  itemTypesFor,
   loadHiddenViews,
   saveHiddenViews,
   type MediaServer,
@@ -233,6 +234,8 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
   const isPlex = server.kind === "plex";
   const getViewsEmby = useServerFn(embyGetViews);
   const getViewsPlex = useServerFn(plexGetViews);
+  const getCountsEmby = useServerFn(embyGetViewCounts);
+  const getCountsPlex = useServerFn(plexGetViewCounts);
   const refreshEmby = useServerFn(embyRefreshLibrary);
   const refreshPlex = useServerFn(plexRefreshLibrary);
 
@@ -264,7 +267,7 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           }),
   });
 
-  const totalItems = Object.values(counts.data?.counts ?? {}).reduce((a, b) => a + b, 0);
+  const totalItems = Object.values<number>(counts.data?.counts ?? {}).reduce((a, b) => a + b, 0);
 
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
   const [refreshing, setRefreshing] = useState(false);
