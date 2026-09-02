@@ -53,8 +53,14 @@ function SettingsPage() {
   const { isPro } = useProAccess();
   const removeServerFn = useServerFn(removeMediaServer);
   const signOutAllFn = useServerFn(signOutAllServers);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const { section } = Route.useSearch();
+  const [openId, setOpenId] = useState<string | null>(section ?? null);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (section) setOpenId(section);
+  }, [section]);
+
 
   useEffect(() => {
     if (!isLoading && servers.length === 0) navigate({ to: "/login" });
