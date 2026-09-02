@@ -173,9 +173,10 @@ function SettingsPage() {
     {
       id: "personalization",
       title: "Personalization",
-      desc: "Theme, home rows, and library visibility",
+      desc: "Navigation, home screen, media bar, and extras",
       icon: Palette,
-      keywords: "theme neon cyber minimal appearance categories hide libraries rows",
+      keywords:
+        "theme neon cyber minimal appearance navigation navbar toolbar home screen media bar featured local previews trailer seasonal effects snow theme music volume categories hide libraries rows overlays image type",
       render: () => (
         <PersonalizationHub
           themePanel={<ThemePanel />}
