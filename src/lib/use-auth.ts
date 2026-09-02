@@ -10,7 +10,7 @@ export type AuthState = {
 
 /**
  * App-account session (separate from the media-server sign-ins, which live in
- * the encrypted server-side vault). Used to attach purchases to a person.
+ * the encrypted server-side vault). Used to sync devices to a person.
  */
 export function useAuth(): AuthState {
   const [session, setSession] = useState<Session | null>(null);

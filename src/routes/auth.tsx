@@ -13,12 +13,12 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Sign in or create a Relay account to unlock Pro playback features across your devices.",
+          "Sign in or create a Relay account to sync your servers and devices.",
       },
       { property: "og:title", content: "Sign in — Relay account" },
       {
         property: "og:description",
-        content: "Sign in or create a Relay account to unlock Pro playback features.",
+        content: "Sign in or create a Relay account to sync your servers and devices.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -130,7 +130,7 @@ function AuthPage() {
             {mode === "signin" ? "Sign in" : "Create account"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            A Relay account keeps your Pro unlock tied to you, on every device.
+            A Relay account keeps your servers and devices in sync, on every device.
           </p>
         </div>
 

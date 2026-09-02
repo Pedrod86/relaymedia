@@ -16,8 +16,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as UpgradeRouteImport } from './routes/upgrade'
-import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
@@ -26,7 +24,6 @@ import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/med
 import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
 import { Route as TorboxTorrentIdFileIdRouteImport } from './routes/torbox.$torrentId.$fileId'
-import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -61,16 +58,6 @@ const SearchRoute = SearchRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UpgradeRoute = UpgradeRouteImport.update({
-  id: '/upgrade',
-  path: '/upgrade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
-  id: '/checkout/return',
-  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemIdRoute = ItemIdRouteImport.update({
@@ -113,12 +100,6 @@ const TorboxTorrentIdFileIdRoute = TorboxTorrentIdFileIdRouteImport.update({
   path: '/torbox/$torrentId/$fileId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaymentsWebhookRoute =
-  ApiPublicPaymentsWebhookRouteImport.update({
-    id: '/api/public/payments/webhook',
-    path: '/api/public/payments/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,8 +109,6 @@ export interface FileRoutesByFullPath {
   '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/upgrade': typeof UpgradeRoute
-  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -138,7 +117,6 @@ export interface FileRoutesByFullPath {
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -148,8 +126,6 @@ export interface FileRoutesByTo {
   '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/upgrade': typeof UpgradeRoute
-  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -158,7 +134,6 @@ export interface FileRoutesByTo {
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,8 +144,6 @@ export interface FileRoutesById {
   '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/upgrade': typeof UpgradeRoute
-  '/checkout/return': typeof CheckoutReturnRoute
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -179,7 +152,6 @@ export interface FileRoutesById {
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,8 +163,6 @@ export interface FileRouteTypes {
     | '/play'
     | '/search'
     | '/settings'
-    | '/upgrade'
-    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
@@ -201,7 +171,6 @@ export interface FileRouteTypes {
     | '/api/public/play'
     | '/api/public/stream'
     | '/torbox/$torrentId/$fileId'
-    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -211,8 +180,6 @@ export interface FileRouteTypes {
     | '/play'
     | '/search'
     | '/settings'
-    | '/upgrade'
-    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
@@ -221,7 +188,6 @@ export interface FileRouteTypes {
     | '/api/public/play'
     | '/api/public/stream'
     | '/torbox/$torrentId/$fileId'
-    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
@@ -231,8 +197,6 @@ export interface FileRouteTypes {
     | '/play'
     | '/search'
     | '/settings'
-    | '/upgrade'
-    | '/checkout/return'
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
@@ -241,7 +205,6 @@ export interface FileRouteTypes {
     | '/api/public/play'
     | '/api/public/stream'
     | '/torbox/$torrentId/$fileId'
-    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,8 +215,6 @@ export interface RootRouteChildren {
   PlayRoute: typeof PlayRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
-  UpgradeRoute: typeof UpgradeRoute
-  CheckoutReturnRoute: typeof CheckoutReturnRoute
   ItemIdRoute: typeof ItemIdRoute
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
@@ -262,7 +223,6 @@ export interface RootRouteChildren {
   ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
   TorboxTorrentIdFileIdRoute: typeof TorboxTorrentIdFileIdRoute
-  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -314,20 +274,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/upgrade': {
-      id: '/upgrade'
-      path: '/upgrade'
-      fullPath: '/upgrade'
-      preLoaderRoute: typeof UpgradeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout/return': {
-      id: '/checkout/return'
-      path: '/checkout/return'
-      fullPath: '/checkout/return'
-      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/item/$id': {
@@ -386,13 +332,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TorboxTorrentIdFileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/payments/webhook': {
-      id: '/api/public/payments/webhook'
-      path: '/api/public/payments/webhook'
-      fullPath: '/api/public/payments/webhook'
-      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -404,8 +343,6 @@ const rootRouteChildren: RootRouteChildren = {
   PlayRoute: PlayRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
-  UpgradeRoute: UpgradeRoute,
-  CheckoutReturnRoute: CheckoutReturnRoute,
   ItemIdRoute: ItemIdRoute,
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
@@ -414,7 +351,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
   TorboxTorrentIdFileIdRoute: TorboxTorrentIdFileIdRoute,
-  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -17,7 +17,6 @@ import {
 import { MediaImage } from "@/components/MediaImage";
 import { TorboxRow } from "@/components/TorboxRow";
 import { useMediaServers } from "@/lib/use-servers";
-import { useProAccess } from "@/lib/use-pro";
 import { isTvDevice } from "@/lib/platform";
 import { ServerSwitcher } from "@/components/ServerSwitcher";
 import { useWatchHistory } from "@/lib/use-watch-history";
@@ -97,7 +96,6 @@ function LibraryContent({
   onSwitch: (id: string) => void;
 }) {
   const navigate = useNavigate();
-  const { isPro } = useProAccess();
   const { prefs } = usePersonalization();
   const [tvMode, setTvMode] = useState(false);
   useEffect(() => {
@@ -113,22 +111,7 @@ function LibraryContent({
   }, []);
 
 
-  // TV mode is a Pro feature — drop back to the standard layout if access ends.
-  useEffect(() => {
-    if (!isPro && tvMode) {
-      setTvMode(false);
-      saveTvMode(false);
-    }
-  }, [isPro, tvMode]);
-
   const toggleTv = () => {
-    if (!isPro) {
-      toast.info("TV mode is part of Relay Pro", {
-        description: "Unlock it once for $1 — no subscription.",
-        action: { label: "Unlock", onClick: () => navigate({ to: "/upgrade" }) },
-      });
-      return;
-    }
     const next = !tvMode;
     setTvMode(next);
     saveTvMode(next);
@@ -450,9 +433,6 @@ function LibraryContent({
       >
         <Tv className="size-5 text-primary" />
         {tvMode ? "Exit TV mode" : "TV mode"}
-        {!isPro && (
-          <span className="ml-auto text-[10px] uppercase tracking-wide opacity-70">Pro</span>
-        )}
       </Button>
       <Button
         variant="ghost"
@@ -488,17 +468,6 @@ function LibraryContent({
         </Link>
       </Button>
 
-      <div className="px-1 pt-3">
-        {isPro ? (
-          <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-            Relay Pro
-          </span>
-        ) : (
-          <Button className="w-full" asChild onClick={() => setNavOpen(false)}>
-            <Link to="/upgrade">Upgrade to Pro</Link>
-          </Button>
-        )}
-      </div>
     </div>
   );
 

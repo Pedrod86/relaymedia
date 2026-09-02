@@ -5,7 +5,6 @@
 // their account so the number of devices per account can be capped by plan.
 import { getCookie, getRequestHeader, setCookie } from "@tanstack/react-start/server";
 import { callerClient } from "./entitlements.server";
-import { deviceLimitFor } from "./limits";
 
 const DEVICE_COOKIE = "mv_device";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 730;
@@ -38,16 +37,13 @@ function deviceLabel(): string {
   return "Device";
 }
 
-export type DeviceCheck =
-  | { allowed: true }
-  | { allowed: false; limit: number };
+export type DeviceCheck = { allowed: true };
 
 /**
- * Register this device for the signed-in caller, enforcing the plan's device
- * cap. Anonymous callers are not tracked (nothing to attach a device to), so
- * they are always allowed through — the per-device server cap still applies.
+ * Register this device for the signed-in caller so it shows up in Settings.
+ * Anonymous callers are not tracked (nothing to attach a device to).
  */
-export async function registerDevice(isPro: boolean): Promise<DeviceCheck> {
+export async function registerDevice(): Promise<DeviceCheck> {
   const supabase = callerClient();
   if (!supabase) return { allowed: true };
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -69,9 +65,6 @@ export async function registerDevice(isPro: boolean): Promise<DeviceCheck> {
       .eq("id", mine.id);
     return { allowed: true };
   }
-
-  const limit = deviceLimitFor(isPro);
-  if ((devices?.length ?? 0) >= limit) return { allowed: false, limit };
 
   await supabase
     .from("devices")
