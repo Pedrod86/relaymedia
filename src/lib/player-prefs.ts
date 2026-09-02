@@ -268,10 +268,17 @@ export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
   const list = caps ?? (await probeCodecs());
   const mc = (navigator as any).mediaCapabilities;
 
+  // Leanback devices (SHIELD, Fire TV, Google TV) are wired to a TV panel and
+  // negotiate HDR/DV on the HDMI link themselves; the WebView media queries
+  // usually report "standard" regardless, so treat the device class as HDR.
+  const tvPipeline = isTvDevice() || isAndroidNative();
+
   const hdrDisplay =
+    tvPipeline ||
     window.matchMedia?.("(dynamic-range: high)").matches ||
     window.matchMedia?.("(video-dynamic-range: high)").matches ||
     false;
+
 
   async function transfer(fn: "pq" | "hlg") {
     if (!mc?.decodingInfo) return false;
