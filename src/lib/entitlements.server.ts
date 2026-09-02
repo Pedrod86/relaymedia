@@ -1,9 +1,8 @@
-// Server-only entitlement resolution.
+// Server-only caller resolution.
 //
 // The bearer token is attached to every server-function call by the client
 // middleware in src/start.ts, but media logins are also allowed while signed
-// out — so this resolves Pro access opportunistically and treats "no token" as
-// "free plan" rather than an error.
+// out — so a missing token simply means "anonymous caller" rather than an error.
 import process from "node:process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getRequestHeader } from "@tanstack/react-start/server";
@@ -51,34 +50,4 @@ export async function callerUserId(): Promise<string | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error) return null;
   return data.user?.id ?? null;
-}
-
-/**
- * Which payments environment this build talks to. Derived from the build-time
- * client token prefix (Vite inlines VITE_* in the server bundle too), so a
- * sandbox test purchase can never grant entitlements on the live site.
- */
-function paymentsEnvironment(): "sandbox" | "live" {
-  const token = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
-  return token?.startsWith("pk_live_") ? "live" : "sandbox";
-}
-
-/** True when the caller is signed in AND has a paid Relay Pro purchase. */
-export async function callerHasPro(): Promise<boolean> {
-  // Free-access period: every account gets Pro limits.
-  const { FREE_ACCESS } = await import("@/lib/free-access");
-  if (FREE_ACCESS) return true;
-
-  const supabase = callerClient();
-  if (!supabase) return false;
-
-  // RLS restricts this to the token holder's own rows.
-  const { data, error } = await supabase
-    .from("purchases")
-    .select("id")
-    .eq("status", "paid")
-    .eq("environment", paymentsEnvironment())
-    .limit(1);
-  if (error) return false;
-  return (data?.length ?? 0) > 0;
 }
