@@ -40,7 +40,7 @@ type Playable = {
 export function TorboxRow({ tv = false }: { tv?: boolean }) {
   const statusFn = useServerFn(torboxStatus);
   const listFn = useServerFn(torboxListDownloads);
-  const playUrlFn = useServerFn(torboxPlayUrl);
+  const navigate = useNavigate();
 
   const status = useQuery({
     queryKey: ["torbox-status"],
