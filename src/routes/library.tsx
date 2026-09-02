@@ -15,6 +15,7 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
+import { TorboxRow } from "@/components/TorboxRow";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { isTvDevice } from "@/lib/platform";
@@ -535,6 +536,9 @@ function LibraryContent({
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
+        <TorboxRow />
+
+
         {sections.map((s) =>
           !s.library ? (
             <Section key={s.id} title={s.title}>
@@ -748,8 +752,13 @@ function TVLayout({
             </div>
           )}
 
+          <div className="mb-8">
+            <TorboxRow tv />
+          </div>
+
           {sections.map((s) =>
             !s.library ? (
+
               <TVSection
                 key={s.id}
                 id={s.id}
