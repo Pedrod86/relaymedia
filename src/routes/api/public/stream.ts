@@ -62,14 +62,37 @@ function embyPath(
   q: z.infer<typeof querySchema>,
   userId: string,
   kind: "emby" | "jellyfin",
+  opts: { mediaSourceId?: string; minimal?: boolean } = {},
 ) {
   const session = q.session || `lovable-${q.item}`;
   const jellyfin = kind === "jellyfin";
   // Jellyfin requires MediaSourceId on both /stream and /master.m3u8 (it is
-  // optional on Emby). For a normal library item the media source id equals the
-  // item id, so sending it is always safe and stops Jellyfin 400ing the
-  // request — which is what surfaced as "loads then breaks".
-  const mediaSourceId = q.item;
+  // optional on Emby). For most library items the media source id equals the
+  // item id, but multi-version items differ — PlaybackInfo resolves the real
+  // one and passing a wrong id is what makes the server reply 400.
+  const mediaSourceId = opts.mediaSourceId || q.item;
+  void jellyfin;
+
+  // Minimal fallback: some Emby/Jellyfin builds reject the full profile query
+  // (unknown codec-profile keys, framerate pinning, HDR range types). Ask for a
+  // plain H.264/AAC HLS ladder that every version accepts.
+  if (q.mode === "hls" && opts.minimal) {
+    const p = new URLSearchParams({
+      UserId: userId,
+      DeviceId: DEVICE_ID,
+      MediaSourceId: mediaSourceId,
+      PlaySessionId: session,
+      VideoCodec: "h264",
+      AudioCodec: "aac",
+      VideoBitrate: String(Math.min(q.maxBitrate, 20_000_000)),
+      AudioBitrate: "192000",
+      MaxAudioChannels: "2",
+      SegmentContainer: "ts",
+      MaxHeight: String(q.maxHeight),
+    });
+    if (q.start) p.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+    return `/Videos/${encodeURIComponent(q.item)}/master.m3u8?${p}`;
+  }
 
 
   if (q.mode === "direct") {
