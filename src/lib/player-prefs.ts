@@ -327,12 +327,13 @@ export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
 
   return {
     hdrDisplay,
-    hdr10: pq && hevcMain10,
-    hlg: hlg && hevcMain10,
+    hdr10: (pq || tvPipeline) && hevcMain10,
+    hlg: (hlg || tvPipeline) && hevcMain10,
     dolbyVision,
     hevcMain10,
-    uhdHardware,
+    uhdHardware: uhdHardware || tvPipeline,
   };
+
 }
 
 /** Should HDR/DV be passed through untouched, given prefs + capabilities? */
