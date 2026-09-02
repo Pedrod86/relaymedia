@@ -207,7 +207,7 @@ function ThemePanel() {
       <p className="mt-1 text-sm text-muted-foreground">
         Choose how the app looks. Saved on this device.
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {options.map((o) => {
           const active = theme === o.id;
           return (
