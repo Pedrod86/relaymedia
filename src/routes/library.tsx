@@ -152,6 +152,44 @@ function LibraryContent({
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
+  /**
+   * Remote/D-pad focus movement inside the slide-out menu.
+   *
+   * Browsers never move focus with arrow keys, and TV WebViews only scroll the
+   * page behind the drawer, so we drive focus between the drawer's own items.
+   */
+  useEffect(() => {
+    if (!navOpen) return;
+    const items = () => {
+      const panel = document.getElementById("relay-nav-drawer");
+      if (!panel) return [] as HTMLElement[];
+      return Array.from(
+        panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex="0"]'),
+      ).filter((el) => el.offsetParent !== null);
+    };
+    // Land the remote on the first entry as soon as the drawer opens.
+    const t = window.setTimeout(() => items()[0]?.focus({ preventScroll: true }), 60);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const list = items();
+      if (!list.length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const current = list.indexOf(document.activeElement as HTMLElement);
+      const dir = e.key === "ArrowDown" ? 1 : -1;
+      const next =
+        current === -1 ? list[0]! : list[(current + dir + list.length) % list.length]!;
+      next.focus({ preventScroll: true });
+      next.scrollIntoView({ block: "nearest" });
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [navOpen]);
+
   const hidden = useMemo(() => new Set(loadHiddenViews(server.id)), [server.id]);
 
   // ── Watch history & suggestions ──────────────────────────────────────────
@@ -473,7 +511,12 @@ function LibraryContent({
               <Menu className="size-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[86vw] max-w-sm overflow-y-auto">
+          <SheetContent
+            id="relay-nav-drawer"
+            side="left"
+            className="w-[86vw] max-w-sm overflow-y-auto [&_a:focus]:ring-2 [&_a:focus]:ring-ring [&_button:focus]:ring-2 [&_button:focus]:ring-ring"
+          >
+
             <SheetHeader>
               <SheetTitle className="truncate">{server.name}</SheetTitle>
               <SheetDescription className="truncate">
