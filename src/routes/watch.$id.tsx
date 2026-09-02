@@ -31,6 +31,7 @@ import {
   useTraktScrobble,
 } from "@/lib/use-trakt-scrobble";
 import { useHistoryRecorder } from "@/lib/use-watch-history";
+import { media3Available, media3Play } from "@/lib/native-player";
 import {
   AFR_OFF,
   measureRefreshRate,
