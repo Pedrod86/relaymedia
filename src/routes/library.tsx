@@ -21,6 +21,7 @@ import { isTvDevice } from "@/lib/platform";
 import { ServerSwitcher } from "@/components/ServerSwitcher";
 import { useWatchHistory } from "@/lib/use-watch-history";
 import { clearHistory, type HistoryEntry } from "@/lib/watch-history";
+import { useSavedList } from "@/lib/use-saved-items";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -144,6 +145,8 @@ function LibraryContent({
   const { history, watched, genres } = useWatchHistory(server.id);
   const historyItems = useMemo(() => history.map(historyToItem), [history]);
   const watchedItems = useMemo(() => watched.map(historyToItem), [watched]);
+  const favourites = useSavedList(server.id, "favourite");
+  const watchLater = useSavedList(server.id, "later");
   const getSuggestions = useServerFn(embyGetSuggestions);
   const suggestions = useQuery({
     enabled: !isPlex && history.length > 0,
@@ -217,6 +220,12 @@ function LibraryContent({
     if (latest.data?.items.length) {
       list.push({ id: "latest", title: "Recently added", items: latest.data.items, kind: "primary" });
     }
+    if (favourites.items.length) {
+      list.push({ id: "favourites", title: "Favourites", items: favourites.items, kind: "primary" });
+    }
+    if (watchLater.items.length) {
+      list.push({ id: "later", title: "Watch later", items: watchLater.items, kind: "primary" });
+    }
     if (historyItems.length) {
       list.push({ id: "history", title: "Watch history", items: historyItems, kind: "thumb" });
     }
@@ -252,7 +261,7 @@ function LibraryContent({
     }
 
     return applySectionOrder(list, order);
-  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres]);
+  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres, favourites.items, watchLater.items]);
 
   function move(id: string, dir: -1 | 1) {
     const ids = sections.map((s) => s.id);
