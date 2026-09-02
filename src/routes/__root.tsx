@@ -7,14 +7,25 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { applyTheme, loadTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
-import { useAndroidBackButton } from "@/lib/use-back-button";
+import { useAndroidBackButton, EXIT_REQUEST_EVENT } from "@/lib/use-back-button";
+import { isNativeApp } from "@/lib/platform";
 
 function NotFoundComponent() {
   return (
@@ -73,6 +84,46 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ExitConfirmDialog() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onRequest = () => setOpen(true);
+    document.addEventListener(EXIT_REQUEST_EVENT, onRequest);
+    return () => document.removeEventListener(EXIT_REQUEST_EVENT, onRequest);
+  }, []);
+
+  const confirmExit = async () => {
+    setOpen(false);
+    if (!isNativeApp()) return;
+    try {
+      const { App } = await import("@capacitor/app");
+      void App.exitApp();
+    } catch {
+      // Plugin unavailable — fall back to default behaviour.
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Exit Relay?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Press back again or choose Exit to close the app.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setOpen(false)} autoFocus>
+            Stay
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={confirmExit}>Exit</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -157,6 +208,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
+      <ExitConfirmDialog />
     </QueryClientProvider>
   );
 }
