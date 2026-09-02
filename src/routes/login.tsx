@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
 import { plexAddServer } from "@/lib/plex.functions";
-import { setActiveServerId, type ServerKind } from "@/lib/media-client";
+import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
