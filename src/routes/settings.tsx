@@ -192,6 +192,7 @@ function ThemePanel() {
   const options: { id: ThemeName; label: string; desc: string }[] = [
     { id: "default", label: "Cinematic", desc: "Default dark theme tuned for video." },
     { id: "neon", label: "Neon", desc: "Magenta & cyan glow, cyberpunk vibes." },
+    { id: "cyber", label: "Cyber", desc: "Deep violet with cyan & pink neon type." },
     { id: "minimal", label: "Minimal", desc: "Clean light theme, no neon." },
   ];
 
