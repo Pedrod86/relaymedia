@@ -9,6 +9,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // AndroidX Media3 / ExoPlayer bridge for MKV, E-AC3 and HDR playback.
         registerPlugin(Media3PlayerPlugin.class);
+        // In-app APK update checker / installer.
+        registerPlugin(AppUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

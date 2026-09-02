@@ -66,6 +66,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- In-app updater: download and hand a new APK to the package installer -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Phones, tablets and Android TV (leanback optional so one APK covers all) -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
