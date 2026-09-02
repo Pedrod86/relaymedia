@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Info, Lock, Palette, PlayCircle, Search, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { embyGetViews, embyGetViewCounts, embyRefreshLibrary } from "@/lib/emby.functions";
 import { plexGetViews, plexGetViewCounts, plexRefreshLibrary } from "@/lib/plex.functions";
@@ -47,6 +49,8 @@ function SettingsPage() {
   const { isPro } = useProAccess();
   const removeServerFn = useServerFn(removeMediaServer);
   const signOutAllFn = useServerFn(signOutAllServers);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!isLoading && servers.length === 0) navigate({ to: "/login" });
@@ -77,114 +81,236 @@ function SettingsPage() {
   }
 
 
+  const sections: {
+    id: string;
+    title: string;
+    desc: string;
+    icon: React.ComponentType<{ className?: string }>;
+    keywords: string;
+    render: () => ReactNode;
+  }[] = [
+    {
+      id: "account",
+      title: "Account & Security",
+      desc: "Authentication, servers, and connected devices",
+      icon: Lock,
+      keywords: "account security sign in sign out servers devices emby plex jellyfin relay pro",
+      render: () => (
+        <>
+          <section className="rounded-lg border p-6">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-base font-semibold">Your servers</h2>
+              <Button asChild size="sm">
+                <Link to="/login">+ Add server</Link>
+              </Button>
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+              Switch between connected <ServerLabel kind="emby" />,{" "}
+              <ServerLabel kind="jellyfin" /> or <ServerLabel kind="plex" /> servers, or remove ones you no longer use.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {isPro ? (
+                <>Up to {PRO_SERVER_LIMIT} connected servers — free right now.</>
+              ) : (
+                <>
+                  Free plan: {FREE_SERVER_LIMIT} connected server.{" "}
+                  <Link to="/upgrade" className="underline">
+                    Unlock up to {PRO_SERVER_LIMIT} with Relay Pro
+                  </Link>
+                  .
+                </>
+              )}
+            </p>
+
+            <ul className="mt-4 divide-y">
+              {servers.map((s) => {
+                const isActive = s.id === active.id;
+                return (
+                  <li key={s.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {s.name}{" "}
+                        <span className="ml-1 inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs uppercase text-muted-foreground">
+                          <ServerIcon kind={s.kind} size={12} />
+                          {s.kind}
+                        </span>
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{s.serverUrl}</p>
+                      <p className="truncate text-xs text-muted-foreground">Signed in as {s.userName}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {isActive ? (
+                        <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">Active</span>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => switchTo(s.id)}>
+                          Use
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => onRemove(s.id)}>
+                        Remove
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-4 border-t pt-4">
+              <Button variant="outline" size="sm" onClick={onSignOutAll}>
+                Sign out of all servers
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Sign-ins are stored encrypted on the server and are never readable by
+                scripts in your browser.
+              </p>
+            </div>
+          </section>
+          <AccountPanel />
+          <DevicesPanel />
+        </>
+      ),
+    },
+    {
+      id: "personalization",
+      title: "Personalization",
+      desc: "Theme, home rows, and library visibility",
+      icon: Palette,
+      keywords: "theme neon cyber minimal appearance categories hide libraries rows",
+      render: () => (
+        <>
+          <ThemePanel />
+          <ActiveServerPanel server={active} only="categories" />
+        </>
+      ),
+    },
+    {
+      id: "playback",
+      title: "Playback",
+      desc: "Audio/video decoding, codecs, and AFR",
+      icon: PlayCircle,
+      keywords: "playback player hardware software decoder codec afr subtitles hdr",
+      render: () => <PlayerSettingsPanel />,
+    },
+    {
+      id: "integrations",
+      title: "Integrations",
+      desc: "AI picks, Discord, Trakt, TorBox, and library sync",
+      icon: Share2,
+      keywords: "integrations ai discord trakt torbox scrobble sync refresh library",
+      render: () => (
+        <>
+          <AiPicksPanel serverId={active.id} />
+          <DiscordPanel />
+          <TraktPanel />
+          <TorboxPanel />
+          <ActiveServerPanel server={active} only="sync" />
+        </>
+      ),
+    },
+    {
+      id: "about",
+      title: "About",
+      desc: "App version, legal information, and credits",
+      icon: Info,
+      keywords: "about version legal credits licence",
+      render: () => <AboutPanel />,
+    },
+  ];
+
+  const open = sections.find((s) => s.id === openId) ?? null;
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? sections.filter((s) => `${s.title} ${s.desc} ${s.keywords}`.toLowerCase().includes(q))
+    : sections;
+
   return (
     <main className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Media</p>
-            <h1 className="text-lg font-semibold">Settings</h1>
-          </div>
-          <Button variant="ghost" asChild>
-            <Link to="/library">Back</Link>
-          </Button>
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 sm:px-6">
+          {open ? (
+            <Button variant="ghost" size="icon" onClick={() => setOpenId(null)} aria-label="Back">
+              <ChevronLeft className="size-6" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" asChild aria-label="Close settings">
+              <Link to="/library">
+                <X className="size-6" />
+              </Link>
+            </Button>
+          )}
+          <h1 className="truncate text-2xl font-bold tracking-wide sm:text-3xl">
+            {open ? open.title : "Settings"}
+          </h1>
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl space-y-10 px-6 py-8">
-        <section className="rounded-lg border p-6">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold">Your servers</h2>
-            <Button asChild size="sm">
-              <Link to="/login">+ Add server</Link>
-            </Button>
+      {open ? (
+        <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6">{open.render()}</div>
+      ) : (
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search settings"
+              className="h-14 w-full rounded-full border bg-card pl-14 pr-5 text-base tracking-wide outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            />
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
-            Switch between connected <ServerLabel kind="emby" />,{" "}
-            <ServerLabel kind="jellyfin" /> or <ServerLabel kind="plex" /> servers, or remove ones you no longer use.
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {isPro ? (
-              <>Up to {PRO_SERVER_LIMIT} connected servers — free right now.</>
-            ) : (
-              <>
-                Free plan: {FREE_SERVER_LIMIT} connected server.{" "}
-                <Link to="/upgrade" className="underline">
-                  Unlock up to {PRO_SERVER_LIMIT} with Relay Pro
-                </Link>
-                .
-              </>
+
+          <div className="mt-6 space-y-4">
+            {filtered.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setOpenId(s.id)}
+                className="tv-card flex w-full items-center gap-4 rounded-2xl border bg-card/60 p-5 text-left transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="grid size-14 shrink-0 place-items-center rounded-xl border bg-accent/40">
+                  <s.icon className="size-7 text-primary" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-semibold">{s.title}</span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">{s.desc}</span>
+                </span>
+                <ChevronRight className="size-6 shrink-0 text-muted-foreground" />
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="py-10 text-center text-muted-foreground">No settings match “{query}”.</p>
             )}
-          </p>
-
-          <ul className="mt-4 divide-y">
-            {servers.map((s) => {
-              const isActive = s.id === active.id;
-              return (
-                <li key={s.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {s.name}{" "}
-                      <span className="ml-1 inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs uppercase text-muted-foreground">
-                        <ServerIcon kind={s.kind} size={12} />
-                        {s.kind}
-                      </span>
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">{s.serverUrl}</p>
-                    <p className="truncate text-xs text-muted-foreground">Signed in as {s.userName}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {isActive ? (
-                      <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">Active</span>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => switchTo(s.id)}>
-                        Use
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => onRemove(s.id)}>
-                      Remove
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="mt-4 border-t pt-4">
-            <Button variant="outline" size="sm" onClick={onSignOutAll}>
-              Sign out of all servers
-            </Button>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Sign-ins are stored encrypted on the server and are never readable by
-              scripts in your browser.
-            </p>
           </div>
-        </section>
-
-        <AccountPanel />
-
-        <DevicesPanel />
-
-        <AiPicksPanel serverId={active.id} />
-
-        <DiscordPanel />
-
-
-
-
-        <TraktPanel />
-
-        <TorboxPanel />
-
-        <PlayerSettingsPanel />
-
-        <ThemePanel />
-
-        <ActiveServerPanel server={active} />
-
-      </div>
+        </div>
+      )}
     </main>
   );
 }
+
+function AboutPanel() {
+  return (
+    <section className="rounded-lg border p-6">
+      <h2 className="text-base font-semibold">About Relay</h2>
+      <dl className="mt-4 space-y-3 text-sm">
+        <div className="flex justify-between gap-4">
+          <dt className="text-muted-foreground">App</dt>
+          <dd className="font-medium">Relay Media</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-muted-foreground">Version</dt>
+          <dd className="font-medium">1.0</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-muted-foreground">Supported servers</dt>
+          <dd className="font-medium">Emby · Jellyfin · Plex</dd>
+        </div>
+      </dl>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Relay is a client for your own media servers. All artwork and media belong to
+        their respective owners. Sign-ins are stored encrypted server-side.
+      </p>
+    </section>
+  );
+}
+
 
 function ThemePanel() {
   const [theme, setTheme] = useState<ThemeName>("default");
@@ -230,7 +356,7 @@ function ThemePanel() {
   );
 }
 
-function ActiveServerPanel({ server }: { server: MediaServer }) {
+function ActiveServerPanel({ server, only }: { server: MediaServer; only?: "sync" | "categories" }) {
   const isPlex = server.kind === "plex";
   const getViewsEmby = useServerFn(embyGetViews);
   const getViewsPlex = useServerFn(plexGetViews);
@@ -301,6 +427,7 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
 
   return (
     <>
+      {only !== "categories" && (
       <section className="rounded-lg border p-6">
         <h2 className="text-base font-semibold">Server sync</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -320,7 +447,9 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           </Button>
         </div>
       </section>
+      )}
 
+      {only !== "sync" && (
       <section className="rounded-lg border p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-base font-semibold">Hide categories</h2>
@@ -370,6 +499,7 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           })}
         </ul>
       </section>
+      )}
     </>
   );
 }
