@@ -26,6 +26,7 @@ import { applyTheme, loadTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { useAndroidBackButton, EXIT_REQUEST_EVENT } from "@/lib/use-back-button";
 import { isNativeApp } from "@/lib/platform";
+import { SeasonalEffects } from "@/components/SeasonalEffects";
 
 function NotFoundComponent() {
   return (
