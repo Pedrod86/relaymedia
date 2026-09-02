@@ -226,6 +226,7 @@ async function handle(request: Request) {
   const headers = forwardRequestHeaders(request);
 
   let path: string;
+  let embyBuild: ((minimal: boolean) => string) | undefined;
   if (cred.kind === "plex") {
     // Resolve the media part server-side: Plex needs the concrete Part key.
     const { plexFetch } = await import("@/lib/media.server");
