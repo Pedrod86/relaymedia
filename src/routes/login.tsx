@@ -226,8 +226,13 @@ function LoginPage() {
               {busy ? "Connecting…" : "Connect server"}
             </Button>
           </form>
+
+          <div className="mt-8">
+            <SetupSyncPanel />
+          </div>
         </div>
       </div>
     </main>
+
   );
 }
