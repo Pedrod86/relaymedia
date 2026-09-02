@@ -274,7 +274,14 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     });
 
 
-    if (mode === "direct" || video.canPlayType("application/vnd.apple.mpegurl")) {
+    // Android (phone/TV WebView and Chrome) answers "maybe" for
+    // application/vnd.apple.mpegurl but cannot actually demux HLS — trusting it
+    // is what made playback load and then break on Android TV. Only Apple
+    // platforms get native HLS; everywhere else hls.js wins when supported.
+    const nativeHls =
+      !Hls.isSupported() && video.canPlayType("application/vnd.apple.mpegurl") !== "";
+
+    if (mode === "direct" || nativeHls) {
       // Native playback: let the browser's own range-based buffering run — it
       // maps directly onto the hardware decoder's demand.
       video.preload = "auto";
@@ -336,7 +343,22 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       video.play().catch(() => setError("Your browser cannot play this stream."));
     }
 
+    // A failed element-level load (unsupported container/codec on this device)
+    // otherwise shows only a broken-video icon. Report it, and when a direct
+    // stream fails, retry through HLS so the server transcodes instead.
+    const onVideoError = () => {
+      const code = video.error?.code;
+      if (mode === "direct" && !hlsInstance) {
+        setError("This file couldn't play directly on this device — switching to a transcoded stream…");
+        setMode("hls");
+        return;
+      }
+      setError(`Playback failed on this device${code ? ` (media error ${code})` : ""}.`);
+    };
+    video.addEventListener("error", onVideoError);
+
     return () => {
+      video.removeEventListener("error", onVideoError);
       hlsInstance?.destroy();
       // Cancel any in-flight direct-stream request so the server stops
       // transcoding/serving bytes nobody will consume.
