@@ -328,7 +328,7 @@ function LibraryContent({
 
 
   const topNav = (
-    <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-xl">
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:flex sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
         <div className="min-w-0">
           <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
@@ -1002,7 +1002,7 @@ function BackdropHero({
   const backdrop = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
 
   return (
-    <div className="relative w-full overflow-hidden pb-6 pt-4">
+    <div className="relative isolate z-0 w-full overflow-hidden pb-6 pt-4">
       {/* Ambient glow from the featured artwork */}
       {backdrop && (
         <img
