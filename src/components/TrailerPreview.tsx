@@ -10,6 +10,7 @@ import { embyGetTrailers } from "@/lib/emby.functions";
 import { plexGetTrailers } from "@/lib/plex.functions";
 import { plexDirectStreamUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
+import { usePersonalization } from "@/lib/personalization";
 
 type Trailer =
   | { source: "local"; id: string; name: string }
@@ -48,6 +49,7 @@ export function TrailerPreview({
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const { prefs } = usePersonalization();
 
   const q = useQuery<{ trailers: Trailer[] }>({
     queryKey: ["trailers", server.id, itemId],
@@ -135,8 +137,12 @@ export function TrailerPreview({
                   ref={videoRef}
                   src={videoSrc}
                   controls
-                  autoPlay
+                  autoPlay={prefs.trailerAutoplay}
+                  muted={prefs.previewMuted}
                   playsInline
+                  onLoadedMetadata={(e) => {
+                    if (prefs.themeMusic) e.currentTarget.volume = prefs.themeMusicVolume / 100;
+                  }}
                   className="h-full w-full"
                 />
               ) : (

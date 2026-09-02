@@ -30,6 +30,7 @@ import { TorboxPanel } from "@/components/TorboxPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
+import { PersonalizationHub } from "@/components/personalization/PersonalizationHub";
 
 
 
@@ -172,14 +173,15 @@ function SettingsPage() {
     {
       id: "personalization",
       title: "Personalization",
-      desc: "Theme, home rows, and library visibility",
+      desc: "Navigation, home screen, media bar, and extras",
       icon: Palette,
-      keywords: "theme neon cyber minimal appearance categories hide libraries rows",
+      keywords:
+        "theme neon cyber minimal appearance navigation navbar toolbar home screen media bar featured local previews trailer seasonal effects snow theme music volume categories hide libraries rows overlays image type",
       render: () => (
-        <>
-          <ThemePanel />
-          <ActiveServerPanel server={active} only="categories" />
-        </>
+        <PersonalizationHub
+          themePanel={<ThemePanel />}
+          librariesPanel={<ActiveServerPanel server={active} only="categories" />}
+        />
       ),
     },
     {
