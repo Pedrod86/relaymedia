@@ -244,6 +244,28 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
         : getViewsEmby({ data: { serverId: server.id } }),
   });
 
+  const viewList = views.data?.views;
+  const counts = useQuery({
+    queryKey: ["settings-view-counts", server.id, viewList?.map((v) => v.Id).join(",")],
+    enabled: !!viewList?.length,
+    queryFn: () =>
+      isPlex
+        ? getCountsPlex({
+            data: { serverId: server.id, views: viewList!.map((v) => ({ id: v.Id })) },
+          })
+        : getCountsEmby({
+            data: {
+              serverId: server.id,
+              views: viewList!.map((v) => ({
+                id: v.Id,
+                includeItemTypes: itemTypesFor(v.CollectionType),
+              })),
+            },
+          }),
+  });
+
+  const totalItems = Object.values(counts.data?.counts ?? {}).reduce((a, b) => a + b, 0);
+
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
   const [refreshing, setRefreshing] = useState(false);
 
