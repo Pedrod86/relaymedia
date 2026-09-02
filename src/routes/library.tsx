@@ -535,6 +535,9 @@ function LibraryContent({
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
+        <TorboxRow />
+
+
         {sections.map((s) =>
           !s.library ? (
             <Section key={s.id} title={s.title}>
