@@ -25,6 +25,15 @@ import { useSavedList } from "@/lib/use-saved-items";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu } from "lucide-react";
 
 
 export const Route = createFileRoute("/library")({
@@ -136,6 +145,7 @@ function LibraryContent({
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
@@ -336,79 +346,126 @@ function LibraryContent({
   ) : null;
 
 
+  const navItems = (
+    <div className="mt-6 space-y-1.5">
+      <div className="px-1 pb-2">
+        <ServerSwitcher servers={servers} active={server} onSwitch={onSwitch} />
+      </div>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/library">
+          <Home className="size-5 text-primary" />
+          Home
+        </Link>
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/search">
+          <Search className="size-5 text-primary" />
+          Search
+        </Link>
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        onClick={() => {
+          setNavOpen(false);
+          onRefresh();
+        }}
+        disabled={refreshing}
+      >
+        <RefreshCw className={`size-5 text-primary ${refreshing ? "animate-spin" : ""}`} />
+        {refreshing ? "Refreshing…" : "Refresh servers"}
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        aria-pressed={customizing}
+        onClick={() => {
+          setNavOpen(false);
+          setCustomizing((v) => !v);
+        }}
+      >
+        <ArrowUpDown className="size-5 text-primary" />
+        {customizing ? "Done customizing" : "Customize order"}
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        aria-pressed={tvMode}
+        onClick={() => {
+          setNavOpen(false);
+          toggleTv();
+        }}
+      >
+        <Tv className="size-5 text-primary" />
+        {tvMode ? "Exit TV mode" : "TV mode"}
+        {!isPro && (
+          <span className="ml-auto text-[10px] uppercase tracking-wide opacity-70">Pro</span>
+        )}
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/settings">
+          <Settings className="size-5 text-primary" />
+          Settings
+        </Link>
+      </Button>
+      <div className="px-1 pt-3">
+        {isPro ? (
+          <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
+            Relay Pro
+          </span>
+        ) : (
+          <Button className="w-full" asChild onClick={() => setNavOpen(false)}>
+            <Link to="/upgrade">Upgrade to Pro</Link>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   const topNav = (
     <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:flex sm:flex-wrap sm:justify-between sm:px-6 sm:py-4">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 sm:py-4">
+        <Sheet open={navOpen} onOpenChange={setNavOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="min-h-11 min-w-11" aria-label="Open menu">
+              <Menu className="size-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[86vw] max-w-sm overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="truncate">{server.name}</SheetTitle>
+              <SheetDescription className="truncate">
+                {server.kind} · {server.userName}
+              </SheetDescription>
+            </SheetHeader>
+            {navItems}
+          </SheetContent>
+        </Sheet>
         <div className="min-w-0">
           <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
             {server.kind} · {server.name}
           </p>
           <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <ServerSwitcher servers={servers} active={server} onSwitch={onSwitch} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={refreshing}
-            aria-label="Refresh servers"
-          >
-            <span className={refreshing ? "animate-spin" : undefined}>⟳</span>
-            <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
-          </Button>
-          <Button
-            variant={customizing ? "default" : "outline"}
-            size="sm"
-            onClick={() => setCustomizing((v) => !v)}
-            aria-pressed={customizing}
-            aria-label="Customize content order"
-          >
-            <span>↕</span>
-            <span className="hidden sm:inline">Customize</span>
-          </Button>
-          <Button variant="outline" size="sm" asChild aria-label="Search">
-            <Link to="/search">
-              <span>🔍</span>
-              <span className="hidden sm:inline">Search</span>
-            </Link>
-          </Button>
-
-          <Button
-            variant={tvMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleTv}
-            aria-pressed={tvMode}
-            aria-label={tvMode ? "Exit TV mode" : "Enter TV mode"}
-          >
-            <span>📺</span>
-            <span className="hidden sm:inline">{tvMode ? "Exit TV" : "TV mode"}</span>
-            {!isPro && (
-              <span className="hidden text-[10px] uppercase opacity-70 sm:inline">Pro</span>
-            )}
-          </Button>
-          {isPro ? (
-            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-              Pro
-            </span>
-          ) : (
-            <Button size="sm" asChild>
-              <Link to="/upgrade">
-                <span className="sm:hidden">Pro</span>
-                <span className="hidden sm:inline">Upgrade to Pro</span>
-              </Link>
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" asChild aria-label="Settings">
-            <Link to="/settings">
-              <span className="sm:hidden">⚙️</span>
-              <span className="hidden sm:inline">Settings</span>
-            </Link>
-          </Button>
-        </div>
       </div>
     </header>
   );
+
 
 
   if (tvMode) {
