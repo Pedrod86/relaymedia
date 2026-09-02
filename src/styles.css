@@ -165,6 +165,60 @@
   text-shadow: 0 0 18px oklch(0.78 0.27 330 / 0.55);
 }
 
+/* === Theme: Cyber (deep violet / cyan + magenta) === */
+.theme-cyber {
+  --background: oklch(0.14 0.06 300);
+  --foreground: oklch(0.93 0.06 210);
+  --card: oklch(0.2 0.08 305);
+  --card-foreground: oklch(0.93 0.06 210);
+  --popover: oklch(0.18 0.08 305);
+  --popover-foreground: oklch(0.93 0.06 210);
+  --primary: oklch(0.85 0.16 200);
+  --primary-foreground: oklch(0.13 0.06 300);
+  --secondary: oklch(0.26 0.1 305);
+  --secondary-foreground: oklch(0.93 0.06 210);
+  --muted: oklch(0.23 0.09 305);
+  --muted-foreground: oklch(0.72 0.16 340);
+  --accent: oklch(0.7 0.26 340);
+  --accent-foreground: oklch(0.13 0.06 300);
+  --destructive: oklch(0.68 0.25 20);
+  --destructive-foreground: oklch(0.97 0.02 320);
+  --border: oklch(0.7 0.24 330 / 28%);
+  --input: oklch(0.85 0.16 200 / 22%);
+  --ring: oklch(0.85 0.16 200);
+  --sidebar: oklch(0.17 0.07 302);
+  --sidebar-foreground: oklch(0.93 0.06 210);
+  --sidebar-primary: oklch(0.85 0.16 200);
+  --sidebar-primary-foreground: oklch(0.13 0.06 300);
+  --sidebar-accent: oklch(0.26 0.1 305);
+  --sidebar-accent-foreground: oklch(0.93 0.06 210);
+  --sidebar-border: oklch(0.7 0.24 330 / 28%);
+  --sidebar-ring: oklch(0.85 0.16 200);
+}
+.theme-cyber body {
+  font-family: "Jura", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  background:
+    radial-gradient(ellipse at 50% 0%, oklch(0.4 0.14 320 / 0.35), transparent 60%),
+    radial-gradient(ellipse at 10% 100%, oklch(0.5 0.2 200 / 0.14), transparent 55%),
+    var(--color-background);
+}
+.theme-cyber h1,
+.theme-cyber h2,
+.theme-cyber h3 {
+  font-family: "Jura", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: oklch(0.87 0.16 200);
+  text-shadow: 0 0 16px oklch(0.85 0.16 200 / 0.45);
+}
+.theme-cyber h1 {
+  text-transform: uppercase;
+}
+.theme-cyber .text-muted-foreground {
+  letter-spacing: 0.08em;
+}
+
 /* === Theme: Minimal (no neon) === */
 .theme-minimal {
   --background: oklch(0.99 0 0);
