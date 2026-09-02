@@ -47,7 +47,7 @@ function LoginPage() {
     setLimitReached(false);
     setBusy(true);
     try {
-      const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+      const cleanUrl = normalizeServerInput(serverUrl, kind);
       // Credentials are posted to the server, which stores the resulting
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.
