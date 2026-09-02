@@ -511,7 +511,12 @@ function LibraryContent({
               <Menu className="size-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[86vw] max-w-sm overflow-y-auto">
+          <SheetContent
+            id="relay-nav-drawer"
+            side="left"
+            className="w-[86vw] max-w-sm overflow-y-auto [&_a:focus]:ring-2 [&_a:focus]:ring-ring [&_button:focus]:ring-2 [&_button:focus]:ring-ring"
+          >
+
             <SheetHeader>
               <SheetTitle className="truncate">{server.name}</SheetTitle>
               <SheetDescription className="truncate">
