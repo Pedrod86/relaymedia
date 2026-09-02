@@ -34,7 +34,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud } from "lucide-react";
 
 
 export const Route = createFileRoute("/library")({
@@ -421,9 +421,20 @@ function LibraryContent({
         asChild
         onClick={() => setNavOpen(false)}
       >
-        <Link to="/settings">
+        <Link to="/settings" search={{ section: undefined }}>
           <Settings className="size-5 text-primary" />
           Settings
+        </Link>
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/settings" search={{ section: "integrations" }}>
+          <Cloud className="size-5 text-primary" />
+          TorBox API
         </Link>
       </Button>
       <div className="px-1 pt-3">
@@ -484,7 +495,7 @@ function LibraryContent({
               <RefreshCw className={`size-5 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
             <Button variant="ghost" size="icon" className="min-h-11 min-w-11" asChild aria-label="Settings">
-              <Link to="/settings">
+              <Link to="/settings" search={{ section: undefined }}>
                 <Settings className="size-5" />
               </Link>
             </Button>

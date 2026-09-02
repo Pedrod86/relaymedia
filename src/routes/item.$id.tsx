@@ -327,7 +327,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   </span>
                 )}
 
-                <Link to="/settings" className="text-xs text-muted-foreground underline">
+                <Link to="/settings" search={{ section: "playback" }} className="text-xs text-muted-foreground underline">
                   Player settings
                 </Link>
               </div>
