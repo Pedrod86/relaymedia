@@ -261,7 +261,7 @@ function LibraryContent({
     }
 
     return applySectionOrder(list, order);
-  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres]);
+  }, [resume.data, latest.data, views.data, hidden, order, historyItems, watchedItems, suggestions.data, genres, favourites.items, watchLater.items]);
 
   function move(id: string, dir: -1 | 1) {
     const ids = sections.map((s) => s.id);
