@@ -748,7 +748,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
         </div>
       )}
 
-      <div className="flex flex-1 items-center justify-center">
+      <div className="relative flex flex-1 items-center justify-center">
         <video
           ref={videoRef}
           controls
@@ -769,7 +769,59 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             />
           ))}
         </video>
+
+        {seekHint && (
+          <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">
+            {seekHint}
+          </span>
+        )}
+
+        {/* Remote-friendly transport controls (focusable with a D-pad). */}
+        <div
+          className={`absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 backdrop-blur transition-opacity duration-200 ${
+            paused ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          }`}
+          aria-hidden={!paused}
+        >
+          <button
+            type="button"
+            onClick={() => seekBy(-60)}
+            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            ⏪ 60s
+          </button>
+          <button
+            type="button"
+            onClick={() => seekBy(-10)}
+            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            ◀ 10s
+          </button>
+          <button
+            type="button"
+            autoFocus
+            onClick={togglePlay}
+            className="rounded-full bg-white/15 px-5 py-2 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            {paused ? "▶ Play" : "⏸ Pause"}
+          </button>
+          <button
+            type="button"
+            onClick={() => seekBy(10)}
+            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            10s ▶
+          </button>
+          <button
+            type="button"
+            onClick={() => seekBy(60)}
+            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            60s ⏩
+          </button>
+        </div>
       </div>
+
       {error && <p className="px-6 py-2 text-center text-sm text-destructive">{error}</p>}
     </main>
   );
