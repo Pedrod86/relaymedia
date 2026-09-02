@@ -859,6 +859,15 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           >
             60s ⏩
           </button>
+          {nativePlayer && (
+            <button
+              type="button"
+              onClick={() => void playNative()}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Device player
+            </button>
+          )}
         </div>
       </div>
 
