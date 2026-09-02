@@ -397,3 +397,30 @@ export const plexGetTrailers = createServerFn({ method: "POST" })
     }
     return { trailers };
   });
+
+// Item counts per Plex section (totalSize with a zero-size container).
+export const plexGetViewCounts = createServerFn({ method: "POST" })
+  .inputValidator(
+    serverRef.extend({
+      views: z.array(z.object({ id: z.string().min(1).max(100) })).max(60),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const counts: Record<string, number> = {};
+    await Promise.all(
+      data.views.map(async (v) => {
+        try {
+          const json = await plexFetch(
+            c,
+            `/library/sections/${encodeURIComponent(v.id)}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=0`,
+          );
+          counts[v.id] = (json.MediaContainer?.totalSize as number) ?? 0;
+        } catch {
+          // Ignore per-section failures.
+        }
+      }),
+    );
+    return { counts };
+  });

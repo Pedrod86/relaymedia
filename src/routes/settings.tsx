@@ -3,12 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { embyGetViews, embyRefreshLibrary } from "@/lib/emby.functions";
-import { plexGetViews, plexRefreshLibrary } from "@/lib/plex.functions";
+import { embyGetViews, embyGetViewCounts, embyRefreshLibrary } from "@/lib/emby.functions";
+import { plexGetViews, plexGetViewCounts, plexRefreshLibrary } from "@/lib/plex.functions";
 import { removeMediaServer, signOutAllServers } from "@/lib/servers.functions";
 import {
   clearActiveServerId,
   clearHiddenViews,
+  itemTypesFor,
   loadHiddenViews,
   saveHiddenViews,
   type MediaServer,
@@ -233,6 +234,8 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
   const isPlex = server.kind === "plex";
   const getViewsEmby = useServerFn(embyGetViews);
   const getViewsPlex = useServerFn(plexGetViews);
+  const getCountsEmby = useServerFn(embyGetViewCounts);
+  const getCountsPlex = useServerFn(plexGetViewCounts);
   const refreshEmby = useServerFn(embyRefreshLibrary);
   const refreshPlex = useServerFn(plexRefreshLibrary);
 
@@ -243,6 +246,28 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
         ? getViewsPlex({ data: { serverId: server.id } })
         : getViewsEmby({ data: { serverId: server.id } }),
   });
+
+  const viewList = views.data?.views;
+  const counts = useQuery({
+    queryKey: ["settings-view-counts", server.id, viewList?.map((v) => v.Id).join(",")],
+    enabled: !!viewList?.length,
+    queryFn: () =>
+      isPlex
+        ? getCountsPlex({
+            data: { serverId: server.id, views: viewList!.map((v) => ({ id: v.Id })) },
+          })
+        : getCountsEmby({
+            data: {
+              serverId: server.id,
+              views: viewList!.map((v) => ({
+                id: v.Id,
+                includeItemTypes: itemTypesFor(v.CollectionType),
+              })),
+            },
+          }),
+  });
+
+  const totalItems = Object.values<number>(counts.data?.counts ?? {}).reduce((a, b) => a + b, 0);
 
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(loadHiddenViews(server.id)));
   const [refreshing, setRefreshing] = useState(false);
@@ -297,7 +322,16 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
       </section>
 
       <section className="rounded-lg border p-6">
-        <h2 className="text-base font-semibold">Hide categories</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold">Hide categories</h2>
+          <p className="text-xs text-muted-foreground">
+            {counts.isLoading
+              ? "Counting library…"
+              : totalItems > 0
+                ? `${totalItems.toLocaleString()} items total`
+                : ""}
+          </p>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Uncheck any library you don't want to see on the home screen for{" "}
           <span className="font-medium">{server.name}</span>.
@@ -309,14 +343,21 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
         <ul className="mt-4 divide-y">
           {views.data?.views.map((v) => {
             const visible = !hidden.has(v.Id);
+            const count = counts.data?.counts?.[v.Id];
             return (
               <li key={v.Id} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium">{v.Name}</p>
+                  <p className="font-medium">
+                    {v.Name}
+                    <span className="ml-2 rounded-full border px-2 py-0.5 align-middle text-xs font-normal text-muted-foreground">
+                      {count === undefined ? (counts.isLoading ? "…" : "—") : count.toLocaleString()}
+                    </span>
+                  </p>
                   {v.CollectionType && (
                     <p className="text-xs capitalize text-muted-foreground">{v.CollectionType}</p>
                   )}
                 </div>
+
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <Checkbox
                     checked={visible}
