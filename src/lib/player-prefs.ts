@@ -220,7 +220,20 @@ export async function probeCodecs(): Promise<CodecCap[]> {
     return { ...p, supported, hardware };
   }
 
-  return Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
+  const list = await Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
+
+  // Android TV boxes (NVIDIA SHIELD, Fire TV, Chromecast/Google TV) run their
+  // video through the platform MediaCodec pipeline, but the WebView's
+  // canPlayType / MediaCapabilities tables do not advertise HEVC Main10,
+  // Dolby Vision or Dolby audio even though the SoC decodes them. Trust the
+  // device class instead of the browser table there.
+  if (isTvDevice() || isAndroidNative()) {
+    const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3"]);
+    return list.map((c) => (forced.has(c.name) ? { ...c, supported: true, hardware: true } : c));
+  }
+
+  return list;
+
 }
 
 // ── HDR / Dolby Vision display capability ──────────────────────────────────
