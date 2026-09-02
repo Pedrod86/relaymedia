@@ -133,6 +133,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  useAndroidBackButton();
+
   useEffect(() => {
     applyTheme(loadTheme());
   }, []);
