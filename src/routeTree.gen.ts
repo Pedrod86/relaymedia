@@ -21,6 +21,7 @@ import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
+import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -84,6 +85,11 @@ const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
   path: '/api/public/media-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPlayRoute = ApiPublicPlayRouteImport.update({
+  id: '/api/public/play',
+  path: '/api/public/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStreamRoute = ApiPublicStreamRouteImport.update({
   id: '/api/public/stream',
   path: '/api/public/stream',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   id:
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
+  ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMediaProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/play': {
+      id: '/api/public/play'
+      path: '/api/public/play'
+      fullPath: '/api/public/play'
+      preLoaderRoute: typeof ApiPublicPlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stream': {
       id: '/api/public/stream'
       path: '/api/public/stream'
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
+  ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
