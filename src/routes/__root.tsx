@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { applyTheme, loadTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { useAndroidBackButton } from "@/lib/use-back-button";
 
 function NotFoundComponent() {
   return (
