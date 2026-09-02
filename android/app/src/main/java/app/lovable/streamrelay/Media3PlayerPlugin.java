@@ -40,7 +40,8 @@ public class Media3PlayerPlugin extends Plugin {
         intent.putExtra(Media3PlayerActivity.EXTRA_TITLE, call.getString("title", ""));
         intent.putExtra(Media3PlayerActivity.EXTRA_SUBTITLE_URL, call.getString("subtitleUrl", ""));
         intent.putExtra(Media3PlayerActivity.EXTRA_SUBTITLE_LANG, call.getString("subtitleLang", "und"));
-        intent.putExtra(Media3PlayerActivity.EXTRA_START_MS, call.getLong("startPositionMs", 0L));
+        Long startMs = call.getLong("startPositionMs", 0L);
+        intent.putExtra(Media3PlayerActivity.EXTRA_START_MS, startMs == null ? 0L : startMs);
         intent.putExtra(Media3PlayerActivity.EXTRA_TUNNELING, Boolean.TRUE.equals(call.getBoolean("tunneling", true)));
         getActivity().startActivity(intent);
 
