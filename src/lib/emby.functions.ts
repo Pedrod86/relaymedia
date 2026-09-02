@@ -109,6 +109,7 @@ export const embyGetItems = createServerFn({ method: "POST" })
       includeItemTypes: z.string().max(200).optional(),
       limit: z.number().int().min(1).max(200).default(60),
       sortBy: z.string().max(200).default("SortName"),
+      sortOrder: z.enum(["Ascending", "Descending"]).default("Ascending"),
       recursive: z.boolean().default(false),
     }),
   )
@@ -117,7 +118,7 @@ export const embyGetItems = createServerFn({ method: "POST" })
     const c = await requireCredential(data.serverId);
     const params = new URLSearchParams({
       SortBy: data.sortBy,
-      SortOrder: "Ascending",
+      SortOrder: data.sortOrder,
       Limit: String(data.limit),
       Fields: "PrimaryImageAspectRatio,Overview,ProductionYear,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ParentThumbImageTag,ParentThumbItemId,SeriesPrimaryImageTag,SeriesId,ImageTags",
       EnableImages: "true",
