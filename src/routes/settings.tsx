@@ -30,6 +30,7 @@ import { TorboxPanel } from "@/components/TorboxPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
+import { PersonalizationHub } from "@/components/personalization/PersonalizationHub";
 
 
 
