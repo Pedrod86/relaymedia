@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Info, Lock, Palette, PlayCircle, Search, Share2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, Lock, Palette, MonitorSmartphone, PlayCircle, Search, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { embyGetViews, embyGetViewCounts, embyRefreshLibrary } from "@/lib/emby.functions";
 import { plexGetViews, plexGetViewCounts, plexRefreshLibrary } from "@/lib/plex.functions";
@@ -27,6 +27,7 @@ import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
 import { AccountPanel } from "@/components/AccountPanel";
 import { TorboxPanel } from "@/components/TorboxPanel";
+import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
@@ -218,6 +219,15 @@ function SettingsPage() {
       ),
     },
     {
+      id: "devices",
+      title: "Devices & sync",
+      desc: "Copy this setup to your TV with a pairing code",
+      icon: MonitorSmartphone,
+      keywords: "devices sync pairing code tv phone transfer setup migrate copy servers",
+      render: () => <SetupSyncPanel />,
+    },
+    {
+
       id: "about",
       title: "About",
       desc: "App version, legal information, and credits",

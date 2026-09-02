@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
+import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -226,8 +227,13 @@ function LoginPage() {
               {busy ? "Connecting…" : "Connect server"}
             </Button>
           </form>
+
+          <div className="mt-8">
+            <SetupSyncPanel />
+          </div>
         </div>
       </div>
     </main>
+
   );
 }

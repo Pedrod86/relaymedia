@@ -35,7 +35,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone } from "lucide-react";
 
 
 export const Route = createFileRoute("/library")({
@@ -438,6 +438,18 @@ function LibraryContent({
           TorBox API
         </Link>
       </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/settings" search={{ section: "devices" }}>
+          <MonitorSmartphone className="size-5 text-primary" />
+          Sync to TV
+        </Link>
+      </Button>
+
       <div className="px-1 pt-3">
         {isPro ? (
           <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">

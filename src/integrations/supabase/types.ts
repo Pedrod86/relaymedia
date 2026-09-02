@@ -89,6 +89,33 @@ export type Database = {
         }
         Relationships: []
       }
+      setup_transfers: {
+        Row: {
+          attempts: number
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          payload: string
+        }
+        Insert: {
+          attempts?: number
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          payload: string
+        }
+        Update: {
+          attempts?: number
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
