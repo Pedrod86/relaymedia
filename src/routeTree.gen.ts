@@ -21,6 +21,7 @@ import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
+import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
@@ -86,6 +87,11 @@ const WatchIdRoute = WatchIdRouteImport.update({
   path: '/watch/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAppVersionRoute = ApiPublicAppVersionRouteImport.update({
+  id: '/api/public/app-version',
+  path: '/api/public/app-version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
   id: '/api/public/media-proxy',
   path: '/api/public/media-proxy',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/item/$id': typeof ItemIdRoute
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/app-version': typeof ApiPublicAppVersionRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
+    | '/api/public/app-version'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
+    | '/api/public/app-version'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/item/$id'
     | '/view/$id'
     | '/watch/$id'
+    | '/api/public/app-version'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   ItemIdRoute: typeof ItemIdRoute
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
+  ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
   ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/app-version': {
+      id: '/api/public/app-version'
+      path: '/api/public/app-version'
+      fullPath: '/api/public/app-version'
+      preLoaderRoute: typeof ApiPublicAppVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/media-proxy': {
       id: '/api/public/media-proxy'
       path: '/api/public/media-proxy'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   ItemIdRoute: ItemIdRoute,
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
+  ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
   ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
