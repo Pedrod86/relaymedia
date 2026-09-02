@@ -274,7 +274,14 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     });
 
 
-    if (mode === "direct" || video.canPlayType("application/vnd.apple.mpegurl")) {
+    // Android (phone/TV WebView and Chrome) answers "maybe" for
+    // application/vnd.apple.mpegurl but cannot actually demux HLS — trusting it
+    // is what made playback load and then break on Android TV. Only Apple
+    // platforms get native HLS; everywhere else hls.js wins when supported.
+    const nativeHls =
+      !Hls.isSupported() && video.canPlayType("application/vnd.apple.mpegurl") !== "";
+
+    if (mode === "direct" || nativeHls) {
       // Native playback: let the browser's own range-based buffering run — it
       // maps directly onto the hardware decoder's demand.
       video.preload = "auto";
