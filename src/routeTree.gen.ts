@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
@@ -43,6 +44,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -213,6 +225,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  PlayRoute: typeof PlayRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   UpgradeRoute: typeof UpgradeRoute
@@ -254,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -341,6 +361,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  PlayRoute: PlayRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   UpgradeRoute: UpgradeRoute,

@@ -3,29 +3,159 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Relay Media</title>
+    <title>Relay Media — Reconnecting</title>
     <style>
-      html,
+      :root {
+        --bg: #140b2a;
+        --card: rgba(255, 255, 255, 0.05);
+        --line: rgba(255, 0, 170, 0.35);
+        --fg: #f4f4f5;
+        --muted: rgba(244, 244, 245, 0.65);
+        --cyan: #4be1ff;
+        --magenta: #ff4bd8;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
       body {
-        margin: 0;
-        height: 100%;
-        background: #0b0b0f;
-        color: #f4f4f5;
+        background:
+          radial-gradient(70% 50% at 20% 0%, rgba(75, 225, 255, 0.18), transparent 70%),
+          radial-gradient(60% 50% at 90% 100%, rgba(255, 75, 216, 0.18), transparent 70%),
+          var(--bg);
+        color: var(--fg);
         font-family: system-ui, -apple-system, sans-serif;
         display: grid;
         place-items: center;
-        text-align: center;
+        padding: 24px;
       }
-      p {
-        opacity: 0.7;
-        max-width: 30ch;
+      .card {
+        width: 100%;
+        max-width: 30rem;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 24px;
+        backdrop-filter: blur(8px);
       }
+      h1 { margin: 0 0 6px; font-size: 1.35rem; letter-spacing: 0.02em; color: var(--cyan); }
+      p { margin: 0 0 18px; color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+      .status { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; margin-bottom: 16px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--magenta); box-shadow: 0 0 12px var(--magenta); }
+      .dot.ok { background: #46e08a; box-shadow: 0 0 12px #46e08a; }
+      .dot.busy { background: var(--cyan); box-shadow: 0 0 12px var(--cyan); animation: pulse 1s infinite ease-in-out; }
+      @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+      .diag { list-style: none; margin: 0 0 18px; padding: 0; font-size: 0.82rem; color: var(--muted); }
+      .diag li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .diag li span:last-child { color: var(--fg); font-variant-numeric: tabular-nums; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      button {
+        font: inherit; font-weight: 600; cursor: pointer; border-radius: 999px;
+        padding: 12px 22px; min-height: 48px; border: 1px solid transparent;
+      }
+      button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+      .primary { background: var(--magenta); color: #14001a; }
+      .secondary { background: transparent; color: var(--fg); border-color: rgba(255,255,255,0.3); }
+      button[disabled] { opacity: 0.55; cursor: default; }
+      .err { margin-top: 14px; font-size: 0.78rem; color: rgba(255,140,200,0.9); white-space: pre-wrap; word-break: break-word; }
     </style>
   </head>
   <body>
-    <div>
-      <h1>Relay Media</h1>
-      <p>You appear to be offline. Reconnect to continue watching.</p>
-    </div>
+    <main class="card">
+      <h1>No internet detected</h1>
+      <p>Relay Media streams from your servers, so it needs a connection. We're checking and will reload automatically the moment you're back online.</p>
+
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Checking connection…</span></div>
+
+      <ul class="diag">
+        <li><span>Device network</span><span id="dNet">—</span></li>
+        <li><span>Relay service</span><span id="dSvc">—</span></li>
+        <li><span>Attempts</span><span id="dTries">0</span></li>
+        <li><span>Next retry</span><span id="dNext">—</span></li>
+        <li><span>Last checked</span><span id="dTime">—</span></li>
+      </ul>
+
+      <div class="actions">
+        <button class="primary" id="retry" autofocus>Retry now</button>
+        <button class="secondary" id="auto">Pause auto-retry</button>
+      </div>
+      <div class="err" id="err"></div>
+    </main>
+
+    <script>
+      var REMOTE = "https://relay-media.lovable.app";
+      var el = function (id) { return document.getElementById(id); };
+      var tries = 0, delay = 3000, autoOn = true, timer = null, countdown = null, checking = false;
+
+      function setStatus(text, cls) {
+        el("statusText").textContent = text;
+        el("dot").className = "dot" + (cls ? " " + cls : "");
+      }
+
+      function schedule() {
+        clearTimeout(timer); clearInterval(countdown);
+        if (!autoOn) { el("dNext").textContent = "paused"; return; }
+        var at = Date.now() + delay;
+        var tick = function () {
+          var left = Math.max(0, Math.round((at - Date.now()) / 1000));
+          el("dNext").textContent = left + "s";
+        };
+        tick();
+        countdown = setInterval(tick, 500);
+        timer = setTimeout(check, delay);
+        delay = Math.min(delay * 1.6, 30000);
+      }
+
+      async function check() {
+        if (checking) return;
+        checking = true;
+        tries++;
+        el("dTries").textContent = String(tries);
+        el("dTime").textContent = new Date().toLocaleTimeString();
+        el("dNet").textContent = navigator.onLine ? "connected" : "offline";
+        el("retry").disabled = true;
+        setStatus("Checking connection…", "busy");
+
+        if (!navigator.onLine) {
+          el("dSvc").textContent = "unreachable";
+          setStatus("Still offline — waiting for a network.", "");
+          el("retry").disabled = false; checking = false; schedule(); return;
+        }
+
+        var ctrl = new AbortController();
+        var kill = setTimeout(function () { ctrl.abort(); }, 6000);
+        try {
+          await fetch(REMOTE + "/manifest.webmanifest?probe=" + Date.now(), {
+            cache: "no-store",
+            mode: "no-cors",
+            signal: ctrl.signal,
+          });
+          clearTimeout(kill);
+          el("dSvc").textContent = "reachable";
+          el("err").textContent = "";
+          setStatus("Back online — reloading Relay Media…", "ok");
+          clearTimeout(timer); clearInterval(countdown);
+          setTimeout(function () { location.replace(REMOTE); }, 600);
+          return;
+        } catch (e) {
+          clearTimeout(kill);
+          el("dSvc").textContent = "unreachable";
+          el("err").textContent = "Last error: " + ((e && e.message) || String(e));
+          setStatus("Can't reach Relay Media yet.", "");
+        }
+        el("retry").disabled = false;
+        checking = false;
+        schedule();
+      }
+
+      el("retry").addEventListener("click", function () { delay = 3000; check(); });
+      el("auto").addEventListener("click", function () {
+        autoOn = !autoOn;
+        el("auto").textContent = autoOn ? "Pause auto-retry" : "Resume auto-retry";
+        if (autoOn) { delay = 3000; schedule(); } else { clearTimeout(timer); clearInterval(countdown); el("dNext").textContent = "paused"; }
+      });
+      window.addEventListener("online", function () { delay = 1000; check(); });
+      window.addEventListener("offline", function () { setStatus("Network lost.", ""); el("dNet").textContent = "offline"; });
+
+      check();
+    </script>
   </body>
 </html>
