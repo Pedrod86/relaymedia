@@ -491,25 +491,46 @@ function TVLayout({
       return true;
     };
 
+    /** Focus the first control in the sticky header, scrolling back to the top. */
+    const focusChrome = () => {
+      const chrome = mainRef.current?.querySelector<HTMLElement>(
+        'header a, header button, aside a, aside button',
+      );
+      mainRef.current
+        ?.querySelector<HTMLElement>(".tv-scroll")
+        ?.scrollTo({ top: 0, behavior: "smooth" });
+      if (chrome) {
+        chrome.focus({ preventScroll: true });
+        return true;
+      }
+      return false;
+    };
+
     const handler = (e: KeyboardEvent) => {
       if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
 
       const active = document.activeElement as HTMLElement | null;
       const card = active?.closest<HTMLElement>("[data-tv-card]") ?? null;
-      const row = card?.closest<HTMLElement>("[data-section-id]") ?? null;
+
+      if (!card) {
+        // Focus is in the header / sidebar: let the browser handle sideways
+        // moves, and only take over when stepping down into the rows.
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const firstId =
+            sections.find((s) => cardsIn(s.id).length)?.id ?? activeSectionId;
+          setActiveSectionId(firstId);
+          focusCard(cardsIn(firstId)[0]);
+        }
+        return;
+      }
+
+      const row = card.closest<HTMLElement>("[data-section-id]") ?? null;
       const rowId = row?.dataset.sectionId ?? activeSectionId;
       const idx = sections.findIndex((s) => s.id === rowId);
 
       // Take over navigation entirely so focus moves one item at a time.
       e.preventDefault();
-
-      if (!card) {
-        // Nothing focused yet — enter the active row.
-        const target = sections[idx >= 0 ? idx : 0]?.id ?? activeSectionId;
-        setActiveSectionId(target);
-        focusCard(cardsIn(target)[0]);
-        return;
-      }
 
       const cards = cardsIn(rowId);
       const pos = cards.indexOf(card);
@@ -530,10 +551,14 @@ function TVLayout({
         focusCard(nextCards[Math.min(pos, nextCards.length - 1)]);
         return;
       }
+
+      // Past the first row: hop up into the header so the top is reachable.
+      if (dir === -1) focusChrome();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [activeSectionId, sections]);
+
 
 
   const hero = backdropItems[0];
