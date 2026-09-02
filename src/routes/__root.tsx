@@ -87,6 +87,46 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+function ExitConfirmDialog() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onRequest = () => setOpen(true);
+    document.addEventListener(EXIT_REQUEST_EVENT, onRequest);
+    return () => document.removeEventListener(EXIT_REQUEST_EVENT, onRequest);
+  }, []);
+
+  const confirmExit = async () => {
+    setOpen(false);
+    if (!isNativeApp()) return;
+    try {
+      const { App } = await import("@capacitor/app");
+      void App.exitApp();
+    } catch {
+      // Plugin unavailable — fall back to default behaviour.
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Exit Relay?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Press back again or choose Exit to close the app.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setOpen(false)} autoFocus>
+            Stay
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={confirmExit}>Exit</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
