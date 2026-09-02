@@ -43,7 +43,6 @@ function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setLimitReached(false);
     setBusy(true);
     try {
       const cleanUrl = normalizeServerInput(serverUrl, kind);
