@@ -58,7 +58,7 @@ export const embyLogin = createServerFn({ method: "POST" })
       AccessToken: string;
       User: { Id: string; Name: string };
     };
-    const { addCredential, readVault } = await import("./vault.server");
+    const { addCredential } = await import("./vault.server");
     const { registerDevice } = await import("./devices.server");
     await registerDevice();
 

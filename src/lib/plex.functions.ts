@@ -184,7 +184,7 @@ export const plexAddServer = createServerFn({ method: "POST" })
     }
 
 
-    const { addCredential, readVault } = await import("./vault.server");
+    const { addCredential } = await import("./vault.server");
     const { registerDevice } = await import("./devices.server");
     await registerDevice();
 
