@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Info, Lock, Palette, PlayCircle, Search, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { embyGetViews, embyGetViewCounts, embyRefreshLibrary } from "@/lib/emby.functions";
 import { plexGetViews, plexGetViewCounts, plexRefreshLibrary } from "@/lib/plex.functions";
@@ -47,6 +48,8 @@ function SettingsPage() {
   const { isPro } = useProAccess();
   const removeServerFn = useServerFn(removeMediaServer);
   const signOutAllFn = useServerFn(signOutAllServers);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!isLoading && servers.length === 0) navigate({ to: "/login" });
@@ -352,7 +355,7 @@ function ThemePanel() {
   );
 }
 
-function ActiveServerPanel({ server }: { server: MediaServer }) {
+function ActiveServerPanel({ server, only }: { server: MediaServer; only?: "sync" | "categories" }) {
   const isPlex = server.kind === "plex";
   const getViewsEmby = useServerFn(embyGetViews);
   const getViewsPlex = useServerFn(plexGetViews);
@@ -423,6 +426,7 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
 
   return (
     <>
+      {only !== "categories" && (
       <section className="rounded-lg border p-6">
         <h2 className="text-base font-semibold">Server sync</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -442,7 +446,9 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           </Button>
         </div>
       </section>
+      )}
 
+      {only !== "sync" && (
       <section className="rounded-lg border p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-base font-semibold">Hide categories</h2>
@@ -492,6 +498,7 @@ function ActiveServerPanel({ server }: { server: MediaServer }) {
           })}
         </ul>
       </section>
+      )}
     </>
   );
 }
