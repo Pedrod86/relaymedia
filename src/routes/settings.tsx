@@ -35,6 +35,9 @@ import { PersonalizationHub } from "@/components/personalization/Personalization
 
 
 export const Route = createFileRoute("/settings")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    section: typeof search.section === "string" ? search.section : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Settings — Media" },
