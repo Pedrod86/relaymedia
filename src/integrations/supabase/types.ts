@@ -44,51 +44,6 @@ export type Database = {
         }
         Relationships: []
       }
-      purchases: {
-        Row: {
-          amount_total: number | null
-          created_at: string
-          currency: string | null
-          environment: string
-          id: string
-          price_id: string
-          status: string
-          stripe_customer_id: string | null
-          stripe_payment_intent_id: string | null
-          stripe_session_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount_total?: number | null
-          created_at?: string
-          currency?: string | null
-          environment?: string
-          id?: string
-          price_id: string
-          status?: string
-          stripe_customer_id?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_session_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount_total?: number | null
-          created_at?: string
-          currency?: string | null
-          environment?: string
-          id?: string
-          price_id?: string
-          status?: string
-          stripe_customer_id?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       setup_transfers: {
         Row: {
           attempts: number
