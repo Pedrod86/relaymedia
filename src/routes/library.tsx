@@ -1002,7 +1002,7 @@ function BackdropHero({
   const backdrop = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
 
   return (
-    <div className="relative w-full overflow-hidden pb-6 pt-4">
+    <div className="relative isolate z-0 w-full overflow-hidden pb-6 pt-4">
       {/* Ambient glow from the featured artwork */}
       {backdrop && (
         <img
