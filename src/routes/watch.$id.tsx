@@ -424,6 +424,73 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     }
   }, [paused]);
 
+  // ---- Remote / keyboard control -------------------------------------------
+  // Android TV WebViews don't let a D-pad reach the native <video controls>
+  // widget, so playback is driven from key events plus our own button row.
+  const [seekHint, setSeekHint] = useState<string | null>(null);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashHint(text: string) {
+    setSeekHint(text);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setSeekHint(null), 1200);
+  }
+
+  function togglePlay() {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused || v.ended) void v.play().catch(() => {});
+    else v.pause();
+  }
+
+  function seekBy(delta: number) {
+    const v = videoRef.current;
+    if (!v || !Number.isFinite(v.duration)) {
+      if (v) v.currentTime = Math.max(0, v.currentTime + delta);
+    } else {
+      v.currentTime = Math.min(Math.max(0, v.currentTime + delta), v.duration - 1);
+    }
+    flashHint(`${delta > 0 ? "+" : "−"}${Math.abs(delta)}s`);
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      switch (e.key) {
+        case " ":
+        case "Enter":
+        case "MediaPlayPause":
+        case "MediaPlay":
+        case "MediaPause":
+          e.preventDefault();
+          togglePlay();
+          break;
+        case "ArrowRight":
+        case "MediaFastForward":
+        case "MediaTrackNext":
+          e.preventDefault();
+          seekBy(e.shiftKey ? 60 : 10);
+          break;
+        case "ArrowLeft":
+        case "MediaRewind":
+        case "MediaTrackPrevious":
+          e.preventDefault();
+          seekBy(e.shiftKey ? -60 : -10);
+          break;
+        case "MediaStop":
+          e.preventDefault();
+          videoRef.current?.pause();
+          break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+
   const decodeOptions: { id: DecodeMode; label: string }[] = [
     { id: "auto", label: "Auto" },
     { id: "hardware", label: "Hardware" },
