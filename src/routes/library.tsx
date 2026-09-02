@@ -21,6 +21,7 @@ import { isTvDevice } from "@/lib/platform";
 import { ServerSwitcher } from "@/components/ServerSwitcher";
 import { useWatchHistory } from "@/lib/use-watch-history";
 import { clearHistory, type HistoryEntry } from "@/lib/watch-history";
+import { useSavedList } from "@/lib/use-saved-items";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
