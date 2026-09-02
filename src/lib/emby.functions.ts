@@ -384,3 +384,45 @@ export const embyGetSuggestions = createServerFn({ method: "POST" })
       items: items.filter((it) => !skip.has(String(it?.Id))).slice(0, data.limit),
     };
   });
+
+// Item counts per library view, used for the Settings statistics list.
+// Limit=0 still returns TotalRecordCount, so this is a cheap count query.
+export const embyGetViewCounts = createServerFn({ method: "POST" })
+  .inputValidator(
+    serverRef.extend({
+      views: z
+        .array(
+          z.object({
+            id: z.string().min(1).max(100),
+            includeItemTypes: z.string().max(200).optional(),
+          }),
+        )
+        .max(60),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const counts: Record<string, number> = {};
+    await Promise.all(
+      data.views.map(async (v) => {
+        const params = new URLSearchParams({
+          ParentId: v.id,
+          Recursive: "true",
+          Limit: "0",
+          EnableImages: "false",
+          EnableUserData: "false",
+        });
+        if (v.includeItemTypes) params.set("IncludeItemTypes", v.includeItemTypes);
+        try {
+          const json = (await embyFetch(c, `/Users/${c.userId}/Items?${params}`)) as {
+            TotalRecordCount?: number;
+          };
+          counts[v.id] = json.TotalRecordCount ?? 0;
+        } catch {
+          // A single library failing shouldn't blank out every other count.
+        }
+      }),
+    );
+    return { counts };
+  });
