@@ -638,30 +638,8 @@ function TVLayout({
         <div className="tv-scroll flex-1 overflow-y-auto px-6 py-6 lg:px-10">
           {customizePanel && <div className="mb-6">{customizePanel}</div>}
           {hero && (
-            <div className="relative mb-8 h-[32vh] min-h-[220px] w-full overflow-hidden rounded-2xl">
-              <img
-                src={imageUrl(server, hero, "Backdrop", { maxWidth: 1600 }) ?? undefined}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-              <div className="absolute inset-0 flex flex-col justify-end p-8">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Featured</p>
-                <h2 className="mt-1 max-w-2xl text-3xl font-semibold tracking-tight lg:text-4xl">
-                  {cleanName(hero.Name)}
-                </h2>
-                {hero.ProductionYear && (
-                  <p className="mt-1 text-sm text-muted-foreground">{hero.ProductionYear}</p>
-                )}
-                <div className="mt-4">
-                  <Button asChild>
-                    <Link to="/item/$id" params={{ id: String(hero.Id) }}>
-                      View details
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+            <div className="isolate z-0 mb-8 overflow-hidden rounded-2xl">
+              <BackdropHero items={backdropItems} server={server} />
             </div>
           )}
 
