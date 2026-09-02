@@ -1,8 +1,9 @@
-export type ThemeName = "default" | "neon" | "minimal";
+export type ThemeName = "default" | "neon" | "cyber" | "minimal";
 const KEY = "ui_theme_v1";
 const CLASSES: Record<ThemeName, string> = {
   default: "",
   neon: "theme-neon",
+  cyber: "theme-cyber",
   minimal: "theme-minimal",
 };
 
