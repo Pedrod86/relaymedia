@@ -30,19 +30,13 @@ export function ServerSwitcher({
 }) {
   const [open, setOpen] = useState(false);
 
-  /** Two servers: tapping just flips to the other one, no menu needed. */
-  const quickSwitch = () => {
-    const next = servers.find((s) => s.id !== active.id);
-    if (next) onSwitch(next.id);
-  };
-
   return (
     <>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => (servers.length === 2 ? quickSwitch() : setOpen(true))}
-        aria-haspopup={servers.length === 2 ? undefined : "dialog"}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         aria-label="Switch server"
         className="min-h-10"
       >
@@ -58,22 +52,24 @@ export function ServerSwitcher({
           <DialogHeader>
             <DialogTitle>Switch server</DialogTitle>
             <DialogDescription>
-              Pick which media server to browse.
+              Pick which media server to browse. Use up/down then OK on a remote.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            {servers.map((s) => {
+            {servers.map((s, i) => {
               const isActive = s.id === active.id;
               return (
                 <button
                   key={s.id}
                   type="button"
+                  /* Land the remote on the first row so OK works immediately. */
+                  autoFocus={i === 0}
                   aria-current={isActive}
                   onClick={() => {
                     setOpen(false);
                     if (!isActive) onSwitch(s.id);
                   }}
-                  className={`flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-3 text-left outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${
+                  className={`flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-3 text-left outline-none transition hover:bg-accent focus:bg-accent focus:ring-2 focus:ring-ring ${
                     isActive ? "border-primary bg-accent/60" : "border-border"
                   }`}
                 >
@@ -88,7 +84,7 @@ export function ServerSwitcher({
                 </button>
               );
             })}
-            <Button asChild variant="outline" className="w-full">
+            <Button asChild variant="outline" className="w-full focus:ring-2 focus:ring-ring">
               <Link to="/login" onClick={() => setOpen(false)}>
                 + Add another server
               </Link>
