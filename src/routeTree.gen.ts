@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
@@ -21,6 +22,7 @@ import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
+import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -42,6 +44,11 @@ const LibraryRoute = LibraryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -84,6 +91,11 @@ const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
   path: '/api/public/media-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPlayRoute = ApiPublicPlayRouteImport.update({
+  id: '/api/public/play',
+  path: '/api/public/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStreamRoute = ApiPublicStreamRouteImport.update({
   id: '/api/public/stream',
   path: '/api/public/stream',
@@ -101,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -109,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -117,6 +131,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -125,6 +140,7 @@ export interface FileRoutesByTo {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -134,6 +150,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/play': typeof PlayRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/upgrade': typeof UpgradeRoute
@@ -142,6 +159,7 @@ export interface FileRoutesById {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
+  '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -152,6 +170,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -160,6 +179,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -168,6 +188,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -176,6 +197,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   id:
@@ -184,6 +206,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/library'
     | '/login'
+    | '/play'
     | '/search'
     | '/settings'
     | '/upgrade'
@@ -192,6 +215,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/media-proxy'
+    | '/api/public/play'
     | '/api/public/stream'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -201,6 +225,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  PlayRoute: typeof PlayRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   UpgradeRoute: typeof UpgradeRoute
@@ -209,6 +234,7 @@ export interface RootRouteChildren {
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
+  ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -241,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -299,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMediaProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/play': {
+      id: '/api/public/play'
+      path: '/api/public/play'
+      fullPath: '/api/public/play'
+      preLoaderRoute: typeof ApiPublicPlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stream': {
       id: '/api/public/stream'
       path: '/api/public/stream'
@@ -321,6 +361,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  PlayRoute: PlayRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   UpgradeRoute: UpgradeRoute,
@@ -329,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
+  ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }

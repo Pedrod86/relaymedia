@@ -16,6 +16,7 @@ const config: CapacitorConfig = {
       '*.relay-media.lovable.app',
       'relay-media.store',
       '*.relay-media.store',
+      'proxy.relay-media.store',
       'stream-vault.live',
       '*.stream-vault.live',
     ],
