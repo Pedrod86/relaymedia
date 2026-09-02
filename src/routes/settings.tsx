@@ -219,6 +219,15 @@ function SettingsPage() {
       ),
     },
     {
+      id: "devices",
+      title: "Devices & sync",
+      desc: "Copy this setup to your TV with a pairing code",
+      icon: MonitorSmartphone,
+      keywords: "devices sync pairing code tv phone transfer setup migrate copy servers",
+      render: () => <SetupSyncPanel />,
+    },
+    {
+
       id: "about",
       title: "About",
       desc: "App version, legal information, and credits",
