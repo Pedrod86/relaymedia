@@ -7,14 +7,25 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { applyTheme, loadTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
-import { useAndroidBackButton } from "@/lib/use-back-button";
+import { useAndroidBackButton, EXIT_REQUEST_EVENT } from "@/lib/use-back-button";
+import { isNativeApp } from "@/lib/platform";
 
 function NotFoundComponent() {
   return (
