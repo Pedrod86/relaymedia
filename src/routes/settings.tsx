@@ -176,10 +176,10 @@ function SettingsPage() {
       icon: Palette,
       keywords: "theme neon cyber minimal appearance categories hide libraries rows",
       render: () => (
-        <>
-          <ThemePanel />
-          <ActiveServerPanel server={active} only="categories" />
-        </>
+        <PersonalizationHub
+          themePanel={<ThemePanel />}
+          librariesPanel={<ActiveServerPanel server={active} only="categories" />}
+        />
       ),
     },
     {
