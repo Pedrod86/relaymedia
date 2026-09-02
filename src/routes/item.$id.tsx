@@ -8,6 +8,8 @@ import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 import { TrailerPreview } from "@/components/TrailerPreview";
+import { useSavedItem } from "@/lib/use-saved-items";
+import { toast } from "sonner";
 
 import {
   checkItemPlayback,
@@ -543,5 +545,38 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         </div>
       )}
     </main>
+  );
+}
+
+/** Favourite / watch-later toggles for the current title. */
+function SaveButtons({ server, item }: { server: MediaServer; item: any }) {
+  const fav = useSavedItem(server.id, "favourite", item);
+  const later = useSavedItem(server.id, "later", item);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant={fav.saved ? "default" : "outline"}
+        size="lg"
+        aria-pressed={fav.saved}
+        onClick={() => {
+          const on = fav.toggle();
+          toast.success(on ? "Added to favourites" : "Removed from favourites");
+        }}
+      >
+        {fav.saved ? "★ Favourited" : "☆ Favourite"}
+      </Button>
+      <Button
+        variant={later.saved ? "default" : "outline"}
+        size="lg"
+        aria-pressed={later.saved}
+        onClick={() => {
+          const on = later.toggle();
+          toast.success(on ? "Saved to watch later" : "Removed from watch later");
+        }}
+      >
+        {later.saved ? "✓ Watch later" : "+ Watch later"}
+      </Button>
+    </div>
   );
 }
