@@ -25,6 +25,8 @@ import { DevicesPanel } from "@/components/DevicesPanel";
 import { AccountPanel } from "@/components/AccountPanel";
 import { TorboxPanel } from "@/components/TorboxPanel";
 import { TraktPanel } from "@/components/TraktPanel";
+import { DiscordPanel } from "@/components/DiscordPanel";
+import { AiPicksPanel } from "@/components/AiPicksPanel";
 
 
 
@@ -160,6 +162,10 @@ function SettingsPage() {
         <AccountPanel />
 
         <DevicesPanel />
+
+        <AiPicksPanel serverId={active.id} />
+
+        <DiscordPanel />
 
 
 
