@@ -27,6 +27,7 @@ import { PlayerSettingsPanel } from "@/components/PlayerSettingsPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
 import { AccountPanel } from "@/components/AccountPanel";
 import { TorboxPanel } from "@/components/TorboxPanel";
+import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
