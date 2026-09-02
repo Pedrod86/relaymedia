@@ -25,6 +25,15 @@ import { useSavedList } from "@/lib/use-saved-items";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu } from "lucide-react";
 
 
 export const Route = createFileRoute("/library")({
