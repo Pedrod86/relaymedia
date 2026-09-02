@@ -25,6 +25,7 @@ import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
+import { Route as TorboxTorrentIdFileIdRouteImport } from './routes/torbox.$torrentId.$fileId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -107,6 +108,11 @@ const ApiPublicStreamRoute = ApiPublicStreamRouteImport.update({
   path: '/api/public/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TorboxTorrentIdFileIdRoute = TorboxTorrentIdFileIdRouteImport.update({
+  id: '/torbox/$torrentId/$fileId',
+  path: '/torbox/$torrentId/$fileId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
+  '/torbox/$torrentId/$fileId': typeof TorboxTorrentIdFileIdRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
+    | '/torbox/$torrentId/$fileId'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
+    | '/torbox/$torrentId/$fileId'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
+    | '/torbox/$torrentId/$fileId'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
   ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
+  TorboxTorrentIdFileIdRoute: typeof TorboxTorrentIdFileIdRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/torbox/$torrentId/$fileId': {
+      id: '/torbox/$torrentId/$fileId'
+      path: '/torbox/$torrentId/$fileId'
+      fullPath: '/torbox/$torrentId/$fileId'
+      preLoaderRoute: typeof TorboxTorrentIdFileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -393,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
   ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
+  TorboxTorrentIdFileIdRoute: TorboxTorrentIdFileIdRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

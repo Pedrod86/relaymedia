@@ -1,12 +1,12 @@
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Cloud, Play } from "lucide-react";
-import { toast } from "sonner";
 import {
   torboxListDownloads,
-  torboxPlayUrl,
   torboxStatus,
 } from "@/lib/torbox.functions";
+
 
 const VIDEO_RE = /\.(mkv|mp4|m4v|avi|mov|webm|ts|m2ts)$/i;
 
@@ -40,7 +40,7 @@ type Playable = {
 export function TorboxRow({ tv = false }: { tv?: boolean }) {
   const statusFn = useServerFn(torboxStatus);
   const listFn = useServerFn(torboxListDownloads);
-  const playUrlFn = useServerFn(torboxPlayUrl);
+  const navigate = useNavigate();
 
   const status = useQuery({
     queryKey: ["torbox-status"],
@@ -77,16 +77,14 @@ export function TorboxRow({ tv = false }: { tv?: boolean }) {
     }
   }
 
-  async function onPlay(item: Playable) {
-    const res = await playUrlFn({
-      data: { torrentId: item.torrentId, fileId: item.fileId },
+  function onPlay(item: Playable) {
+    void navigate({
+      to: "/torbox/$torrentId/$fileId",
+      params: { torrentId: String(item.torrentId), fileId: String(item.fileId) },
+      search: { title: item.file || item.title },
     });
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-    window.open(res.url, "_blank", "noopener,noreferrer");
   }
+
 
   return (
     <section>
