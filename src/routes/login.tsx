@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { embyLogin } from "@/lib/emby.functions";
 import { plexAddServer } from "@/lib/plex.functions";
-import { setActiveServerId, type ServerKind } from "@/lib/media-client";
+import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,9 +21,9 @@ export const Route = createFileRoute("/login")({
 });
 
 const KINDS: { value: ServerKind; label: string; hint: string }[] = [
-  { value: "emby", label: "Emby", hint: "e.g. https://emby.example.com:8096" },
-  { value: "jellyfin", label: "Jellyfin", hint: "e.g. https://jellyfin.example.com" },
-  { value: "plex", label: "Plex", hint: "e.g. https://plex.example.com:32400" },
+  { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
+  { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
+  { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
 ];
 
 function LoginPage() {
@@ -47,7 +47,7 @@ function LoginPage() {
     setLimitReached(false);
     setBusy(true);
     try {
-      const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+      const cleanUrl = normalizeServerInput(serverUrl, kind);
       // Credentials are posted to the server, which stores the resulting
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.

@@ -17,11 +17,17 @@ export function isNativeApp(): boolean {
 export function isTvDevice(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent || "";
-  if (/\b(Android\s?TV|Google\s?TV|SMART-?TV|SmartTV|GoogleTV|AFT[A-Z0-9]+|BRAVIA|Web0S|WEBOS|Tizen|CrKey|HbbTV|NetCast|AppleTV)\b/i.test(ua))
+  // NVIDIA SHIELD reports models like "SHIELD Android TV", "SHIELD" or
+  // "darcy"/"mdarcy"/"foster" — match those too, plus other TV boxes.
+  if (
+    /(Android\s?TV|Google\s?TV|SMART-?TV|SmartTV|GoogleTV|AFT[A-Z0-9]+|SHIELD|NVIDIA|mdarcy|darcy|foster|BRAVIA|AQUOS|Philips|Chromecast|Web0S|WEBOS|Tizen|CrKey|HbbTV|NetCast|AppleTV|ATV|OTT|STB|BOX)/i.test(
+      ua,
+    )
+  )
     return true;
-  // Fire TV / many boxes only expose the model in the UA (e.g. "AFTKA").
-  if (/Android/i.test(ua) && !/Mobile/i.test(ua) && window.matchMedia?.("(hover: none) and (pointer: coarse)").matches === false)
-    return true;
+  // Fire TV / many boxes only expose the model in the UA (e.g. "AFTKA"):
+  // Android without "Mobile" and without a touch pointer means a leanback box.
+  if (/Android/i.test(ua) && !/Mobile/i.test(ua) && !/Tablet/i.test(ua)) return true;
   return false;
 }
 
