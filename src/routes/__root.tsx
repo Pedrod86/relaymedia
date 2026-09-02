@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { applyTheme, loadTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
+import { useAndroidBackButton } from "@/lib/use-back-button";
 
 function NotFoundComponent() {
   return (
@@ -132,6 +133,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  useAndroidBackButton();
 
   useEffect(() => {
     applyTheme(loadTheme());
