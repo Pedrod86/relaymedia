@@ -77,16 +77,14 @@ export function TorboxRow({ tv = false }: { tv?: boolean }) {
     }
   }
 
-  async function onPlay(item: Playable) {
-    const res = await playUrlFn({
-      data: { torrentId: item.torrentId, fileId: item.fileId },
+  function onPlay(item: Playable) {
+    void navigate({
+      to: "/torbox/$torrentId/$fileId",
+      params: { torrentId: String(item.torrentId), fileId: String(item.fileId) },
+      search: { title: item.file || item.title },
     });
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-    window.open(res.url, "_blank", "noopener,noreferrer");
   }
+
 
   return (
     <section>
