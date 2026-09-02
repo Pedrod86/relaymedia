@@ -652,8 +652,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+            </div>
             <div>
               <p className="mb-2 font-medium">Stream</p>
               <div className="flex gap-1">
@@ -670,9 +669,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                 ))}
               </div>
             </div>
-            {isPro && (
-              <>
-                <div>
+            <div>
                   <p className="mb-2 font-medium">Quality cap</p>
                   <select
                     value={prefs.maxBitrate}
@@ -740,8 +737,6 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
                     ))}
                   </div>
                 </div>
-              </>
-            )}
           </div>
 
 
