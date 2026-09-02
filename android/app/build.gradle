@@ -16,10 +16,10 @@ def storeFilePath = System.getenv('RELAY_STORE_FILE') ?: keystoreProps['storeFil
 def hasReleaseKey = storeFilePath != null && !storeFilePath.toString().isEmpty() && file(storeFilePath).exists()
 
 android {
-    namespace = "app.lovable.streamrelay"
+    namespace = "com.relaymedia.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.lovable.streamrelay"
+        applicationId "com.relaymedia.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode (System.getenv('RELAY_VERSION_CODE') ?: '1') as int

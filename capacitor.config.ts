@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.streamrelay',
+  appId: 'com.relaymedia.app',
   appName: 'Relay Media',
   // Local fallback page shown only if the hosted app can't be reached.
   webDir: 'capacitor-www',

@@ -97,7 +97,7 @@ Local builds use the same key by creating `android/keystore.properties`
 
 ## Notes
 
-- App id: `app.lovable.streamrelay` — change it in `capacitor.config.ts` and
+- App id: `com.relaymedia.app` — change it in `capacitor.config.ts` and
   re-run `cap sync` before publishing to Play.
 - Cleartext traffic is allowed so local Emby/Jellyfin/Plex servers on plain HTTP
   still work.
