@@ -15,6 +15,7 @@ import {
   type MediaServer,
 } from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
+import { TorboxRow } from "@/components/TorboxRow";
 import { useMediaServers } from "@/lib/use-servers";
 import { useProAccess } from "@/lib/use-pro";
 import { isTvDevice } from "@/lib/platform";
