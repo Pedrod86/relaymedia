@@ -497,6 +497,45 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     { id: "software", label: "Software" },
   ];
 
+  // ---- Native AndroidX Media3 / ExoPlayer handoff ---------------------------
+  // Inside the APK the device decoders play MKV, Dolby Digital+ and HDR/DV
+  // grades the WebView cannot, so playback moves to ExoPlayer.
+  const [nativePlayer, setNativePlayer] = useState(false);
+  const handedOff = useRef(false);
+
+  useEffect(() => {
+    void media3Available().then(setNativePlayer);
+  }, []);
+
+  async function playNative() {
+    const chosen = textSubs.find((s) => s.index === subIndex);
+    const url = streamUrl(server, itemId, {
+      mode: "direct",
+      session: sessionId,
+      maxBitrate: prefs.maxBitrate,
+      maxHeight: prefs.maxHeight,
+      hdr: hdrParam,
+      container: check?.directContainer ?? "mkv",
+      remux: false,
+    });
+    const ok = await media3Play({
+      url,
+      title: itemQ.data?.item?.Name ?? "",
+      subtitleUrl: chosen ? embySubtitleUrl(server, itemId, chosen.mediaSourceId, chosen.index) : undefined,
+      subtitleLang: chosen?.lang || "und",
+      startPositionMs: Math.floor((videoRef.current?.currentTime ?? 0) * 1000),
+      tunneling: prefs.afr !== "off",
+    });
+    if (ok) videoRef.current?.pause();
+    else setError("The device player couldn't be opened — staying on the built-in player.");
+  }
+
+  useEffect(() => {
+    if (!nativePlayer || handedOff.current || !mode) return;
+    handedOff.current = true;
+    void playNative();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativePlayer, mode]);
 
   return (
     <main className="flex min-h-screen flex-col bg-black text-white">
