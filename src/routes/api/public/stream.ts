@@ -62,14 +62,37 @@ function embyPath(
   q: z.infer<typeof querySchema>,
   userId: string,
   kind: "emby" | "jellyfin",
+  opts: { mediaSourceId?: string; minimal?: boolean } = {},
 ) {
   const session = q.session || `lovable-${q.item}`;
   const jellyfin = kind === "jellyfin";
   // Jellyfin requires MediaSourceId on both /stream and /master.m3u8 (it is
-  // optional on Emby). For a normal library item the media source id equals the
-  // item id, so sending it is always safe and stops Jellyfin 400ing the
-  // request — which is what surfaced as "loads then breaks".
-  const mediaSourceId = q.item;
+  // optional on Emby). For most library items the media source id equals the
+  // item id, but multi-version items differ — PlaybackInfo resolves the real
+  // one and passing a wrong id is what makes the server reply 400.
+  const mediaSourceId = opts.mediaSourceId || q.item;
+  void jellyfin;
+
+  // Minimal fallback: some Emby/Jellyfin builds reject the full profile query
+  // (unknown codec-profile keys, framerate pinning, HDR range types). Ask for a
+  // plain H.264/AAC HLS ladder that every version accepts.
+  if (q.mode === "hls" && opts.minimal) {
+    const p = new URLSearchParams({
+      UserId: userId,
+      DeviceId: DEVICE_ID,
+      MediaSourceId: mediaSourceId,
+      PlaySessionId: session,
+      VideoCodec: "h264",
+      AudioCodec: "aac",
+      VideoBitrate: String(Math.min(q.maxBitrate, 20_000_000)),
+      AudioBitrate: "192000",
+      MaxAudioChannels: "2",
+      SegmentContainer: "ts",
+      MaxHeight: String(q.maxHeight),
+    });
+    if (q.start) p.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+    return `/Videos/${encodeURIComponent(q.item)}/master.m3u8?${p}`;
+  }
 
 
   if (q.mode === "direct") {
@@ -203,6 +226,7 @@ async function handle(request: Request) {
   const headers = forwardRequestHeaders(request);
 
   let path: string;
+  let embyBuild: ((minimal: boolean) => string) | undefined;
   if (cred.kind === "plex") {
     // Resolve the media part server-side: Plex needs the concrete Part key.
     const { plexFetch } = await import("@/lib/media.server");
@@ -217,33 +241,78 @@ async function handle(request: Request) {
     headers.set("X-Plex-Token", cred.token);
     headers.set("X-Plex-Client-Identifier", DEVICE_ID);
   } else {
-    path = embyPath(q, cred.userId, cred.kind === "jellyfin" ? "jellyfin" : "emby");
+    const kindName = cred.kind === "jellyfin" ? "jellyfin" : "emby";
     const auth = `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="${DEVICE_ID}", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`;
     headers.set("X-Emby-Token", cred.token);
     headers.set("X-Emby-Authorization", auth);
     // Jellyfin 10.9+ validates the full MediaBrowser scheme on Authorization; a
     // token-only header is rejected, which showed up as playback failing.
     headers.set("Authorization", auth);
+
+    // Resolve the real media source id (multi-version items don't reuse the
+    // item id). A wrong MediaSourceId makes both servers answer 400.
+    let mediaSourceId: string | undefined;
+    try {
+      const base = new URL(`${normalizeUrl(cred.serverUrl)}/`);
+      const infoUrl = new URL(
+        `/Items/${encodeURIComponent(q.item)}/PlaybackInfo?UserId=${encodeURIComponent(cred.userId)}`,
+        base,
+      );
+      const infoRes = await fetchUpstream(infoUrl.toString(), { method: "GET", headers });
+      if (infoRes.ok) {
+        const info: any = await infoRes.json();
+        const src = info?.MediaSources?.[0];
+        if (src?.Id) mediaSourceId = String(src.Id);
+      } else {
+        try { await infoRes.body?.cancel(); } catch { /* ignore */ }
+      }
+    } catch { /* fall back to the item id */ }
+
+    embyBuild = (minimal: boolean) =>
+      embyPath(q, cred.userId, kindName, { mediaSourceId, minimal });
+    path = embyBuild(false);
   }
 
 
 
   let targetUrl: URL;
-  try {
+  const resolve = (p: string) => {
     const base = new URL(`${normalizeUrl(cred.serverUrl)}/`);
-    targetUrl = new URL(path, base);
-    if (targetUrl.origin !== base.origin) throw new Error("origin mismatch");
+    const u = new URL(p, base);
+    if (u.origin !== base.origin) throw new Error("origin mismatch");
+    return u;
+  };
+  try {
+    targetUrl = resolve(path);
   } catch {
     return new Response("invalid stream target", { status: 400 });
   }
 
-  let upstream: Response;
-  try {
-    upstream = await fetchUpstream(targetUrl.toString(), {
+  const doFetch = (u: string) =>
+    fetchUpstream(u, {
       method: request.method === "HEAD" ? "HEAD" : "GET",
       headers,
       signal: request.signal,
     });
+
+  let upstream: Response;
+  try {
+    upstream = await doFetch(targetUrl.toString());
+    // The server rejected our full transcode profile: retry once with a plain
+    // H.264/AAC HLS request that every Emby/Jellyfin build accepts, instead of
+    // letting hls.js loop on a 400 (the "flashing on/off" symptom).
+    if (embyBuild && q.mode === "hls" && (upstream.status === 400 || upstream.status === 500)) {
+      try { await upstream.body?.cancel(); } catch { /* ignore */ }
+      const retryUrl = resolve(embyBuild(true));
+      const retry = await doFetch(retryUrl.toString());
+      if (retry.ok) {
+        upstream = retry;
+        targetUrl = retryUrl;
+      } else {
+        try { await retry.body?.cancel(); } catch { /* ignore */ }
+        upstream = await doFetch(targetUrl.toString());
+      }
+    }
   } catch (e: any) {
     // Client went away mid-seek: nothing to send, and the upstream fetch is
     // already cancelled so the server stops producing bytes.
