@@ -997,67 +997,99 @@ function BackdropHero({
     return () => clearInterval(t);
   }, [items.length]);
 
+  if (!items.length) return null;
   const current = items[idx] ?? items[0];
-  const src = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
-  if (!src) return null;
+  const backdrop = imageUrl(server, current, "Backdrop", { maxWidth: 1600 });
 
   return (
-    <div className="relative h-[42vh] min-h-[280px] w-full overflow-hidden">
-      {items.map((it, i) => {
-        const s = imageUrl(server, it, "Backdrop", { maxWidth: 1600 });
-        if (!s) return null;
-        return (
-          <img
-            key={it.Id ?? i}
-            src={s}
-            alt=""
-            aria-hidden={i !== idx}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-              i === idx ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        );
-      })}
+    <div className="relative w-full overflow-hidden pb-6 pt-4">
+      {/* Ambient glow from the featured artwork */}
+      {backdrop && (
+        <img
+          key={backdrop}
+          src={backdrop}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl transition-opacity duration-1000"
+        />
+      )}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/40 via-background/20 to-background"
       />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-background/70 to-transparent"
-      />
-      <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-8">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          Recently added
-        </p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight drop-shadow-lg sm:text-4xl">
+
+      {/* Floating poster reel */}
+      <div className="relative z-10 flex h-[46vh] min-h-[300px] items-center justify-center">
+        {items.map((it, i) => {
+          const offset = i - idx;
+          const abs = Math.abs(offset);
+          if (abs > 2) return null;
+          const isActive = offset === 0;
+          return (
+            <button
+              key={it.Id ?? i}
+              type="button"
+              aria-label={cleanName(it.Name)}
+              aria-hidden={!isActive}
+              onClick={() => (isActive ? undefined : setIdx(i))}
+              style={{
+                transform: `translateX(${offset * 62}%) scale(${isActive ? 1 : abs === 1 ? 0.82 : 0.68})`,
+                zIndex: 10 - abs,
+                opacity: isActive ? 1 : abs === 1 ? 0.55 : 0.25,
+                filter: isActive ? undefined : "blur(1px)",
+              }}
+              className="absolute aspect-[2/3] h-full max-h-[360px] overflow-hidden rounded-2xl border border-border/40 bg-card shadow-2xl transition-all duration-700 ease-out"
+            >
+              <MediaImage
+                server={server}
+                item={it}
+                type="Primary"
+                maxWidth={500}
+                alt={cleanName(it.Name)}
+                className="h-full w-full object-cover"
+                fallback={
+                  <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
+                    {cleanName(it.Name)}
+                  </span>
+                }
+              />
+            </button>
+          );
+        })}
+        {/* Glow ring behind the active poster */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute h-[70%] w-[46%] rounded-full bg-primary/25 blur-3xl"
+        />
+      </div>
+
+      {/* Caption */}
+      <div className="relative z-10 mx-auto mt-5 flex max-w-xl flex-col items-center px-6 text-center">
+        <Link
+          to="/item/$id"
+          params={{ id: String(current.Id) }}
+          className="text-2xl font-semibold uppercase tracking-wide text-primary drop-shadow-lg sm:text-3xl"
+        >
           {cleanName(current.Name)}
-        </h2>
-        {current.ProductionYear && (
-          <p className="mt-1 text-sm text-muted-foreground">{current.ProductionYear}</p>
+        </Link>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {[current.ProductionYear, current.OfficialRating].filter(Boolean).join(" · ")}
+        </p>
+        {items.length > 1 && (
+          <div className="mt-4 flex items-center gap-1.5">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Show item ${i + 1}`}
+                onClick={() => setIdx(i)}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/40"
+                }`}
+              />
+            ))}
+          </div>
         )}
-        <div className="mt-4 flex items-center gap-3">
-          <Button asChild>
-            <Link to="/item/$id" params={{ id: String(current.Id) }}>
-              View details
-            </Link>
-          </Button>
-          {items.length > 1 && (
-            <div className="flex gap-1.5">
-              {items.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`Show item ${i + 1}`}
-                  onClick={() => setIdx(i)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/50"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
