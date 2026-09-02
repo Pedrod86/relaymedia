@@ -144,6 +144,8 @@ function LibraryContent({
   const { history, watched, genres } = useWatchHistory(server.id);
   const historyItems = useMemo(() => history.map(historyToItem), [history]);
   const watchedItems = useMemo(() => watched.map(historyToItem), [watched]);
+  const favourites = useSavedList(server.id, "favourite");
+  const watchLater = useSavedList(server.id, "later");
   const getSuggestions = useServerFn(embyGetSuggestions);
   const suggestions = useQuery({
     enabled: !isPlex && history.length > 0,
