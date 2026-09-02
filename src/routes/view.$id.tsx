@@ -1,13 +1,31 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { embyGetItems, embyGetViews } from "@/lib/emby.functions";
 import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
 import { cleanName, itemTypesFor, type MediaServer } from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Sort presets, mapped to each backend's own sort field names.
+const SORTS = [
+  { id: "name", label: "Name (A–Z)", emby: ["SortName", "Ascending"], plex: "titleSort:asc" },
+  { id: "name-desc", label: "Name (Z–A)", emby: ["SortName", "Descending"], plex: "titleSort:desc" },
+  { id: "added", label: "Recently added", emby: ["DateCreated", "Descending"], plex: "addedAt:desc" },
+  { id: "released", label: "Release date", emby: ["PremiereDate,ProductionYear", "Descending"], plex: "originallyAvailableAt:desc" },
+  { id: "rating", label: "Top rated", emby: ["CommunityRating", "Descending"], plex: "audienceRating:desc" },
+  { id: "played", label: "Recently played", emby: ["DatePlayed", "Descending"], plex: "lastViewedAt:desc" },
+  { id: "random", label: "Random", emby: ["Random", "Ascending"], plex: "random:asc" },
+] as const;
 
 export const Route = createFileRoute("/view/$id")({
   head: () => ({
@@ -35,6 +53,11 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
   const getItemsPlex = useServerFn(plexGetItems);
   const getViewsEmby = useServerFn(embyGetViews);
   const getViewsPlex = useServerFn(plexGetViews);
+  const [sortId, setSortId] = useState<string>(() => {
+    if (typeof localStorage === "undefined") return "name";
+    return localStorage.getItem("relay:view-sort") ?? "name";
+  });
+  const sort = SORTS.find((s) => s.id === sortId) ?? SORTS[0];
 
   const views = useQuery({
     queryKey: ["views", server.id],
@@ -47,7 +70,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
   const view = views.data?.views.find((v) => v.Id === viewId);
 
   const items = useQuery({
-    queryKey: ["view-items", server.id, viewId, view?.CollectionType ?? ""],
+    queryKey: ["view-items", server.id, viewId, view?.CollectionType ?? "", sort.id],
     enabled: isPlex || views.isSuccess,
     queryFn: () =>
       isPlex
@@ -56,7 +79,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
               serverId: server.id,
               parentId: viewId,
               limit: 200,
-              sortBy: "titleSort",
+              sortBy: sort.plex,
             },
           })
         : getItemsEmby({
@@ -64,7 +87,8 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
               serverId: server.id,
               parentId: viewId,
               limit: 200,
-              sortBy: "SortName",
+              sortBy: sort.emby[0],
+              sortOrder: sort.emby[1],
               recursive: true,
               includeItemTypes: itemTypesFor(view?.CollectionType),
             },
@@ -83,9 +107,33 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
             </p>
             <h1 className="text-lg font-semibold">{view?.Name ?? "Library"}</h1>
           </div>
-          <Button variant="ghost" asChild>
-            <Link to="/library">Back</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              value={sortId}
+              onValueChange={(v) => {
+                setSortId(v);
+                try {
+                  localStorage.setItem("relay:view-sort", v);
+                } catch {
+                  /* storage unavailable */
+                }
+              }}
+            >
+              <SelectTrigger className="tv-card h-9 w-[9.5rem] text-xs" aria-label="Sort library">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORTS.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="text-xs">
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" asChild>
+              <Link to="/library">Back</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
