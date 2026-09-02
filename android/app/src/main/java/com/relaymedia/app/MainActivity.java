@@ -1,4 +1,4 @@
-package app.lovable.streamrelay;
+package com.relaymedia.app;
 
 import android.os.Bundle;
 
