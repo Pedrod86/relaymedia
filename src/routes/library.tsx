@@ -480,30 +480,61 @@ function TVLayout({
     }
   }, [sections, activeSectionId]);
 
-  useEffect(() => {
-    const cardsIn = (id: string) =>
-      Array.from(rowsRef.current[id]?.querySelectorAll<HTMLElement>("[data-tv-card]") ?? []);
+  // Remembered horizontal position (card centre, in row-content coordinates) so
+  // travelling up/down through short rows still lands on the expected column.
+  const columnRef = useRef<number | null>(null);
 
-    const focusCard = (card: HTMLElement | undefined) => {
+  useEffect(() => {
+    /** Rows in visual order, straight from the DOM so it can never disagree. */
+    const rowEls = () =>
+      Array.from(
+        mainRef.current?.querySelectorAll<HTMLElement>("[data-section-id]") ?? [],
+      );
+
+    const cardsOf = (row: HTMLElement) =>
+      Array.from(row.querySelectorAll<HTMLElement>("[data-tv-card]"));
+
+    /** Centre of a card within its (scrollable) row, independent of scroll. */
+    const centreOf = (card: HTMLElement) => card.offsetLeft + card.offsetWidth / 2;
+
+    const focusCard = (card: HTMLElement | undefined | null) => {
       if (!card) return false;
       card.focus({ preventScroll: true });
-      card.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      const row = card.closest<HTMLElement>("[data-section-id]");
+      row?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const id = row?.dataset.sectionId;
+      if (id) setActiveSectionId(id);
       return true;
     };
 
-    /** Focus the first control in the sticky header, scrolling back to the top. */
+    /** Card in `row` closest to the remembered column. */
+    const nearest = (row: HTMLElement) => {
+      const cards = cardsOf(row);
+      if (!cards.length) return null;
+      const want = columnRef.current;
+      if (want == null) return cards[0];
+      let best = cards[0]!;
+      let bestD = Math.abs(centreOf(best) - want);
+      for (const c of cards.slice(1)) {
+        const d = Math.abs(centreOf(c) - want);
+        if (d < bestD) {
+          best = c;
+          bestD = d;
+        }
+      }
+      return best;
+    };
+
+    /** Focus the header / sidebar and scroll the page back to the top. */
     const focusChrome = () => {
-      const chrome = mainRef.current?.querySelector<HTMLElement>(
-        'header a, header button, aside a, aside button',
-      );
       mainRef.current
         ?.querySelector<HTMLElement>(".tv-scroll")
         ?.scrollTo({ top: 0, behavior: "smooth" });
-      if (chrome) {
-        chrome.focus({ preventScroll: true });
-        return true;
-      }
-      return false;
+      const chrome = mainRef.current?.querySelector<HTMLElement>(
+        "header a, header button, aside a, aside button",
+      );
+      chrome?.focus({ preventScroll: true });
     };
 
     const handler = (e: KeyboardEvent) => {
@@ -511,53 +542,59 @@ function TVLayout({
 
       const active = document.activeElement as HTMLElement | null;
       const card = active?.closest<HTMLElement>("[data-tv-card]") ?? null;
+      const rows = rowEls().filter((r) => cardsOf(r).length);
 
       if (!card) {
-        // Focus is in the header / sidebar: let the browser handle sideways
-        // moves, and only take over when stepping down into the rows.
-        if (e.key === "ArrowDown") {
+        // Focus sits in the header / sidebar: leave sideways moves to the
+        // browser, and only take over when stepping down into the rows.
+        if (e.key === "ArrowDown" && rows.length) {
           e.preventDefault();
-          const firstId =
-            sections.find((s) => cardsIn(s.id).length)?.id ?? activeSectionId;
-          setActiveSectionId(firstId);
-          focusCard(cardsIn(firstId)[0]);
+          columnRef.current = null;
+          focusCard(cardsOf(rows[0]!)[0]);
         }
         return;
       }
 
-      const row = card.closest<HTMLElement>("[data-section-id]") ?? null;
-      const rowId = row?.dataset.sectionId ?? activeSectionId;
-      const idx = sections.findIndex((s) => s.id === rowId);
-
       // Take over navigation entirely so focus moves one item at a time.
       e.preventDefault();
 
-      const cards = cardsIn(rowId);
+      const row = card.closest<HTMLElement>("[data-section-id]");
+      if (!row) return;
+      const cards = cardsOf(row);
       const pos = cards.indexOf(card);
+      const rowIdx = rows.indexOf(row);
 
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-        const nextPos = e.key === "ArrowRight" ? pos + 1 : pos - 1;
-        if (nextPos >= 0 && nextPos < cards.length) focusCard(cards[nextPos]);
+        const next = cards[e.key === "ArrowRight" ? pos + 1 : pos - 1];
+        if (next) {
+          columnRef.current = centreOf(next);
+          focusCard(next);
+        } else if (e.key === "ArrowLeft") {
+          // At the start of a row: step out to the section list / header.
+          const sideItem = mainRef.current?.querySelector<HTMLElement>(
+            'aside [data-focus="true"], aside button, aside a',
+          );
+          if (sideItem) sideItem.focus({ preventScroll: true });
+        }
         return;
       }
 
-      // Vertical: move one row, keeping the same column where possible.
+      // Vertical: one row at a time, landing on the nearest column.
+      if (columnRef.current == null) columnRef.current = centreOf(card);
       const dir = e.key === "ArrowDown" ? 1 : -1;
-      for (let i = idx + dir; i >= 0 && i < sections.length; i += dir) {
-        const nextId = sections[i]!.id;
-        const nextCards = cardsIn(nextId);
-        if (!nextCards.length) continue; // skip empty/unloaded rows only
-        setActiveSectionId(nextId);
-        focusCard(nextCards[Math.min(pos, nextCards.length - 1)]);
+      const nextRow = rows[rowIdx + dir];
+      if (nextRow) {
+        focusCard(nearest(nextRow));
         return;
       }
 
-      // Past the first row: hop up into the header so the top is reachable.
+      // Past the first row: hop up into the header so the top stays reachable.
       if (dir === -1) focusChrome();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeSectionId, sections]);
+  }, []);
+
 
 
 
