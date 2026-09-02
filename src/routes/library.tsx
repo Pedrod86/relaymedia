@@ -220,6 +220,12 @@ function LibraryContent({
     if (latest.data?.items.length) {
       list.push({ id: "latest", title: "Recently added", items: latest.data.items, kind: "primary" });
     }
+    if (favourites.items.length) {
+      list.push({ id: "favourites", title: "Favourites", items: favourites.items, kind: "primary" });
+    }
+    if (watchLater.items.length) {
+      list.push({ id: "later", title: "Watch later", items: watchLater.items, kind: "primary" });
+    }
     if (historyItems.length) {
       list.push({ id: "history", title: "Watch history", items: historyItems, kind: "thumb" });
     }
