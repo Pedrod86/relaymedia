@@ -97,6 +97,7 @@ function LibraryContent({
 }) {
   const navigate = useNavigate();
   const { isPro } = useProAccess();
+  const { prefs } = usePersonalization();
   const [tvMode, setTvMode] = useState(false);
   useEffect(() => {
     // On a TV/box the 10-foot layout is the only usable one, so default to it
