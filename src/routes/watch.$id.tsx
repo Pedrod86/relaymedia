@@ -5,7 +5,6 @@ import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
-import { useProAccess } from "@/lib/use-pro";
 import { embyGetItem } from "@/lib/emby.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
 import {
@@ -82,7 +81,6 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
-  const { isPro } = useProAccess();
   const [showPanel, setShowPanel] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   // Screen chrome (status chips, subtitle picker, settings) only appears while
@@ -155,8 +153,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     [itemQ.data, isEmbyFamily],
   );
   const afr = useMemo(
-    () => (isPro ? planFrameRate(prefs.afr, sourceFps, displayHz) : AFR_OFF),
-    [prefs.afr, sourceFps, displayHz, isPro],
+    () => planFrameRate(prefs.afr, sourceFps, displayHz),
+    [prefs.afr, sourceFps, displayHz],
   );
 
   // Apply the cadence correction to the element, and keep it applied across
@@ -638,22 +636,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
       {showPanel && (
         <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
-          {!isPro && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2">
-              <span>
-                Decoder control, 4K/HDR passthrough and quality caps are part of Relay Pro.
-              </span>
-              <Link
-                to="/upgrade"
-                className="rounded bg-primary px-2 py-1 font-medium text-primary-foreground"
-              >
-                Unlock for $1
-              </Link>
-            </div>
-          )}
           <div className="grid gap-4 sm:grid-cols-3">
-            {isPro && (
-              <div>
+            <div>
                 <p className="mb-2 font-medium">Decoding</p>
                 <div className="flex gap-1">
                   {decodeOptions.map((o) => (

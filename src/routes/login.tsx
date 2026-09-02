@@ -38,7 +38,6 @@ function LoginPage() {
   const [plexToken, setPlexToken] = useState("");
   const [usePlexToken, setUsePlexToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [limitReached, setLimitReached] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -57,7 +56,6 @@ function LoginPage() {
         });
         if (!res.ok) {
           setError(res.error);
-          setLimitReached(Boolean(res.limitReached));
           return;
         }
         setActiveServerId(res.server.id);
@@ -70,7 +68,6 @@ function LoginPage() {
         });
         if (!res.ok) {
           setError(res.error);
-          setLimitReached(Boolean(res.limitReached));
           return;
         }
         setActiveServerId(res.server.id);
@@ -216,11 +213,6 @@ function LoginPage() {
             {error && (
               <div className="space-y-2" role="alert">
                 <p className="text-sm text-destructive">{error}</p>
-                {limitReached && (
-                  <Button asChild variant="secondary" size="sm" className="w-full">
-                    <Link to="/upgrade">Unlock more servers with Relay Pro</Link>
-                  </Button>
-                )}
               </div>
             )}
             <Button type="submit" disabled={busy} className="w-full">
