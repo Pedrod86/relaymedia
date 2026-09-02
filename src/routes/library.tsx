@@ -136,6 +136,7 @@ function LibraryContent({
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
