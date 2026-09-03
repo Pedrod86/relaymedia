@@ -5,7 +5,7 @@ import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
-import { embyGetItem } from "@/lib/emby.functions";
+import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
 import {
   allowedCodecs,
@@ -132,6 +132,73 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   // Personal watch history (kept on this device) — powers the history row and
   // the suggestions on the homepage.
   useHistoryRecorder(videoRef, server.id, itemQ.data?.item);
+
+  // ---- Next episode (series autoplay) --------------------------------------
+  const navigate = useNavigate();
+  const getItemsEmby = useServerFn(embyGetItems);
+  const watched = itemQ.data?.item as any;
+  const seriesId: string | undefined =
+    watched?.Type === "Episode" ? (watched?.SeriesId as string | undefined) : undefined;
+
+  const episodesQ = useQuery({
+    enabled: isEmbyFamily && !!seriesId,
+    queryKey: ["series-episodes", server.id, seriesId],
+    queryFn: () =>
+      getItemsEmby({
+        data: {
+          serverId: server.id,
+          parentId: seriesId!,
+          recursive: true,
+          includeItemTypes: "Episode",
+          limit: 200,
+          sortBy: "ParentIndexNumber,IndexNumber,SortName",
+        },
+      }),
+  });
+
+  const nextEpisode = useMemo(() => {
+    const list: any[] = episodesQ.data?.items ?? [];
+    const i = list.findIndex((e) => String(e?.Id) === String(itemId));
+    return i >= 0 ? (list[i + 1] ?? null) : null;
+  }, [episodesQ.data, itemId]);
+
+  const [nextCountdown, setNextCountdown] = useState<number | null>(null);
+
+  // When the episode finishes, roll into the following one automatically.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onEnded = () => {
+      if (nextEpisode?.Id) setNextCountdown(8);
+    };
+    video.addEventListener("ended", onEnded);
+    return () => video.removeEventListener("ended", onEnded);
+  }, [nextEpisode, mode]);
+
+  useEffect(() => {
+    if (nextCountdown === null) return;
+    if (nextCountdown <= 0) {
+      const id = nextEpisode?.Id;
+      setNextCountdown(null);
+      if (id) navigate({ to: "/watch/$id", params: { id: String(id) } });
+      return;
+    }
+    const t = setTimeout(() => setNextCountdown((c) => (c ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [nextCountdown, nextEpisode, navigate]);
+
+  const nextEpisodeLabel = nextEpisode
+    ? [
+        nextEpisode.ParentIndexNumber != null && nextEpisode.IndexNumber != null
+          ? `S${nextEpisode.ParentIndexNumber}·E${nextEpisode.IndexNumber}`
+          : nextEpisode.IndexNumber != null
+            ? `Episode ${nextEpisode.IndexNumber}`
+            : null,
+        nextEpisode.Name,
+      ]
+        .filter(Boolean)
+        .join(" — ")
+    : "";
 
   const check = useMemo(
     () =>
@@ -798,6 +865,33 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             Paused
           </span>
         )}
+
+        {nextCountdown !== null && nextEpisode && (
+          <div className="absolute right-6 bottom-24 max-w-xs rounded-xl border border-white/15 bg-black/80 p-4 backdrop-blur">
+            <p className="text-xs uppercase tracking-wide opacity-70">Up next</p>
+            <p className="mt-1 text-sm font-medium">{nextEpisodeLabel}</p>
+            <p className="mt-1 text-xs opacity-70">Playing in {nextCountdown}s</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setNextCountdown(0)}
+                className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                ▶ Play now
+              </button>
+              <button
+                type="button"
+                onClick={() => setNextCountdown(null)}
+                className="rounded bg-white/10 px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+
 
         {seekHint && (
           <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">

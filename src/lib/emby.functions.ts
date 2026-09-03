@@ -138,6 +138,8 @@ const ITEM_FIELDS = [
   "MediaSources",
   "Path",
   "SeriesName",
+  "SeriesId",
+  "SeasonId",
   "ParentIndexNumber",
   "IndexNumber",
   "ChildCount",
@@ -408,4 +410,41 @@ export const embyGetViewCounts = createServerFn({ method: "POST" })
       }),
     );
     return { counts };
+  });
+
+/**
+ * "More like this" — Emby/Jellyfin's own similarity engine, with a genre-based
+ * fallback for titles the server has no similarity data for.
+ */
+export const embyGetSimilar = createServerFn({ method: "POST" })
+  .inputValidator(
+    serverRef.extend({
+      itemId: z.string().min(1).max(100),
+      limit: z.number().int().min(1).max(30).default(14),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const c = await requireCredential(data.serverId);
+    const fields =
+      "PrimaryImageAspectRatio,Overview,ProductionYear,Genres,CommunityRating,ImageTags,BackdropImageTags";
+
+    const params = new URLSearchParams({
+      UserId: c.userId ?? "",
+      Limit: String(data.limit),
+      Fields: fields,
+      EnableImages: "true",
+      ImageTypeLimit: "1",
+      EnableImageTypes: "Primary,Backdrop,Thumb",
+    });
+    let items: any[] = [];
+    try {
+      const json = (await embyFetch(c, `/Items/${data.itemId}/Similar?${params}`)) as {
+        Items?: any[];
+      };
+      items = json.Items ?? [];
+    } catch {
+      items = [];
+    }
+    return { items: items.slice(0, data.limit) };
   });

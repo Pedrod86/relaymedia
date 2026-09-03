@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
+import { embyGetItem, embyGetItems, embyGetSimilar, embyGetSuggestions } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
 import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
@@ -544,7 +544,10 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
           </div>
         </div>
       )}
+
+      <SimilarSection server={server} item={item} />
     </main>
+
   );
 }
 
@@ -578,5 +581,73 @@ function SaveButtons({ server, item }: { server: MediaServer; item: any }) {
         {later.saved ? "✓ Watch later" : "+ Watch later"}
       </Button>
     </div>
+  );
+}
+
+/**
+ * "More like this" — similar movies/series from the server's own similarity
+ * engine, falling back to a genre match when the server has no data.
+ */
+function SimilarSection({ server, item }: { server: MediaServer; item: any }) {
+  const isPlex = server.kind === "plex";
+  const getSimilar = useServerFn(embyGetSimilar);
+  const getSuggestions = useServerFn(embyGetSuggestions);
+
+  const baseId: string = item?.Type === "Episode" ? (item?.SeriesId ?? item?.Id) : item?.Id;
+  const genres: string[] = (item?.Genres ?? []).slice(0, 4);
+
+  const simQ = useQuery({
+    enabled: !isPlex && !!baseId,
+    queryKey: ["similar", server.id, baseId],
+    queryFn: () => getSimilar({ data: { serverId: server.id, itemId: String(baseId), limit: 14 } }),
+  });
+
+  const fallbackQ = useQuery({
+    enabled: !isPlex && simQ.isFetched && (simQ.data?.items?.length ?? 0) === 0 && genres.length > 0,
+    queryKey: ["similar-genres", server.id, baseId, genres.join("|")],
+    queryFn: () =>
+      getSuggestions({
+        data: { serverId: server.id, genres, excludeIds: [String(baseId)], limit: 14 },
+      }),
+  });
+
+  const items: any[] = (
+    (simQ.data?.items?.length ? simQ.data.items : (fallbackQ.data?.items ?? [])) as any[]
+  ).filter((it) => String(it?.Id) !== String(baseId));
+
+  if (isPlex || items.length === 0) return null;
+
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-12">
+      <h2 className="mb-4 text-xl font-semibold">More like this</h2>
+      <div className="flex gap-3 overflow-x-auto pb-3 sm:gap-4">
+        {items.map((it) => {
+          const img = imageUrl(server, it, "Primary", { maxWidth: 400 });
+          return (
+            <Link
+              key={it.Id}
+              to="/item/$id"
+              params={{ id: String(it.Id) }}
+              className="w-28 shrink-0 sm:w-32 md:w-36"
+            >
+              {img ? (
+                <img
+                  src={img}
+                  alt={`${cleanName(it.Name)} poster`}
+                  loading="lazy"
+                  className="aspect-[2/3] w-full rounded-lg object-cover ring-1 ring-border transition hover:ring-primary"
+                />
+              ) : (
+                <div className="aspect-[2/3] w-full rounded-lg bg-muted" />
+              )}
+              <p className="mt-2 truncate text-xs font-medium">{cleanName(it.Name)}</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {[it.ProductionYear, it.Type === "Series" ? "TV" : null].filter(Boolean).join(" • ")}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
