@@ -126,6 +126,11 @@ function AuthPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
+          <img
+            src={relayLogo.url}
+            alt="Relay Media logo"
+            className="mx-auto mb-4 h-20 w-20 rounded-2xl object-cover shadow-lg"
+          />
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Relay</p>
           <h1 className="mt-1 text-2xl font-semibold">
             {mode === "signin" ? "Sign in" : "Create account"}
