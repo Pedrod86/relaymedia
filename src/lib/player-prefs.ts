@@ -3,7 +3,7 @@
 // Stored in localStorage — these are non-sensitive UI/playback preferences only.
 
 import type { AfrMode } from "./afr";
-import { isAndroidNative, isTvDevice } from "./platform";
+import { isAndroidNative, isAndroidTvBox, isTvDevice } from "./platform";
 
 
 export type DecodeMode = "auto" | "hardware" | "software";
@@ -222,12 +222,13 @@ export async function probeCodecs(): Promise<CodecCap[]> {
 
   const list = await Promise.all([...VIDEO_PROBES, ...AUDIO_PROBES].map(probe));
 
-  // Android TV boxes (NVIDIA SHIELD, Fire TV, Chromecast/Google TV) run their
-  // video through the platform MediaCodec pipeline, but the WebView's
-  // canPlayType / MediaCapabilities tables do not advertise HEVC Main10,
-  // Dolby Vision or Dolby audio even though the SoC decodes them. Trust the
-  // device class instead of the browser table there.
-  if (isTvDevice() || isAndroidNative()) {
+  // Android TV / Google TV / Fire TV boxes and similar ARM set-top boxes route
+  // video through a dedicated MediaCodec / HDMI pipeline, but WebView's
+  // canPlayType / MediaCapabilities tables often hide HEVC Main10, Dolby Vision,
+  // AC3 and E-AC3 support even when the SoC decodes them. Trust the device class
+  // instead of the browser table there.
+  const tvBox = isTvDevice() || isAndroidTvBox() || isAndroidNative();
+  if (tvBox) {
     const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3"]);
     return list.map((c) => (forced.has(c.name) ? { ...c, supported: true, hardware: true } : c));
   }
@@ -268,10 +269,12 @@ export async function probeHdr(caps?: CodecCap[]): Promise<HdrSupport> {
   const list = caps ?? (await probeCodecs());
   const mc = (navigator as any).mediaCapabilities;
 
-  // Leanback devices (SHIELD, Fire TV, Google TV) are wired to a TV panel and
-  // negotiate HDR/DV on the HDMI link themselves; the WebView media queries
-  // usually report "standard" regardless, so treat the device class as HDR.
-  const tvPipeline = isTvDevice() || isAndroidNative();
+  // Leanback devices (SHIELD, Fire TV, Google TV, generic Android TV boxes) are
+  // wired to a TV panel and negotiate HDR/DV on the HDMI link themselves; the
+  // WebView media queries usually report "standard" regardless, so treat the
+  // device class as the HDR pipeline and flag Dolby Vision/HDR10 decodable.
+  const tvPipeline = isTvDevice() || isAndroidTvBox() || isAndroidNative();
+
 
   const hdrDisplay =
     tvPipeline ||
