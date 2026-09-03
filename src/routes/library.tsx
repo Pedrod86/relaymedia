@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import relayLogo from "@/assets/relay-logo.png.asset.json";
 import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary, embyGetSuggestions } from "@/lib/emby.functions";
 import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest, plexRefreshLibrary } from "@/lib/plex.functions";
 import {
