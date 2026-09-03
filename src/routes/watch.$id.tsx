@@ -78,6 +78,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   // MKV / E-AC3 / HDR10 capability of the surrounding platform (the Android APK
   // plays all three through the device's own decoders).
   const [env, setEnv] = useState<PlaybackEnv>(WEB_ENV);
+  // TV mode hides the pause overlay so the paused picture stays clean on a big screen.
+  const [isTv, setIsTv] = useState(false);
 
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +87,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [showPanel, setShowPanel] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   // Screen chrome (status chips, subtitle picker, settings) only appears while
-  // playback is paused — during playback the picture is left clean, which
-  // matters most on a TV.
+  // playback is paused on a phone/tablet/desktop — on a TV the paused picture is
+  // left completely clean, which is what big-screen viewers expect.
   const [paused, setPaused] = useState(true);
   const getItemEmby = useServerFn(embyGetItem);
 
