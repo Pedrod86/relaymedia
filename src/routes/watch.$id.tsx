@@ -866,6 +866,33 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           </span>
         )}
 
+        {nextCountdown !== null && nextEpisode && (
+          <div className="absolute right-6 bottom-24 max-w-xs rounded-xl border border-white/15 bg-black/80 p-4 backdrop-blur">
+            <p className="text-xs uppercase tracking-wide opacity-70">Up next</p>
+            <p className="mt-1 text-sm font-medium">{nextEpisodeLabel}</p>
+            <p className="mt-1 text-xs opacity-70">Playing in {nextCountdown}s</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setNextCountdown(0)}
+                className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                ▶ Play now
+              </button>
+              <button
+                type="button"
+                onClick={() => setNextCountdown(null)}
+                className="rounded bg-white/10 px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+
+
         {seekHint && (
           <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">
             {seekHint}
