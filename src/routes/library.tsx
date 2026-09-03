@@ -495,6 +495,11 @@ function LibraryContent({
             {navItems}
           </SheetContent>
         </Sheet>
+        <img
+          src={relayLogo.url}
+          alt="Relay Media"
+          className="size-8 shrink-0 rounded-md object-cover"
+        />
         {prefs.showServerGreeting && (
           <div className="min-w-0">
             <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
