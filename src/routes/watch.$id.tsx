@@ -799,12 +799,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           </span>
         )}
 
-        {/* Remote-friendly transport controls (focusable with a D-pad). */}
+        {/* Remote-friendly transport controls (focusable with a D-pad). Hidden on TV while paused to keep the picture clean. */}
         <div
           className={`absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 backdrop-blur transition-opacity duration-200 ${
-            paused ? "opacity-100" : "invisible pointer-events-none opacity-0"
+            paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
-          aria-hidden={!paused}
+          aria-hidden={!(paused && !isTv)}
         >
           <button
             type="button"
