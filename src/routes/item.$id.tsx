@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
+import { embyGetItem, embyGetItems, embyGetSimilar, embyGetSuggestions } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
 import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
