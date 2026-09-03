@@ -774,7 +774,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       <div className="relative flex flex-1 items-center justify-center">
         <video
           ref={videoRef}
-          controls
+          controls={!isTv}
           playsInline
           crossOrigin="anonymous"
           className="h-full max-h-[88vh] w-full bg-black"
@@ -792,6 +792,12 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
             />
           ))}
         </video>
+
+        {paused && isTv && (
+          <span className="pointer-events-none absolute top-4 right-4 rounded bg-black/50 px-2 py-1 text-xs font-medium opacity-60">
+            Paused
+          </span>
+        )}
 
         {seekHint && (
           <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">
