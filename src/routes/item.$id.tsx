@@ -68,6 +68,8 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const [prefs, setPrefs] = useState<PlayerPrefs>(DEFAULT_PREFS);
   const [caps, setCaps] = useState<CodecCap[]>([]);
   const [hdrSupport, setHdrSupport] = useState<HdrSupport>(NO_HDR);
+  // Audio language chosen for playback (null = the server's default track).
+  const [audioChoice, setAudioChoice] = useState<number | null>(null);
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
     void probeCodecs().then((c) => {
@@ -273,14 +275,56 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                 </dl>
               )}
 
+              {audioStreams.length > 1 && (
+                <div className="mt-6">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Audio language
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setAudioChoice(null)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                        audioChoice === null
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "bg-card/70 text-foreground/80 hover:bg-card"
+                      }`}
+                    >
+                      Default
+                    </button>
+                    {audioStreams.map((s, i) => (
+                      <button
+                        key={s.Index ?? i}
+                        onClick={() => setAudioChoice(s.Index)}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                          audioChoice === s.Index
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "bg-card/70 text-foreground/80 hover:bg-card"
+                        }`}
+                      >
+                        {s.Language || s.DisplayTitle || `Track ${s.Index}`}
+                        {s.ChannelLayout ? ` • ${s.ChannelLayout}` : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {!isFolder && (
-                  <Link to="/watch/$id" params={{ id: item.Id }}>
+                  <Link
+                    to="/watch/$id"
+                    params={{ id: item.Id }}
+                    search={{ audio: audioChoice ?? undefined }}
+                  >
                     <Button size="lg">▶ Play</Button>
                   </Link>
                 )}
                 {isFolder && nextUp && (
-                  <Link to="/watch/$id" params={{ id: nextUp.Id }}>
+                  <Link
+                    to="/watch/$id"
+                    params={{ id: nextUp.Id }}
+                    search={{ audio: audioChoice ?? undefined }}
+                  >
                     <Button size="lg">
                       ▶ Play{" "}
                       {nextUp.ParentIndexNumber != null && nextUp.IndexNumber != null
