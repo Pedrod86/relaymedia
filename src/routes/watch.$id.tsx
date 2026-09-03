@@ -5,7 +5,7 @@ import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
-import { embyGetItem } from "@/lib/emby.functions";
+import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
 import {
   allowedCodecs,
