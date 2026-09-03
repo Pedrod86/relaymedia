@@ -117,7 +117,7 @@ function embyPath(
         RequireAvc: "false",
       });
       if (q.audioIndex !== undefined) params.set("AudioStreamIndex", String(q.audioIndex));
-  if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+      if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
       return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
     }
     const params = new URLSearchParams({
@@ -199,6 +199,7 @@ function embyPath(
     params.set("TonemappingDesat", "0");
   }
 
+  if (q.audioIndex !== undefined) params.set("AudioStreamIndex", String(q.audioIndex));
   if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
   if (q.subtitleIndex !== undefined) {
     params.set("SubtitleStreamIndex", String(q.subtitleIndex));
