@@ -138,6 +138,8 @@ const ITEM_FIELDS = [
   "MediaSources",
   "Path",
   "SeriesName",
+  "SeriesId",
+  "SeasonId",
   "ParentIndexNumber",
   "IndexNumber",
   "ChildCount",
