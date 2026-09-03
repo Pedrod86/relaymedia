@@ -31,6 +31,7 @@ import {
 } from "@/lib/use-trakt-scrobble";
 import { useHistoryRecorder } from "@/lib/use-watch-history";
 import { media3Available, media3Play } from "@/lib/native-player";
+import { isTvDevice } from "@/lib/platform";
 import {
   AFR_OFF,
   measureRefreshRate,
@@ -77,6 +78,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   // MKV / E-AC3 / HDR10 capability of the surrounding platform (the Android APK
   // plays all three through the device's own decoders).
   const [env, setEnv] = useState<PlaybackEnv>(WEB_ENV);
+  // TV mode hides the pause overlay so the paused picture stays clean on a big screen.
+  const [isTv, setIsTv] = useState(false);
 
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,8 +87,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [showPanel, setShowPanel] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   // Screen chrome (status chips, subtitle picker, settings) only appears while
-  // playback is paused — during playback the picture is left clean, which
-  // matters most on a TV.
+  // playback is paused on a phone/tablet/desktop — on a TV the paused picture is
+  // left completely clean, which is what big-screen viewers expect.
   const [paused, setPaused] = useState(true);
   const getItemEmby = useServerFn(embyGetItem);
 
@@ -101,6 +104,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       void probeHdr(c).then(setHdr);
     });
     setEnv(detectPlaybackEnv());
+    setIsTv(isTvDevice());
     void measureRefreshRate().then(setDisplayHz);
   }, []);
 
@@ -540,9 +544,9 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <header
         className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
-          paused ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
-        aria-hidden={!paused}
+        aria-hidden={!(paused && !isTv)}
       >
         <Link to="/item/$id" params={{ id: itemId }} className="text-sm opacity-80 hover:opacity-100">
           ← Back
@@ -770,7 +774,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       <div className="relative flex flex-1 items-center justify-center">
         <video
           ref={videoRef}
-          controls
+          controls={!isTv}
           playsInline
           crossOrigin="anonymous"
           className="h-full max-h-[88vh] w-full bg-black"
@@ -789,18 +793,24 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
           ))}
         </video>
 
+        {paused && isTv && (
+          <span className="pointer-events-none absolute top-4 right-4 rounded bg-black/50 px-2 py-1 text-xs font-medium opacity-60">
+            Paused
+          </span>
+        )}
+
         {seekHint && (
           <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">
             {seekHint}
           </span>
         )}
 
-        {/* Remote-friendly transport controls (focusable with a D-pad). */}
+        {/* Remote-friendly transport controls (focusable with a D-pad). Hidden on TV while paused to keep the picture clean. */}
         <div
           className={`absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 backdrop-blur transition-opacity duration-200 ${
-            paused ? "opacity-100" : "invisible pointer-events-none opacity-0"
+            paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
-          aria-hidden={!paused}
+          aria-hidden={!(paused && !isTv)}
         >
           <button
             type="button"
