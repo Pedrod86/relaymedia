@@ -46,9 +46,10 @@ import {
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — Media" }] }),
   // `audio` carries the language chosen on the title page into playback.
-  validateSearch: (search: Record<string, unknown>) => ({
-    audio: search.audio != null && !Number.isNaN(Number(search.audio)) ? Number(search.audio) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { audio?: number } => {
+    const n = Number(search.audio);
+    return search.audio != null && Number.isFinite(n) ? { audio: n } : {};
+  },
   component: WatchPage,
 });
 
