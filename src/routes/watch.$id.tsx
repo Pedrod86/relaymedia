@@ -104,6 +104,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       void probeHdr(c).then(setHdr);
     });
     setEnv(detectPlaybackEnv());
+    setIsTv(isTvDevice());
     void measureRefreshRate().then(setDisplayHz);
   }, []);
 
