@@ -544,7 +544,10 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
           </div>
         </div>
       )}
+
+      <SimilarSection server={server} item={item} />
     </main>
+
   );
 }
 
