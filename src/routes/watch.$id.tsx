@@ -133,6 +133,73 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   // the suggestions on the homepage.
   useHistoryRecorder(videoRef, server.id, itemQ.data?.item);
 
+  // ---- Next episode (series autoplay) --------------------------------------
+  const navigate = useNavigate();
+  const getItemsEmby = useServerFn(embyGetItems);
+  const watched = itemQ.data?.item as any;
+  const seriesId: string | undefined =
+    watched?.Type === "Episode" ? (watched?.SeriesId as string | undefined) : undefined;
+
+  const episodesQ = useQuery({
+    enabled: isEmbyFamily && !!seriesId,
+    queryKey: ["series-episodes", server.id, seriesId],
+    queryFn: () =>
+      getItemsEmby({
+        data: {
+          serverId: server.id,
+          parentId: seriesId!,
+          recursive: true,
+          includeItemTypes: "Episode",
+          limit: 200,
+          sortBy: "ParentIndexNumber,IndexNumber,SortName",
+        },
+      }),
+  });
+
+  const nextEpisode = useMemo(() => {
+    const list: any[] = episodesQ.data?.items ?? [];
+    const i = list.findIndex((e) => String(e?.Id) === String(itemId));
+    return i >= 0 ? (list[i + 1] ?? null) : null;
+  }, [episodesQ.data, itemId]);
+
+  const [nextCountdown, setNextCountdown] = useState<number | null>(null);
+
+  // When the episode finishes, roll into the following one automatically.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onEnded = () => {
+      if (nextEpisode?.Id) setNextCountdown(8);
+    };
+    video.addEventListener("ended", onEnded);
+    return () => video.removeEventListener("ended", onEnded);
+  }, [nextEpisode, mode]);
+
+  useEffect(() => {
+    if (nextCountdown === null) return;
+    if (nextCountdown <= 0) {
+      const id = nextEpisode?.Id;
+      setNextCountdown(null);
+      if (id) navigate({ to: "/watch/$id", params: { id: String(id) } });
+      return;
+    }
+    const t = setTimeout(() => setNextCountdown((c) => (c ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [nextCountdown, nextEpisode, navigate]);
+
+  const nextEpisodeLabel = nextEpisode
+    ? [
+        nextEpisode.ParentIndexNumber != null && nextEpisode.IndexNumber != null
+          ? `S${nextEpisode.ParentIndexNumber}·E${nextEpisode.IndexNumber}`
+          : nextEpisode.IndexNumber != null
+            ? `Episode ${nextEpisode.IndexNumber}`
+            : null,
+        nextEpisode.Name,
+      ]
+        .filter(Boolean)
+        .join(" — ")
+    : "";
+
   const check = useMemo(
     () =>
       isEmbyFamily && itemQ.data?.item && caps.length
