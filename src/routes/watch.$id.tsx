@@ -483,6 +483,7 @@ function Player({
     sourceFps,
     check?.directContainer,
     check?.remux,
+    audioIndex,
   ]);
 
 
