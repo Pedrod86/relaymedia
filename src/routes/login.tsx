@@ -103,6 +103,11 @@ function LoginPage() {
       <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-2xl border bg-card/70 p-8 backdrop-blur-xl shadow-2xl">
           <div className="mb-6">
+            <img
+              src={relayLogo.url}
+              alt="Relay Media logo"
+              className="mx-auto mb-4 h-24 w-24 rounded-2xl object-cover shadow-lg"
+            />
             <h1 className="text-3xl font-semibold tracking-tight">Add a server</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               Connect <ServerLabel kind="emby" />, <ServerLabel kind="jellyfin" /> or{" "}
