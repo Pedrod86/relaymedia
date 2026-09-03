@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
+import relayLogo from "@/assets/relay-logo.png.asset.json";
 import { embyLogin } from "@/lib/emby.functions";
 import { plexAddServer } from "@/lib/plex.functions";
 import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
