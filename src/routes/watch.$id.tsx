@@ -45,12 +45,17 @@ import {
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — Media" }] }),
+  // `audio` carries the language chosen on the title page into playback.
+  validateSearch: (search: Record<string, unknown>) => ({
+    audio: search.audio != null && !Number.isNaN(Number(search.audio)) ? Number(search.audio) : undefined,
+  }),
   component: WatchPage,
 });
 
 function WatchPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
+  const { audio } = Route.useSearch();
   const { active, isLoading } = useMediaServers();
 
   useEffect(() => {
@@ -58,7 +63,7 @@ function WatchPage() {
   }, [isLoading, active, navigate]);
 
   if (!active) return null;
-  return <Player key={active.id} server={active} itemId={id} />;
+  return <Player key={active.id} server={active} itemId={id} initialAudioIndex={audio} />;
 }
 
 type SubTrack = {
@@ -70,7 +75,15 @@ type SubTrack = {
   isDefault?: boolean;
 };
 
-function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
+function Player({
+  server,
+  itemId,
+  initialAudioIndex,
+}: {
+  server: MediaServer;
+  itemId: string;
+  initialAudioIndex?: number;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefs, setPrefs] = useState<PlayerPrefs>(loadPlayerPrefs);
   const [caps, setCaps] = useState<CodecCap[]>([]);
@@ -84,6 +97,8 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
+  // Audio language: null = the server's default track.
+  const [audioIndex, setAudioIndex] = useState<number | null>(initialAudioIndex ?? null);
   const [showPanel, setShowPanel] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   // Screen chrome (status chips, subtitle picker, settings) only appears while
@@ -296,6 +311,21 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
   const textSubs = useMemo(() => subtitles.filter((s) => s.isText), [subtitles]);
 
+  // Audio tracks (languages) offered by the first media source.
+  const audioTracks = useMemo(() => {
+    if (!isEmbyFamily) return [] as Array<{ index: number; label: string; isDefault?: boolean }>;
+    const item: any = itemQ.data?.item;
+    const src: any = (item?.MediaSources ?? [])[0];
+    const streams: any[] = src?.MediaStreams ?? item?.MediaStreams ?? [];
+    return streams
+      .filter((st) => st.Type === "Audio")
+      .map((st) => ({
+        index: st.Index as number,
+        label: st.DisplayTitle || st.Language || st.Title || `Track ${st.Index}`,
+        isDefault: !!st.IsDefault,
+      }));
+  }, [itemQ.data, isEmbyFamily]);
+
   // Auto-enable the first text subtitle track when requested.
   useEffect(() => {
     if (prefs.autoSubtitles && subIndex === null && textSubs.length > 0) {
@@ -332,6 +362,7 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
       videoCodec: videoCodecs,
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
+      audioIndex: audioIndex ?? undefined,
       session: sessionId,
       hdr: hdrParam,
       maxHeight: prefs.maxHeight,
@@ -660,6 +691,25 @@ function Player({ server, itemId }: { server: MediaServer; itemId: string }) {
 
 
 
+          {isEmbyFamily && audioTracks.length > 1 && (
+            <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
+              <span className="opacity-70">Language</span>
+              <select
+                value={audioIndex ?? ""}
+                onChange={(e) =>
+                  setAudioIndex(e.target.value === "" ? null : Number(e.target.value))
+                }
+                className="bg-transparent outline-none [&>option]:bg-black"
+              >
+                <option value="">Default</option>
+                {audioTracks.map((a) => (
+                  <option key={a.index} value={a.index}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {isEmbyFamily && textSubs.length > 0 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
               <span className="opacity-70">Subtitles</span>
