@@ -29,6 +29,8 @@ const querySchema = z.object({
   maxBitrate: z.coerce.number().int().min(200_000).max(400_000_000).default(20_000_000),
   audioChannels: z.coerce.number().int().min(1).max(8).default(2),
   subtitleIndex: z.coerce.number().int().min(0).max(200).optional(),
+  /** Audio track index (viewer's language choice). */
+  audioIndex: z.coerce.number().int().min(0).max(200).optional(),
   container: z.string().regex(/^[a-z0-9]{2,5}$/).default("mp4"),
   /** Stable per-playback id so the server reuses one transcode session. */
   session: z.string().max(120).optional(),
@@ -114,7 +116,8 @@ function embyPath(
         EnableTonemapping: "false",
         RequireAvc: "false",
       });
-      if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
+      if (q.audioIndex !== undefined) params.set("AudioStreamIndex", String(q.audioIndex));
+  if (q.start) params.set("StartTimeTicks", String(Math.round(q.start * 10_000_000)));
       return `/Videos/${encodeURIComponent(q.item)}/stream.${q.container}?${params}`;
     }
     const params = new URLSearchParams({
