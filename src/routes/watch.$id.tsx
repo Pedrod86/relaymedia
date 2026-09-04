@@ -1237,6 +1237,17 @@ function Player({
               </button>
             )}
 
+            {pipSupported && !isTv && (
+              <button
+                type="button"
+                onClick={() => void togglePip()}
+                aria-pressed={pipActive}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                {pipActive ? "⧉ Exit mini player" : "⧉ Mini player"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
