@@ -133,7 +133,7 @@ function LoginPage() {
             </p>
           </div>
 
-          <div className="mb-5 grid grid-cols-3 gap-2">
+          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {KINDS.map((k) => (
               <button
                 key={k.value}
