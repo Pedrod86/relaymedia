@@ -11,7 +11,7 @@
 import process from "node:process";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 
-export type ServerKind = "emby" | "jellyfin" | "plex";
+export type ServerKind = "emby" | "jellyfin" | "plex" | "silo";
 
 /** Full credential record — server-side only. */
 export type MediaCredential = {

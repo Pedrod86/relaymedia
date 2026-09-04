@@ -8,7 +8,7 @@
 // localStorage is used only for non-sensitive UI preferences (which server is
 // active, which categories are hidden).
 
-export type ServerKind = "emby" | "jellyfin" | "plex";
+export type ServerKind = "emby" | "jellyfin" | "plex" | "silo";
 
 /** Public server metadata as returned by the server — contains no token. */
 export type MediaServer = {
