@@ -127,8 +127,7 @@ function LibraryContent({
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
   const getLatestPlex = useServerFn(plexGetLatest);
-  const refreshEmby = useServerFn(embyRefreshLibrary);
-  const refreshPlex = useServerFn(plexRefreshLibrary);
+  const refreshAll = useServerFn(refreshAllServers);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
