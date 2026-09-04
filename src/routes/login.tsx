@@ -128,8 +128,8 @@ function LoginPage() {
             />
             <h1 className="text-3xl font-semibold tracking-tight">Add a server</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
-              Connect <ServerLabel kind="emby" />, <ServerLabel kind="jellyfin" /> or{" "}
-              <ServerLabel kind="plex" />. You can add more later.
+              Connect <ServerLabel kind="plex" />, <ServerLabel kind="emby" />,{" "}
+              <ServerLabel kind="jellyfin" /> or <ServerLabel kind="silo" />. You can add more later.
             </p>
           </div>
 
