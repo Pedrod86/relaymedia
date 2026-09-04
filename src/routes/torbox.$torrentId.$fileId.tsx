@@ -1,10 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, MonitorPlay, PictureInPicture2 } from "lucide-react";
 import { torboxPlayUrl } from "@/lib/torbox.functions";
 import { media3Available, media3Play } from "@/lib/native-player";
+import { isTvDevice } from "@/lib/platform";
+
+function fmtTime(s: number) {
+  if (!Number.isFinite(s) || s < 0) return "0:00";
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+    : `${m}:${String(sec).padStart(2, "0")}`;
+}
+
 
 export const Route = createFileRoute("/torbox/$torrentId/$fileId")({
   component: TorboxPlayer,
