@@ -519,13 +519,87 @@ function Player({
     };
   }, [mode]);
 
-  // Collapse the expanded panels as soon as playback resumes.
+  // ---- Playback position, volume, speed ------------------------------------
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [speed, setSpeed] = useState(1);
+
   useEffect(() => {
-    if (!paused) {
+    const video = videoRef.current;
+    if (!video) return;
+    const sync = () => {
+      setPosition(video.currentTime || 0);
+      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+      setVolume(video.volume);
+      setMuted(video.muted);
+    };
+    sync();
+    video.addEventListener("timeupdate", sync);
+    video.addEventListener("durationchange", sync);
+    video.addEventListener("loadedmetadata", sync);
+    video.addEventListener("volumechange", sync);
+    return () => {
+      video.removeEventListener("timeupdate", sync);
+      video.removeEventListener("durationchange", sync);
+      video.removeEventListener("loadedmetadata", sync);
+      video.removeEventListener("volumechange", sync);
+    };
+  }, [mode]);
+
+  function fmtTime(secs: number) {
+    if (!Number.isFinite(secs) || secs <= 0) return "0:00";
+    const s = Math.floor(secs % 60);
+    const m = Math.floor((secs / 60) % 60);
+    const h = Math.floor(secs / 3600);
+    const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+    return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+  }
+
+  // ---- Overlay chrome visibility -------------------------------------------
+  // Controls stay on screen while paused, appear on any interaction, and fade
+  // away again a few seconds after playback resumes so nothing covers the film.
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const chromeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const bumpChrome = useCallback(() => {
+    setChromeVisible(true);
+    if (chromeTimer.current) clearTimeout(chromeTimer.current);
+    chromeTimer.current = setTimeout(() => setChromeVisible(false), 4000);
+  }, []);
+
+  useEffect(() => {
+    if (paused && !isTv) {
+      if (chromeTimer.current) clearTimeout(chromeTimer.current);
+      setChromeVisible(true);
+      return;
+    }
+    bumpChrome();
+  }, [paused, isTv, bumpChrome]);
+
+  useEffect(() => {
+    const onActivity = () => bumpChrome();
+    window.addEventListener("mousemove", onActivity);
+    window.addEventListener("touchstart", onActivity, { passive: true });
+    window.addEventListener("keydown", onActivity);
+    window.addEventListener("click", onActivity);
+    return () => {
+      window.removeEventListener("mousemove", onActivity);
+      window.removeEventListener("touchstart", onActivity);
+      window.removeEventListener("keydown", onActivity);
+      window.removeEventListener("click", onActivity);
+    };
+  }, [bumpChrome]);
+
+  // Collapse the expanded panels as soon as the chrome fades out.
+  useEffect(() => {
+    if (!chromeVisible) {
       setShowPanel(false);
       setShowDetails(false);
     }
-  }, [paused]);
+  }, [chromeVisible]);
+
 
   // ---- Remote / keyboard control -------------------------------------------
   // Android TV WebViews don't let a D-pad reach the native <video controls>
