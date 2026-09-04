@@ -592,6 +592,42 @@ function Player({
     };
   }, [bumpChrome]);
 
+  // ---- Picture in picture ---------------------------------------------------
+  // Lets the video float in a small always-on-top window while the viewer uses
+  // other apps/tabs. Not offered on TV (no windowing) or where unsupported.
+  const [pipSupported, setPipSupported] = useState(false);
+  const [pipActive, setPipActive] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setPipSupported(!!(document as any).pictureInPictureEnabled);
+  }, []);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onEnter = () => setPipActive(true);
+    const onLeave = () => setPipActive(false);
+    v.addEventListener("enterpictureinpicture", onEnter);
+    v.addEventListener("leavepictureinpicture", onLeave);
+    return () => {
+      v.removeEventListener("enterpictureinpicture", onEnter);
+      v.removeEventListener("leavepictureinpicture", onLeave);
+    };
+  }, [streamSrc]);
+
+  const togglePip = useCallback(async () => {
+    const v = videoRef.current as any;
+    if (!v) return;
+    try {
+      if ((document as any).pictureInPictureElement) await (document as any).exitPictureInPicture();
+      else await v.requestPictureInPicture?.();
+    } catch {
+      setError("Picture in picture isn't available on this device.");
+    }
+    bumpChrome();
+  }, [bumpChrome]);
+
   // Collapse the expanded panels as soon as the chrome fades out.
   useEffect(() => {
     if (!chromeVisible) {
