@@ -951,59 +951,215 @@ function Player({
           </span>
         )}
 
-        {/* Remote-friendly transport controls (focusable with a D-pad). Hidden on TV while paused to keep the picture clean. */}
+        {/* Remote/touch-friendly transport bar. Auto-hides while something is playing. */}
         <div
-          className={`absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 backdrop-blur transition-opacity duration-200 ${
-            paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          className={`absolute bottom-0 left-0 right-0 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
+            chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
-          aria-hidden={!(paused && !isTv)}
+          aria-hidden={!chromeVisible}
         >
-          <button
-            type="button"
-            onClick={() => seekBy(-60)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            ⏪ 60s
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(-10)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            ◀ 10s
-          </button>
-          <button
-            type="button"
-            autoFocus
-            onClick={togglePlay}
-            className="rounded-full bg-white/15 px-5 py-2 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            {paused ? "▶ Play" : "⏸ Pause"}
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(10)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            10s ▶
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(60)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            60s ⏩
-          </button>
-          {nativePlayer && (
+          <div className="flex items-center gap-3 text-xs tabular-nums">
+            <span className="w-14 text-right opacity-80">{fmtTime(position)}</span>
+            <input
+              type="range"
+              min={0}
+              max={Number.isFinite(duration) && duration > 0 ? duration : 0}
+              step={1}
+              value={position}
+              aria-label="Seek"
+              onChange={(e) => {
+                const v = videoRef.current;
+                if (v) v.currentTime = Number(e.target.value);
+                setPosition(Number(e.target.value));
+                bumpChrome();
+              }}
+              className="h-1.5 flex-1 cursor-pointer accent-primary"
+            />
+            <span className="w-14 opacity-80">{fmtTime(duration)}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              onClick={() => void playNative()}
+              onClick={() => seekBy(-60)}
               className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              Device player
+              ⏪ 60s
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => seekBy(-10)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ◀ 10s
+            </button>
+            <button
+              type="button"
+              autoFocus
+              onClick={togglePlay}
+              className="rounded-full bg-white/20 px-5 py-2 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {paused ? "▶ Play" : "⏸ Pause"}
+            </button>
+            <button
+              type="button"
+              onClick={() => seekBy(10)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              10s ▶
+            </button>
+            <button
+              type="button"
+              onClick={() => seekBy(60)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              60s ⏩
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const v = videoRef.current;
+                if (!v) return;
+                v.muted = !v.muted;
+                setMuted(v.muted);
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {muted ? "🔇 Muted" : "🔊 Sound"}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              aria-label="Volume"
+              onChange={(e) => {
+                const v = videoRef.current;
+                const next = Number(e.target.value);
+                if (v) {
+                  v.volume = next;
+                  v.muted = next === 0;
+                  setMuted(v.muted);
+                }
+                setVolume(next);
+                bumpChrome();
+              }}
+              className="h-1.5 w-24 cursor-pointer accent-primary"
+            />
+
+            <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+              <span className="opacity-70">Speed</span>
+              <select
+                value={speed}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  setSpeed(next);
+                  const v = videoRef.current;
+                  if (v) v.playbackRate = next;
+                  bumpChrome();
+                }}
+                className="bg-transparent outline-none [&>option]:bg-black"
+              >
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                  <option key={s} value={s}>
+                    {s}×
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {isEmbyFamily && textSubs.length > 0 && (
+              <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+                <span className="opacity-70">Subtitles</span>
+                <select
+                  value={subIndex ?? ""}
+                  onChange={(e) => {
+                    setSubIndex(e.target.value === "" ? null : Number(e.target.value));
+                    bumpChrome();
+                  }}
+                  className="bg-transparent outline-none [&>option]:bg-black"
+                >
+                  <option value="">Off</option>
+                  {textSubs.map((s) => (
+                    <option key={`${s.mediaSourceId}-${s.index}`} value={s.index}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {isEmbyFamily && audioTracks.length > 1 && (
+              <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+                <span className="opacity-70">Language</span>
+                <select
+                  value={audioIndex ?? ""}
+                  onChange={(e) => {
+                    setAudioIndex(e.target.value === "" ? null : Number(e.target.value));
+                    bumpChrome();
+                  }}
+                  className="bg-transparent outline-none [&>option]:bg-black"
+                >
+                  <option value="">Default</option>
+                  {audioTracks.map((a) => (
+                    <option key={a.index} value={a.index}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {nextEpisode?.Id && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/watch/$id", params: { id: String(nextEpisode.Id) } })}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                ⏭ Next episode
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                const v = videoRef.current;
+                if (!v) return;
+                if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+                else void (v.parentElement ?? v).requestFullscreen?.().catch(() => {});
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ⛶ Fullscreen
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowPanel((v) => !v);
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ⚙ Options
+            </button>
+
+            {nativePlayer && (
+              <button
+                type="button"
+                onClick={() => void playNative()}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Device player
+              </button>
+            )}
+          </div>
         </div>
+
       </div>
 
       {error && <p className="px-6 py-2 text-center text-sm text-destructive">{error}</p>}
