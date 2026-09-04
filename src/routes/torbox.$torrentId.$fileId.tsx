@@ -80,13 +80,32 @@ function TorboxPlayer() {
         </Link>
         <h1 className="line-clamp-1 text-sm opacity-80">{title ?? "TorBox cloud"}</h1>
         {url && (
-          <button
-            type="button"
-            onClick={() => playNative(url)}
-            className="flex items-center gap-1 rounded bg-white/10 px-3 py-1 text-xs hover:bg-white/20"
-          >
-            <MonitorPlay className="h-4 w-4" /> Device player
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={async () => {
+                const v = videoRef.current as any;
+                if (!v) return;
+                try {
+                  if ((document as any).pictureInPictureElement)
+                    await (document as any).exitPictureInPicture();
+                  else await v.requestPictureInPicture?.();
+                } catch {
+                  setError("Picture in picture isn't available on this device.");
+                }
+              }}
+              className="flex items-center gap-1 rounded bg-white/10 px-3 py-1 text-xs hover:bg-white/20"
+            >
+              <PictureInPicture2 className="h-4 w-4" /> Mini player
+            </button>
+            <button
+              type="button"
+              onClick={() => playNative(url)}
+              className="flex items-center gap-1 rounded bg-white/10 px-3 py-1 text-xs hover:bg-white/20"
+            >
+              <MonitorPlay className="h-4 w-4" /> Device player
+            </button>
+          </>
         )}
       </header>
 
