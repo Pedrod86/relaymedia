@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
@@ -519,13 +519,87 @@ function Player({
     };
   }, [mode]);
 
-  // Collapse the expanded panels as soon as playback resumes.
+  // ---- Playback position, volume, speed ------------------------------------
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [speed, setSpeed] = useState(1);
+
   useEffect(() => {
-    if (!paused) {
+    const video = videoRef.current;
+    if (!video) return;
+    const sync = () => {
+      setPosition(video.currentTime || 0);
+      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+      setVolume(video.volume);
+      setMuted(video.muted);
+    };
+    sync();
+    video.addEventListener("timeupdate", sync);
+    video.addEventListener("durationchange", sync);
+    video.addEventListener("loadedmetadata", sync);
+    video.addEventListener("volumechange", sync);
+    return () => {
+      video.removeEventListener("timeupdate", sync);
+      video.removeEventListener("durationchange", sync);
+      video.removeEventListener("loadedmetadata", sync);
+      video.removeEventListener("volumechange", sync);
+    };
+  }, [mode]);
+
+  function fmtTime(secs: number) {
+    if (!Number.isFinite(secs) || secs <= 0) return "0:00";
+    const s = Math.floor(secs % 60);
+    const m = Math.floor((secs / 60) % 60);
+    const h = Math.floor(secs / 3600);
+    const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+    return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+  }
+
+  // ---- Overlay chrome visibility -------------------------------------------
+  // Controls stay on screen while paused, appear on any interaction, and fade
+  // away again a few seconds after playback resumes so nothing covers the film.
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const chromeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const bumpChrome = useCallback(() => {
+    setChromeVisible(true);
+    if (chromeTimer.current) clearTimeout(chromeTimer.current);
+    chromeTimer.current = setTimeout(() => setChromeVisible(false), 4000);
+  }, []);
+
+  useEffect(() => {
+    if (paused && !isTv) {
+      if (chromeTimer.current) clearTimeout(chromeTimer.current);
+      setChromeVisible(true);
+      return;
+    }
+    bumpChrome();
+  }, [paused, isTv, bumpChrome]);
+
+  useEffect(() => {
+    const onActivity = () => bumpChrome();
+    window.addEventListener("mousemove", onActivity);
+    window.addEventListener("touchstart", onActivity, { passive: true });
+    window.addEventListener("keydown", onActivity);
+    window.addEventListener("click", onActivity);
+    return () => {
+      window.removeEventListener("mousemove", onActivity);
+      window.removeEventListener("touchstart", onActivity);
+      window.removeEventListener("keydown", onActivity);
+      window.removeEventListener("click", onActivity);
+    };
+  }, [bumpChrome]);
+
+  // Collapse the expanded panels as soon as the chrome fades out.
+  useEffect(() => {
+    if (!chromeVisible) {
       setShowPanel(false);
       setShowDetails(false);
     }
-  }, [paused]);
+  }, [chromeVisible]);
+
 
   // ---- Remote / keyboard control -------------------------------------------
   // Android TV WebViews don't let a D-pad reach the native <video controls>
@@ -644,9 +718,10 @@ function Player({
     <main className="flex min-h-screen flex-col bg-black text-white">
       <header
         className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
-          paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
-        aria-hidden={!(paused && !isTv)}
+        aria-hidden={!chromeVisible}
+
       >
         <Link to="/item/$id" params={{ id: itemId }} className="text-sm opacity-80 hover:opacity-100">
           ← Back
@@ -893,7 +968,9 @@ function Player({
       <div className="relative flex flex-1 items-center justify-center">
         <video
           ref={videoRef}
-          controls={!isTv}
+          controls={false}
+          onClick={togglePlay}
+
           playsInline
           crossOrigin="anonymous"
           className="h-full max-h-[88vh] w-full bg-black"
@@ -912,11 +989,12 @@ function Player({
           ))}
         </video>
 
-        {paused && isTv && (
+        {paused && !chromeVisible && (
           <span className="pointer-events-none absolute top-4 right-4 rounded bg-black/50 px-2 py-1 text-xs font-medium opacity-60">
             Paused
           </span>
         )}
+
 
         {nextCountdown !== null && nextEpisode && (
           <div className="absolute right-6 bottom-24 max-w-xs rounded-xl border border-white/15 bg-black/80 p-4 backdrop-blur">
@@ -951,59 +1029,215 @@ function Player({
           </span>
         )}
 
-        {/* Remote-friendly transport controls (focusable with a D-pad). Hidden on TV while paused to keep the picture clean. */}
+        {/* Remote/touch-friendly transport bar. Auto-hides while something is playing. */}
         <div
-          className={`absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 backdrop-blur transition-opacity duration-200 ${
-            paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          className={`absolute bottom-0 left-0 right-0 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
+            chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
-          aria-hidden={!(paused && !isTv)}
+          aria-hidden={!chromeVisible}
         >
-          <button
-            type="button"
-            onClick={() => seekBy(-60)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            ⏪ 60s
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(-10)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            ◀ 10s
-          </button>
-          <button
-            type="button"
-            autoFocus
-            onClick={togglePlay}
-            className="rounded-full bg-white/15 px-5 py-2 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            {paused ? "▶ Play" : "⏸ Pause"}
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(10)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            10s ▶
-          </button>
-          <button
-            type="button"
-            onClick={() => seekBy(60)}
-            className="rounded-full px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            60s ⏩
-          </button>
-          {nativePlayer && (
+          <div className="flex items-center gap-3 text-xs tabular-nums">
+            <span className="w-14 text-right opacity-80">{fmtTime(position)}</span>
+            <input
+              type="range"
+              min={0}
+              max={Number.isFinite(duration) && duration > 0 ? duration : 0}
+              step={1}
+              value={position}
+              aria-label="Seek"
+              onChange={(e) => {
+                const v = videoRef.current;
+                if (v) v.currentTime = Number(e.target.value);
+                setPosition(Number(e.target.value));
+                bumpChrome();
+              }}
+              className="h-1.5 flex-1 cursor-pointer accent-primary"
+            />
+            <span className="w-14 opacity-80">{fmtTime(duration)}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              onClick={() => void playNative()}
+              onClick={() => seekBy(-60)}
               className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              Device player
+              ⏪ 60s
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => seekBy(-10)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ◀ 10s
+            </button>
+            <button
+              type="button"
+              autoFocus
+              onClick={togglePlay}
+              className="rounded-full bg-white/20 px-5 py-2 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {paused ? "▶ Play" : "⏸ Pause"}
+            </button>
+            <button
+              type="button"
+              onClick={() => seekBy(10)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              10s ▶
+            </button>
+            <button
+              type="button"
+              onClick={() => seekBy(60)}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              60s ⏩
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const v = videoRef.current;
+                if (!v) return;
+                v.muted = !v.muted;
+                setMuted(v.muted);
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {muted ? "🔇 Muted" : "🔊 Sound"}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              aria-label="Volume"
+              onChange={(e) => {
+                const v = videoRef.current;
+                const next = Number(e.target.value);
+                if (v) {
+                  v.volume = next;
+                  v.muted = next === 0;
+                  setMuted(v.muted);
+                }
+                setVolume(next);
+                bumpChrome();
+              }}
+              className="h-1.5 w-24 cursor-pointer accent-primary"
+            />
+
+            <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+              <span className="opacity-70">Speed</span>
+              <select
+                value={speed}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  setSpeed(next);
+                  const v = videoRef.current;
+                  if (v) v.playbackRate = next;
+                  bumpChrome();
+                }}
+                className="bg-transparent outline-none [&>option]:bg-black"
+              >
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                  <option key={s} value={s}>
+                    {s}×
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {isEmbyFamily && textSubs.length > 0 && (
+              <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+                <span className="opacity-70">Subtitles</span>
+                <select
+                  value={subIndex ?? ""}
+                  onChange={(e) => {
+                    setSubIndex(e.target.value === "" ? null : Number(e.target.value));
+                    bumpChrome();
+                  }}
+                  className="bg-transparent outline-none [&>option]:bg-black"
+                >
+                  <option value="">Off</option>
+                  {textSubs.map((s) => (
+                    <option key={`${s.mediaSourceId}-${s.index}`} value={s.index}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {isEmbyFamily && audioTracks.length > 1 && (
+              <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
+                <span className="opacity-70">Language</span>
+                <select
+                  value={audioIndex ?? ""}
+                  onChange={(e) => {
+                    setAudioIndex(e.target.value === "" ? null : Number(e.target.value));
+                    bumpChrome();
+                  }}
+                  className="bg-transparent outline-none [&>option]:bg-black"
+                >
+                  <option value="">Default</option>
+                  {audioTracks.map((a) => (
+                    <option key={a.index} value={a.index}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {nextEpisode?.Id && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/watch/$id", params: { id: String(nextEpisode.Id) } })}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                ⏭ Next episode
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                const v = videoRef.current;
+                if (!v) return;
+                if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+                else void (v.parentElement ?? v).requestFullscreen?.().catch(() => {});
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ⛶ Fullscreen
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowPanel((v) => !v);
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ⚙ Options
+            </button>
+
+            {nativePlayer && (
+              <button
+                type="button"
+                onClick={() => void playNative()}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Device player
+              </button>
+            )}
+          </div>
         </div>
+
       </div>
 
       {error && <p className="px-6 py-2 text-center text-sm text-destructive">{error}</p>}
