@@ -614,7 +614,7 @@ function Player({
       v.removeEventListener("enterpictureinpicture", onEnter);
       v.removeEventListener("leavepictureinpicture", onLeave);
     };
-  }, [streamSrc]);
+  }, []);
 
   const togglePip = useCallback(async () => {
     const v = videoRef.current as any;
