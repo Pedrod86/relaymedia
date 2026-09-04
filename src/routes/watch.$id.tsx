@@ -968,7 +968,9 @@ function Player({
       <div className="relative flex flex-1 items-center justify-center">
         <video
           ref={videoRef}
-          controls={!isTv}
+          controls={false}
+          onClick={togglePlay}
+
           playsInline
           crossOrigin="anonymous"
           className="h-full max-h-[88vh] w-full bg-black"
