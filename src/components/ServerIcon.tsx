@@ -45,6 +45,17 @@ export function ServerIcon({ kind, size = 16, className }: Props) {
       </svg>
     );
   }
+  if (kind === "silo") {
+    // Silo — simple cylindrical tower mark
+    return (
+      <svg {...common}>
+        <path
+          d="M6 9a6 3 0 0 1 12 0v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"
+          fill="#94a3b8"
+        />
+      </svg>
+    );
+  }
   // Emby — green star-ish mark
   return (
     <svg {...common}>
@@ -65,7 +76,11 @@ export function ServerLabel({
   size?: number;
   className?: string;
 }) {
-  const name = kind === "emby" ? "Emby" : kind === "jellyfin" ? "Jellyfin" : "Plex";
+  const name =
+    kind === "emby" ? "Emby" :
+    kind === "jellyfin" ? "Jellyfin" :
+    kind === "silo" ? "Silo" :
+    "Plex";
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ""}`}>
       <ServerIcon kind={kind} size={size} />
