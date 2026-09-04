@@ -24,9 +24,10 @@ export const Route = createFileRoute("/login")({
 });
 
 const KINDS: { value: ServerKind; label: string; hint: string }[] = [
+  { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
+  { value: "silo", label: "Silo", hint: "silo.example.com (coming soon)" },
 ];
 
 function LoginPage() {
@@ -34,7 +35,7 @@ function LoginPage() {
   const embyLoginFn = useServerFn(embyLogin);
   const plexAddServerFn = useServerFn(plexAddServer);
 
-  const [kind, setKind] = useState<ServerKind>("emby");
+  const [kind, setKind] = useState<ServerKind>("plex");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +53,10 @@ function LoginPage() {
       // Credentials are posted to the server, which stores the resulting
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.
+      if (kind === "silo") {
+        setError("Silo support is coming soon.");
+        return;
+      }
       if (kind === "emby" || kind === "jellyfin") {
         const res = await embyLoginFn({
           data: { kind, serverUrl: cleanUrl, username, password },
