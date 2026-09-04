@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import relayLogo from "@/assets/relay-logo.png.asset.json";
+import loginHeroes from "@/assets/login-heroes.jpg";
+
 import { embyLogin } from "@/lib/emby.functions";
 import { plexAddServer } from "@/lib/plex.functions";
 import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
@@ -93,6 +95,15 @@ function LoginPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
+      <img
+        src={loginHeroes}
+        alt=""
+        aria-hidden
+        width={1536}
+        height={1024}
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-md"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-background/60" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-60"
@@ -101,6 +112,7 @@ function LoginPage() {
             "radial-gradient(ellipse at 20% 10%, oklch(0.4 0.15 150 / 0.35), transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.4 0.15 270 / 0.3), transparent 60%)",
         }}
       />
+
       <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-2xl border bg-card/70 p-8 backdrop-blur-xl shadow-2xl">
           <div className="mb-6">
