@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MonitorPlay } from "lucide-react";
+import { Loader2, MonitorPlay, PictureInPicture2 } from "lucide-react";
 import { torboxPlayUrl } from "@/lib/torbox.functions";
 import { media3Available, media3Play } from "@/lib/native-player";
 
