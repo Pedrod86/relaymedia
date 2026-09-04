@@ -50,6 +50,26 @@ function TorboxPlayer() {
   const [error, setError] = useState<string | null>(null);
   const [nativePlayer, setNativePlayer] = useState(false);
   const handedOff = useRef(false);
+  const [isTv, setIsTv] = useState(false);
+  const [paused, setPaused] = useState(true);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [pipSupported, setPipSupported] = useState(false);
+  const [pipActive, setPipActive] = useState(false);
+  const [subtitleTracks, setSubtitleTracks] = useState<{ index: number; label: string }[]>([]);
+  const [subtitleIndex, setSubtitleIndex] = useState(-1);
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const bumpChrome = useCallback(() => {
+    setChromeVisible(true);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setChromeVisible(false), 4000);
+  }, []);
+
 
   const link = useQuery({
     queryKey: ["torbox-play", torrentId, fileId],
