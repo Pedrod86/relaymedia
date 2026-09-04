@@ -300,11 +300,11 @@ function AboutPanel() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Version</dt>
-          <dd className="font-medium">1.0</dd>
+          <dd className="font-medium">1.1</dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-muted-foreground">Supported servers</dt>
-          <dd className="font-medium">Emby · Jellyfin · Plex</dd>
+          <dt className="text-muted-foreground">Supported services</dt>
+          <dd className="font-medium">Plex · Emby · Jellyfin · Silo · TorBox</dd>
         </div>
       </dl>
       <p className="mt-4 text-xs text-muted-foreground">
