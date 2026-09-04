@@ -989,11 +989,12 @@ function Player({
           ))}
         </video>
 
-        {paused && isTv && (
+        {paused && !chromeVisible && (
           <span className="pointer-events-none absolute top-4 right-4 rounded bg-black/50 px-2 py-1 text-xs font-medium opacity-60">
             Paused
           </span>
         )}
+
 
         {nextCountdown !== null && nextEpisode && (
           <div className="absolute right-6 bottom-24 max-w-xs rounded-xl border border-white/15 bg-black/80 p-4 backdrop-blur">
