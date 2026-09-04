@@ -3,8 +3,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import relayLogo from "@/assets/relay-logo.png.asset.json";
-import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyRefreshLibrary, embyGetSuggestions } from "@/lib/emby.functions";
-import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest, plexRefreshLibrary } from "@/lib/plex.functions";
+import { embyGetViews, embyGetItems, embyGetResume, embyGetLatest, embyGetSuggestions } from "@/lib/emby.functions";
+import { plexGetViews, plexGetItems, plexGetResume, plexGetLatest } from "@/lib/plex.functions";
+import { refreshAllServers } from "@/lib/servers.functions";
 import {
   loadHiddenViews,
   loadSectionOrder,
@@ -127,8 +128,7 @@ function LibraryContent({
   const getViewsPlex = useServerFn(plexGetViews);
   const getResumePlex = useServerFn(plexGetResume);
   const getLatestPlex = useServerFn(plexGetLatest);
-  const refreshEmby = useServerFn(embyRefreshLibrary);
-  const refreshPlex = useServerFn(plexRefreshLibrary);
+  const refreshAll = useServerFn(refreshAllServers);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
@@ -211,15 +211,25 @@ function LibraryContent({
     queryFn: () => (isPlex ? getLatestPlex({ data: arg }) : getLatestEmby({ data: arg })),
   });
 
-  // Ask the server to rescan, then pull everything on this page again.
+  // Ask every connected server to rescan, then pull this page again.
   async function onRefresh() {
     setRefreshing(true);
     try {
-      const res = isPlex
-        ? await refreshPlex({ data: arg })
-        : await refreshEmby({ data: arg });
-      if (res.ok) toast.success("Server sync started — reloading your library.");
-      else toast.error(res.error ?? "Could not start a server sync.");
+      const res = await refreshAll({});
+      const failed = res.results.filter((r) => !r.ok);
+      if (res.started > 0) {
+        toast.success(
+          res.total > 1
+            ? `Scan started on ${res.started} of ${res.total} servers — reloading your library.`
+            : "Server scan started — reloading your library.",
+        );
+      }
+      if (failed.length) {
+        toast.error(
+          failed.map((f) => `${f.name}: ${f.error ?? "scan failed"}`).join(" · "),
+        );
+      }
+      if (!res.total) toast.error("No servers connected yet.");
     } catch (e: any) {
       toast.error(e?.message ?? "Refresh failed");
     } finally {
