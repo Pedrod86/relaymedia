@@ -718,9 +718,10 @@ function Player({
     <main className="flex min-h-screen flex-col bg-black text-white">
       <header
         className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
-          paused && !isTv ? "opacity-100" : "invisible pointer-events-none opacity-0"
+          chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
-        aria-hidden={!(paused && !isTv)}
+        aria-hidden={!chromeVisible}
+
       >
         <Link to="/item/$id" params={{ id: itemId }} className="text-sm opacity-80 hover:opacity-100">
           ← Back
