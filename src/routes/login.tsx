@@ -15,9 +15,8 @@ import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    kind: typeof search.kind === "string" ? (search.kind as ServerKind) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { kind?: ServerKind } =>
+    typeof search.kind === "string" ? { kind: search.kind as ServerKind } : {},
   head: () => ({
     meta: [
       { title: "Add server — Media" },
