@@ -35,7 +35,6 @@ async function handle(request: Request) {
       method: request.method === "HEAD" ? "HEAD" : "GET",
       headers,
       signal: request.signal,
-      redirect: "follow",
     });
   } catch (e: any) {
     if (e?.name === "AbortError") return new Response(null, { status: 499 });

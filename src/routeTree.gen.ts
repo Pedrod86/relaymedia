@@ -20,6 +20,7 @@ import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
+import { Route as ApiPublicIptvStreamRouteImport } from './routes/api/public/iptv-stream'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
@@ -80,6 +81,11 @@ const ApiPublicAppVersionRoute = ApiPublicAppVersionRouteImport.update({
   path: '/api/public/app-version',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIptvStreamRoute = ApiPublicIptvStreamRouteImport.update({
+  id: '/api/public/iptv-stream',
+  path: '/api/public/iptv-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
   id: '/api/public/media-proxy',
   path: '/api/public/media-proxy',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -219,6 +231,7 @@ export interface RootRouteChildren {
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
+  ApiPublicIptvStreamRoute: typeof ApiPublicIptvStreamRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
   ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAppVersionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/iptv-stream': {
+      id: '/api/public/iptv-stream'
+      path: '/api/public/iptv-stream'
+      fullPath: '/api/public/iptv-stream'
+      preLoaderRoute: typeof ApiPublicIptvStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/media-proxy': {
       id: '/api/public/media-proxy'
       path: '/api/public/media-proxy'
@@ -347,6 +367,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
+  ApiPublicIptvStreamRoute: ApiPublicIptvStreamRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
   ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,
