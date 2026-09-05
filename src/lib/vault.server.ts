@@ -11,7 +11,7 @@
 import process from "node:process";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 
-export type ServerKind = "emby" | "jellyfin" | "plex" | "silo";
+export type ServerKind = "emby" | "jellyfin" | "plex" | "silo" | "iptv";
 
 /** Full credential record — server-side only. */
 export type MediaCredential = {
@@ -22,6 +22,8 @@ export type MediaCredential = {
   token: string;
   userId: string;
   userName: string;
+  /** IPTV only: how the provider was connected. */
+  mode?: "xtream" | "m3u";
 };
 
 /** The subset that is safe to send to the browser (no token). */
