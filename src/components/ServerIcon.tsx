@@ -45,6 +45,24 @@ export function ServerIcon({ kind, size = 16, className }: Props) {
       </svg>
     );
   }
+  if (kind === "iptv") {
+    // IPTV — antenna / broadcast mark
+    return (
+      <svg {...common}>
+        <path
+          d="M9 10h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z"
+          fill="#38bdf8"
+        />
+        <path
+          d="M12 9L7 3M12 9l5-6"
+          stroke="#38bdf8"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+    );
+  }
   if (kind === "silo") {
     // Silo — simple cylindrical tower mark
     return (
@@ -80,6 +98,7 @@ export function ServerLabel({
     kind === "emby" ? "Emby" :
     kind === "jellyfin" ? "Jellyfin" :
     kind === "silo" ? "Silo" :
+    kind === "iptv" ? "IPTV" :
     "Plex";
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ""}`}>

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as IptvRouteImport } from './routes/iptv'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlayRouteImport } from './routes/play'
@@ -20,6 +21,7 @@ import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as ViewIdRouteImport } from './routes/view.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
 import { Route as ApiPublicAppVersionRouteImport } from './routes/api/public/app-version'
+import { Route as ApiPublicIptvStreamRouteImport } from './routes/api/public/iptv-stream'
 import { Route as ApiPublicMediaProxyRouteImport } from './routes/api/public/media-proxy'
 import { Route as ApiPublicPlayRouteImport } from './routes/api/public/play'
 import { Route as ApiPublicStreamRouteImport } from './routes/api/public/stream'
@@ -33,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IptvRoute = IptvRouteImport.update({
+  id: '/iptv',
+  path: '/iptv',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -80,6 +87,11 @@ const ApiPublicAppVersionRoute = ApiPublicAppVersionRouteImport.update({
   path: '/api/public/app-version',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIptvStreamRoute = ApiPublicIptvStreamRouteImport.update({
+  id: '/api/public/iptv-stream',
+  path: '/api/public/iptv-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMediaProxyRoute = ApiPublicMediaProxyRouteImport.update({
   id: '/api/public/media-proxy',
   path: '/api/public/media-proxy',
@@ -104,6 +116,7 @@ const TorboxTorrentIdFileIdRoute = TorboxTorrentIdFileIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -113,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -121,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -130,6 +145,7 @@ export interface FileRoutesByTo {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -139,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -148,6 +165,7 @@ export interface FileRoutesById {
   '/view/$id': typeof ViewIdRoute
   '/watch/$id': typeof WatchIdRoute
   '/api/public/app-version': typeof ApiPublicAppVersionRoute
+  '/api/public/iptv-stream': typeof ApiPublicIptvStreamRoute
   '/api/public/media-proxy': typeof ApiPublicMediaProxyRoute
   '/api/public/play': typeof ApiPublicPlayRoute
   '/api/public/stream': typeof ApiPublicStreamRoute
@@ -158,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -167,6 +186,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -175,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -184,6 +205,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -192,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -201,6 +224,7 @@ export interface FileRouteTypes {
     | '/view/$id'
     | '/watch/$id'
     | '/api/public/app-version'
+    | '/api/public/iptv-stream'
     | '/api/public/media-proxy'
     | '/api/public/play'
     | '/api/public/stream'
@@ -210,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  IptvRoute: typeof IptvRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   PlayRoute: typeof PlayRoute
@@ -219,6 +244,7 @@ export interface RootRouteChildren {
   ViewIdRoute: typeof ViewIdRoute
   WatchIdRoute: typeof WatchIdRoute
   ApiPublicAppVersionRoute: typeof ApiPublicAppVersionRoute
+  ApiPublicIptvStreamRoute: typeof ApiPublicIptvStreamRoute
   ApiPublicMediaProxyRoute: typeof ApiPublicMediaProxyRoute
   ApiPublicPlayRoute: typeof ApiPublicPlayRoute
   ApiPublicStreamRoute: typeof ApiPublicStreamRoute
@@ -239,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/iptv': {
+      id: '/iptv'
+      path: '/iptv'
+      fullPath: '/iptv'
+      preLoaderRoute: typeof IptvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -304,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAppVersionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/iptv-stream': {
+      id: '/api/public/iptv-stream'
+      path: '/api/public/iptv-stream'
+      fullPath: '/api/public/iptv-stream'
+      preLoaderRoute: typeof ApiPublicIptvStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/media-proxy': {
       id: '/api/public/media-proxy'
       path: '/api/public/media-proxy'
@@ -338,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  IptvRoute: IptvRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   PlayRoute: PlayRoute,
@@ -347,6 +388,7 @@ const rootRouteChildren: RootRouteChildren = {
   ViewIdRoute: ViewIdRoute,
   WatchIdRoute: WatchIdRoute,
   ApiPublicAppVersionRoute: ApiPublicAppVersionRoute,
+  ApiPublicIptvStreamRoute: ApiPublicIptvStreamRoute,
   ApiPublicMediaProxyRoute: ApiPublicMediaProxyRoute,
   ApiPublicPlayRoute: ApiPublicPlayRoute,
   ApiPublicStreamRoute: ApiPublicStreamRoute,

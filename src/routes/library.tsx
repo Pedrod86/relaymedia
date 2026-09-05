@@ -36,7 +36,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio } from "lucide-react";
 
 
 export const Route = createFileRoute("/library")({
@@ -444,6 +444,17 @@ function LibraryContent({
       >
         <Tv className="size-5 text-primary" />
         {tvMode ? "Exit TV mode" : "TV mode"}
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/iptv">
+          <Radio className="size-5 text-primary" />
+          Live TV
+        </Link>
       </Button>
       <Button
         variant="ghost"

@@ -5,7 +5,10 @@ import { z } from "zod";
 
 export const listMediaServers = createServerFn({ method: "GET" }).handler(async () => {
   const { readVault, toPublic } = await import("./vault.server");
-  return { servers: (await readVault()).map(toPublic) };
+  // IPTV providers live on their own Live TV page, not in the media library.
+  return {
+    servers: (await readVault()).filter((c) => c.kind !== "iptv").map(toPublic),
+  };
 });
 
 export const removeMediaServer = createServerFn({ method: "POST" })
@@ -29,7 +32,7 @@ export const signOutAllServers = createServerFn({ method: "POST" }).handler(asyn
 export const refreshAllServers = createServerFn({ method: "POST" }).handler(async () => {
   const { readVault } = await import("./vault.server");
   const { normalizeUrl, embyAuthHeader, plexHeaders, plexFetch } = await import("./media.server");
-  const servers = await readVault();
+  const servers = (await readVault()).filter((c) => c.kind !== "iptv");
 
   const results = await Promise.all(
     servers.map(async (c) => {
