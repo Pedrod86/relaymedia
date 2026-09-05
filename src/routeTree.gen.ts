@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as IptvRouteImport } from './routes/iptv'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlayRouteImport } from './routes/play'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IptvRoute = IptvRouteImport.update({
+  id: '/iptv',
+  path: '/iptv',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -110,6 +116,7 @@ const TorboxTorrentIdFileIdRoute = TorboxTorrentIdFileIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/play': typeof PlayRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/iptv'
     | '/library'
     | '/login'
     | '/play'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  IptvRoute: typeof IptvRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   PlayRoute: typeof PlayRoute
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/iptv': {
+      id: '/iptv'
+      path: '/iptv'
+      fullPath: '/iptv'
+      preLoaderRoute: typeof IptvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -358,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  IptvRoute: IptvRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   PlayRoute: PlayRoute,

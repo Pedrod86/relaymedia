@@ -5,6 +5,7 @@ import relayLogo from "@/assets/relay-logo.png.asset.json";
 import loginHeroes from "@/assets/login-heroes.jpg";
 
 import { embyLogin } from "@/lib/emby.functions";
+import { iptvAddM3u, iptvAddXtream } from "@/lib/iptv.functions";
 import { plexAddServer } from "@/lib/plex.functions";
 import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,16 @@ import { ServerIcon, ServerLabel } from "@/components/ServerIcon";
 import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    kind: typeof search.kind === "string" ? (search.kind as ServerKind) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Add server — Media" },
-      { name: "description", content: "Connect an Emby, Jellyfin or Plex server." },
+      {
+        name: "description",
+        content: "Connect an Emby, Jellyfin, Plex or IPTV (Xtream Codes / M3U) source.",
+      },
     ],
   }),
   component: LoginPage,
@@ -28,14 +35,21 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
   { value: "silo", label: "Silo", hint: "silo.example.com (coming soon)" },
+  { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
 ];
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { kind: kindParam } = Route.useSearch();
   const embyLoginFn = useServerFn(embyLogin);
   const plexAddServerFn = useServerFn(plexAddServer);
+  const iptvXtreamFn = useServerFn(iptvAddXtream);
+  const iptvM3uFn = useServerFn(iptvAddM3u);
 
-  const [kind, setKind] = useState<ServerKind>("plex");
+  const [kind, setKind] = useState<ServerKind>(kindParam ?? "plex");
+  const [iptvMode, setIptvMode] = useState<"xtream" | "m3u">("xtream");
+  const [m3uUrl, setM3uUrl] = useState("");
+  const [iptvName, setIptvName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +67,25 @@ function LoginPage() {
       // Credentials are posted to the server, which stores the resulting
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.
+      if (kind === "iptv") {
+        const res =
+          iptvMode === "m3u"
+            ? await iptvM3uFn({ data: { url: m3uUrl.trim(), name: iptvName.trim() || undefined } })
+            : await iptvXtreamFn({
+                data: {
+                  serverUrl: cleanUrl,
+                  username: username.trim(),
+                  password,
+                  name: iptvName.trim() || undefined,
+                },
+              });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        navigate({ to: "/iptv" });
+        return;
+      }
       if (kind === "silo") {
         setError("Silo support is coming soon.");
         return;
@@ -97,6 +130,7 @@ function LoginPage() {
 
 
   const isPlex = kind === "plex";
+  const isIptv = kind === "iptv";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
@@ -129,11 +163,12 @@ function LoginPage() {
             <h1 className="text-3xl font-semibold tracking-tight">Add a server</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               Connect <ServerLabel kind="plex" />, <ServerLabel kind="emby" />,{" "}
-              <ServerLabel kind="jellyfin" /> or <ServerLabel kind="silo" />. You can add more later.
+              <ServerLabel kind="jellyfin" />, <ServerLabel kind="silo" /> or{" "}
+              <ServerLabel kind="iptv" />. You can add more later.
             </p>
           </div>
 
-          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {KINDS.map((k) => (
               <button
                 key={k.value}
@@ -155,14 +190,65 @@ function LoginPage() {
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="server">Server URL</Label>
+            {isIptv && (
+              <div className="grid grid-cols-2 gap-2">
+                {(["xtream", "m3u"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setIptvMode(m);
+                      setError(null);
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      iptvMode === m
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {m === "xtream" ? "Xtream Codes" : "M3U playlist"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isIptv && (
+              <div className="space-y-2">
+                <Label htmlFor="iptvName">Name (optional)</Label>
+                <Input
+                  id="iptvName"
+                  value={iptvName}
+                  onChange={(e) => setIptvName(e.target.value)}
+                  placeholder="My IPTV"
+                />
+              </div>
+            )}
+
+            {isIptv && iptvMode === "m3u" && (
+              <div className="space-y-2">
+                <Label htmlFor="m3u">M3U playlist URL</Label>
+                <Input
+                  id="m3u"
+                  value={m3uUrl}
+                  onChange={(e) => setM3uUrl(e.target.value)}
+                  placeholder="http://provider.tv/get.php?username=…&type=m3u_plus"
+                  required
+                  autoComplete="url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste the full playlist link your provider gave you.
+                </p>
+              </div>
+            )}
+
+            <div className={`space-y-2 ${isIptv && iptvMode === "m3u" ? "hidden" : ""}`}>
+              <Label htmlFor="server">{isIptv ? "Xtream server URL" : "Server URL"}</Label>
               <Input
                 id="server"
                 placeholder={KINDS.find((k) => k.value === kind)?.hint}
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
-                required
+                required={!(isIptv && iptvMode === "m3u")}
                 autoComplete="url"
               />
             </div>
@@ -181,7 +267,7 @@ function LoginPage() {
               </div>
             )}
 
-            {(!isPlex || !usePlexToken) && (
+            {!(isIptv && iptvMode === "m3u") && (!isPlex || !usePlexToken) && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username{isPlex ? " (plex.tv)" : ""}</Label>
