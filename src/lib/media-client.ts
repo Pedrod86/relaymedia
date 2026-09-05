@@ -8,7 +8,7 @@
 // localStorage is used only for non-sensitive UI preferences (which server is
 // active, which categories are hidden).
 
-export type ServerKind = "emby" | "jellyfin" | "plex" | "silo";
+export type ServerKind = "emby" | "jellyfin" | "plex" | "silo" | "iptv";
 
 /** Public server metadata as returned by the server — contains no token. */
 export type MediaServer = {
@@ -18,6 +18,7 @@ export type MediaServer = {
   serverUrl: string;
   userId: string;
   userName: string;
+  mode?: "xtream" | "m3u";
 };
 
 const ACTIVE_KEY = "media_active_server_v1";
