@@ -451,6 +451,17 @@ function LibraryContent({
         asChild
         onClick={() => setNavOpen(false)}
       >
+        <Link to="/iptv">
+          <Radio className="size-5 text-primary" />
+          Live TV
+        </Link>
+      </Button>
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
         <Link to="/settings" search={{ section: undefined }}>
           <Settings className="size-5 text-primary" />
           Settings
