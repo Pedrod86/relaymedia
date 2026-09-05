@@ -98,6 +98,7 @@ export function ServerLabel({
     kind === "emby" ? "Emby" :
     kind === "jellyfin" ? "Jellyfin" :
     kind === "silo" ? "Silo" :
+    kind === "iptv" ? "IPTV" :
     "Plex";
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ""}`}>
