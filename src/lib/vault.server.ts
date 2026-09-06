@@ -151,6 +151,19 @@ export async function addCredential(
   return toPublic(next);
 }
 
+/** Patch a stored credential in place (e.g. attaching an IPTV guide URL). */
+export async function updateCredential(
+  id: string,
+  patch: Partial<Omit<MediaCredential, "id">>,
+): Promise<PublicMediaServer | null> {
+  const creds = await readVault();
+  const found = creds.find((c) => c.id === id);
+  if (!found) return null;
+  Object.assign(found, patch);
+  await writeVault(creds);
+  return toPublic(found);
+}
+
 export async function removeCredential(id: string): Promise<PublicMediaServer[]> {
   const creds = (await readVault()).filter((c) => c.id !== id);
   await writeVault(creds);
