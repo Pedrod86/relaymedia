@@ -12,6 +12,7 @@ export const iptvAddXtream = createServerFn({ method: "POST" })
       username: z.string().trim().min(1).max(200),
       password: z.string().min(1).max(200),
       name: z.string().trim().max(80).optional(),
+      epgUrl: urlish.optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -21,6 +22,7 @@ export const iptvAddXtream = createServerFn({ method: "POST" })
     try {
       const base = normalizeUrl(data.serverUrl);
       assertSafeServerUrl(base);
+      if (data.epgUrl) assertSafeServerUrl(data.epgUrl);
       const info = await xtreamAuth(base, data.username, data.password);
       const server = await addCredential({
         kind: "iptv",
@@ -30,6 +32,7 @@ export const iptvAddXtream = createServerFn({ method: "POST" })
         token: data.password,
         userId: data.username,
         userName: info.userName,
+        ...(data.epgUrl ? { epgUrl: data.epgUrl } : {}),
       });
       return { ok: true as const, server, expires: info.expires };
     } catch (e: any) {
@@ -38,14 +41,22 @@ export const iptvAddXtream = createServerFn({ method: "POST" })
   });
 
 export const iptvAddM3u = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ url: urlish, name: z.string().trim().max(80).optional() }))
+  .inputValidator(
+    z.object({
+      url: urlish,
+      name: z.string().trim().max(80).optional(),
+      epgUrl: urlish.optional(),
+    }),
+  )
   .handler(async ({ data }) => {
     const { assertSafeServerUrl } = await import("./media.server");
     const { m3uProbe } = await import("./iptv.server");
     const { addCredential } = await import("./vault.server");
     try {
       assertSafeServerUrl(data.url);
-      const count = await m3uProbe(data.url);
+      if (data.epgUrl) assertSafeServerUrl(data.epgUrl);
+      const probe = await m3uProbe(data.url);
+      const epgUrl = data.epgUrl || probe.epgUrl;
       const server = await addCredential({
         kind: "iptv",
         mode: "m3u",
@@ -54,12 +65,14 @@ export const iptvAddM3u = createServerFn({ method: "POST" })
         token: "",
         userId: "",
         userName: "M3U playlist",
+        ...(epgUrl ? { epgUrl } : {}),
       });
-      return { ok: true as const, server, channels: count };
+      return { ok: true as const, server, channels: probe.count };
     } catch (e: any) {
       return { ok: false as const, error: friendly(e) };
     }
   });
+
 
 /** IPTV providers currently connected (metadata only). */
 export const listIptvServers = createServerFn({ method: "GET" }).handler(async () => {
