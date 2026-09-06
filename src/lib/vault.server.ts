@@ -24,6 +24,8 @@ export type MediaCredential = {
   userName: string;
   /** IPTV only: how the provider was connected. */
   mode?: "xtream" | "m3u";
+  /** IPTV only: XMLTV guide URL (auto-detected or supplied by the user). */
+  epgUrl?: string;
 };
 
 /** The subset that is safe to send to the browser (no token). */
