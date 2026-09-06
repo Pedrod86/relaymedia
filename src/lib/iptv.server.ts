@@ -154,6 +154,7 @@ async function xtreamChannels(cred: MediaCredential): Promise<IptvChannel[]> {
       group: liveNames.get(String(s.category_id)) ?? "Live TV",
       logo: s.stream_icon ? String(s.stream_icon) : null,
       kind: "live",
+      epgId: s.epg_channel_id ? String(s.epg_channel_id) : null,
       play: await sealStreamUrl(`${base}/live/${user}/${pass}/${id}.m3u8`),
     });
   }
