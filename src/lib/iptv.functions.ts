@@ -109,6 +109,55 @@ export const iptvChannels = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * TV guide for one provider (XMLTV). Returns a map of the channel's guide id to
+ * the programmes around now, so the page can show what's on and what's next.
+ */
+export const iptvGuide = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ serverId: z.string().min(1).max(100) }))
+  .handler(async ({ data }) => {
+    const { requireCredential } = await import("./vault.server");
+    const { loadEpg, epgUrlFor } = await import("./iptv.server");
+    try {
+      const cred = await requireCredential(data.serverId);
+      if (cred.kind !== "iptv") return { ok: false as const, error: "Not an IPTV provider." };
+      if (!epgUrlFor(cred)) {
+        return { ok: true as const, guide: {}, available: false as const, fetchedAt: Date.now() };
+      }
+      const guide = await loadEpg(cred);
+      return {
+        ok: true as const,
+        guide,
+        available: Object.keys(guide).length > 0,
+        fetchedAt: Date.now(),
+      };
+    } catch (e: any) {
+      return { ok: false as const, error: friendly(e) };
+    }
+  });
+
+/** Attach or replace the guide (XMLTV) URL for a provider. */
+export const iptvSetEpgUrl = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({ serverId: z.string().min(1).max(100), epgUrl: z.string().trim().max(2048) }),
+  )
+  .handler(async ({ data }) => {
+    const { assertSafeServerUrl } = await import("./media.server");
+    const { readVault, updateCredential } = await import("./vault.server");
+    try {
+      const url = data.epgUrl.trim();
+      if (url) assertSafeServerUrl(url);
+      const cred = (await readVault()).find((c) => c.id === data.serverId);
+      if (!cred || cred.kind !== "iptv") return { ok: false as const, error: "Provider not found." };
+      await updateCredential(data.serverId, { epgUrl: url || undefined });
+      return { ok: true as const };
+    } catch (e: any) {
+      return { ok: false as const, error: friendly(e) };
+    }
+  });
+
+
+
 function friendly(e: any): string {
   const raw = String(e?.message ?? e ?? "");
   if (raw === "SERVER_SESSION_EXPIRED") return "That provider is no longer connected. Add it again.";
