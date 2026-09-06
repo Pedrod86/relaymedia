@@ -169,6 +169,7 @@ async function xtreamChannels(cred: MediaCredential): Promise<IptvChannel[]> {
       group: vodNames.get(String(s.category_id)) ?? "Movies",
       logo: s.stream_icon ? String(s.stream_icon) : s.cover ? String(s.cover) : null,
       kind: "movie",
+      epgId: null,
       play: await sealStreamUrl(`${base}/movie/${user}/${pass}/${id}.${ext}`),
     });
   }
