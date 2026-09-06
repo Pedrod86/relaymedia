@@ -22,7 +22,18 @@ export type IptvChannel = {
   /** Sealed playback token — pass to /api/public/iptv-stream?t=… */
   play: string;
   kind: "live" | "movie";
+  /** XMLTV channel id, when the provider gives one. */
+  epgId: string | null;
 };
+
+/** One guide entry. Times are epoch milliseconds. */
+export type IptvProgramme = {
+  start: number;
+  stop: number;
+  title: string;
+  desc: string | null;
+};
+
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
