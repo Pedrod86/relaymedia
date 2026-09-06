@@ -240,6 +240,23 @@ function LoginPage() {
               </div>
             )}
 
+            {isIptv && (
+              <div className="space-y-2">
+                <Label htmlFor="epgUrl">TV guide (EPG) URL — optional</Label>
+                <Input
+                  id="epgUrl"
+                  value={epgUrl}
+                  onChange={(e) => setEpgUrl(e.target.value)}
+                  placeholder="http://provider.tv/xmltv.php?username=…"
+                  autoComplete="url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank and Relay will look for the guide your provider offers.
+                </p>
+              </div>
+            )}
+
+
             <div className={`space-y-2 ${isIptv && iptvMode === "m3u" ? "hidden" : ""}`}>
               <Label htmlFor="server">{isIptv ? "Xtream server URL" : "Server URL"}</Label>
               <Input
