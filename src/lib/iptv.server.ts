@@ -22,7 +22,18 @@ export type IptvChannel = {
   /** Sealed playback token — pass to /api/public/iptv-stream?t=… */
   play: string;
   kind: "live" | "movie";
+  /** XMLTV channel id, when the provider gives one. */
+  epgId: string | null;
 };
+
+/** One guide entry. Times are epoch milliseconds. */
+export type IptvProgramme = {
+  start: number;
+  stop: number;
+  title: string;
+  desc: string | null;
+};
+
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
@@ -143,6 +154,7 @@ async function xtreamChannels(cred: MediaCredential): Promise<IptvChannel[]> {
       group: liveNames.get(String(s.category_id)) ?? "Live TV",
       logo: s.stream_icon ? String(s.stream_icon) : null,
       kind: "live",
+      epgId: s.epg_channel_id ? String(s.epg_channel_id) : null,
       play: await sealStreamUrl(`${base}/live/${user}/${pass}/${id}.m3u8`),
     });
   }
@@ -157,6 +169,7 @@ async function xtreamChannels(cred: MediaCredential): Promise<IptvChannel[]> {
       group: vodNames.get(String(s.category_id)) ?? "Movies",
       logo: s.stream_icon ? String(s.stream_icon) : s.cover ? String(s.cover) : null,
       kind: "movie",
+      epgId: null,
       play: await sealStreamUrl(`${base}/movie/${user}/${pass}/${id}.${ext}`),
     });
   }
@@ -175,7 +188,8 @@ function attr(line: string, name: string): string | null {
 export async function parseM3u(text: string, limit = 6000): Promise<IptvChannel[]> {
   const lines = text.split(/\r?\n/);
   const out: IptvChannel[] = [];
-  let pending: { name: string; group: string; logo: string | null } | null = null;
+  let pending: { name: string; group: string; logo: string | null; epgId: string | null } | null =
+    null;
   let n = 0;
 
   for (const raw of lines) {
@@ -187,6 +201,7 @@ export async function parseM3u(text: string, limit = 6000): Promise<IptvChannel[
         name: name || attr(line, "tvg-name") || "Channel",
         group: attr(line, "group-title") || "Playlist",
         logo: attr(line, "tvg-logo"),
+        epgId: attr(line, "tvg-id"),
       };
       continue;
     }
@@ -195,7 +210,7 @@ export async function parseM3u(text: string, limit = 6000): Promise<IptvChannel[
       pending = null;
       continue;
     }
-    const meta = pending ?? { name: "Channel", group: "Playlist", logo: null };
+    const meta = pending ?? { name: "Channel", group: "Playlist", logo: null, epgId: null };
     pending = null;
     const isMovie = /\/movie\/|\.(mp4|mkv|avi)(\?|$)/i.test(line);
     out.push({
@@ -204,12 +219,23 @@ export async function parseM3u(text: string, limit = 6000): Promise<IptvChannel[
       group: meta.group,
       logo: meta.logo,
       kind: isMovie ? "movie" : "live",
+      epgId: meta.epgId,
       play: await sealStreamUrl(line),
     });
     n++;
     if (n >= limit) break;
   }
   return out;
+}
+
+/** The `url-tvg`/`x-tvg-url` guide link some playlists advertise on #EXTM3U. */
+export function m3uEpgUrl(text: string): string | null {
+  const head = text.slice(0, 4000);
+  const m = /#EXTM3U[^\n]*/i.exec(head)?.[0];
+  if (!m) return null;
+  const found = attr(m, "url-tvg") || attr(m, "x-tvg-url");
+  const first = found?.split(",")[0]?.trim();
+  return first && /^https?:\/\//i.test(first) ? first : null;
 }
 
 export async function m3uChannels(cred: MediaCredential): Promise<IptvChannel[]> {
@@ -222,20 +248,105 @@ export async function m3uChannels(cred: MediaCredential): Promise<IptvChannel[]>
 
 /** Validate an M3U URL up front so the user gets an error at connect time. */
 export async function m3uProbe(url: string) {
-  const channels = await m3uChannels({
-    id: "probe",
-    kind: "iptv",
-    name: "probe",
-    serverUrl: url,
-    token: "",
-    userId: "",
-    userName: "",
-    mode: "m3u",
-  });
+  const text = await getText(url);
+  if (!/#EXTM3U/i.test(text.slice(0, 2000)) && !/^https?:\/\//im.test(text)) {
+    throw new Error("That URL did not return an M3U playlist.");
+  }
+  const channels = await parseM3u(text);
   if (!channels.length) throw new Error("That playlist contains no channels.");
-  return channels.length;
+  return { count: channels.length, epgUrl: m3uEpgUrl(text) };
 }
 
 export async function loadChannels(cred: MediaCredential): Promise<IptvChannel[]> {
   return iptvMode(cred) === "m3u" ? m3uChannels(cred) : xtreamChannels(cred);
 }
+
+// ── EPG (XMLTV) ───────────────────────────────────────────────────────────
+
+/** Where the guide lives for this provider. */
+export function epgUrlFor(cred: MediaCredential): string | null {
+  if (cred.epgUrl) return cred.epgUrl;
+  if (iptvMode(cred) === "xtream") {
+    const u = new URL(`${normalizeUrl(cred.serverUrl)}/xmltv.php`);
+    u.searchParams.set("username", cred.userName || cred.userId);
+    u.searchParams.set("password", cred.token);
+    return u.toString();
+  }
+  return null;
+}
+
+/** XMLTV timestamps: `20260906140000 +0100` (offset optional). */
+function xmltvTime(value: string): number | null {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?\s*([+-]\d{4})?/.exec(value.trim());
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s, off] = m;
+  const base = Date.UTC(+y!, +mo! - 1, +d!, +h!, +mi!, s ? +s : 0);
+  if (!off) return base;
+  const sign = off.startsWith("-") ? -1 : 1;
+  const mins = sign * (Number(off.slice(1, 3)) * 60 + Number(off.slice(3, 5)));
+  return base - mins * 60_000;
+}
+
+function unescapeXml(s: string) {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+function tagText(block: string, tag: string): string | null {
+  const m = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i").exec(block);
+  return m?.[1] ? unescapeXml(m[1]) : null;
+}
+
+/**
+ * Parse XMLTV into a per-channel programme map, keeping only a window around
+ * now so a multi-megabyte guide stays small enough to send to the page.
+ */
+export function parseXmltv(
+  text: string,
+  opts?: { now?: number; pastMs?: number; futureMs?: number; perChannel?: number },
+): Record<string, IptvProgramme[]> {
+  const now = opts?.now ?? Date.now();
+  const from = now - (opts?.pastMs ?? 2 * 60 * 60_000);
+  const to = now + (opts?.futureMs ?? 12 * 60 * 60_000);
+  const perChannel = opts?.perChannel ?? 16;
+
+  const out: Record<string, IptvProgramme[]> = {};
+  const re = /<programme\b([^>]*)>([\s\S]*?)<\/programme>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const attrs = m[1] ?? "";
+    const body = m[2] ?? "";
+    const channel = attr(attrs, "channel");
+    const start = xmltvTime(attr(attrs, "start") ?? "");
+    const stop = xmltvTime(attr(attrs, "stop") ?? "");
+    if (!channel || start === null) continue;
+    const end = stop ?? start + 30 * 60_000;
+    if (end < from || start > to) continue;
+    const list = (out[channel] ??= []);
+    if (list.length >= perChannel) continue;
+    list.push({
+      start,
+      stop: end,
+      title: tagText(body, "title") ?? "Programme",
+      desc: tagText(body, "desc"),
+    });
+  }
+  for (const list of Object.values(out)) list.sort((a, b) => a.start - b.start);
+  return out;
+}
+
+/** Download and parse the provider's guide. Returns `{}` when unavailable. */
+export async function loadEpg(cred: MediaCredential): Promise<Record<string, IptvProgramme[]>> {
+  const url = epgUrlFor(cred);
+  if (!url) return {};
+  const text = await getText(url);
+  if (!/<tv[\s>]/i.test(text.slice(0, 4000))) return {};
+  return parseXmltv(text);
+}
+

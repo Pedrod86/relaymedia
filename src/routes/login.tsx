@@ -48,6 +48,7 @@ function LoginPage() {
   const [kind, setKind] = useState<ServerKind>(kindParam ?? "plex");
   const [iptvMode, setIptvMode] = useState<"xtream" | "m3u">("xtream");
   const [m3uUrl, setM3uUrl] = useState("");
+  const [epgUrl, setEpgUrl] = useState("");
   const [iptvName, setIptvName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
@@ -67,15 +68,23 @@ function LoginPage() {
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.
       if (kind === "iptv") {
+        const trimmedEpg = epgUrl.trim();
         const res =
           iptvMode === "m3u"
-            ? await iptvM3uFn({ data: { url: m3uUrl.trim(), name: iptvName.trim() || undefined } })
+            ? await iptvM3uFn({
+                data: {
+                  url: m3uUrl.trim(),
+                  name: iptvName.trim() || undefined,
+                  ...(trimmedEpg ? { epgUrl: trimmedEpg } : {}),
+                },
+              })
             : await iptvXtreamFn({
                 data: {
                   serverUrl: cleanUrl,
                   username: username.trim(),
                   password,
                   name: iptvName.trim() || undefined,
+                  ...(trimmedEpg ? { epgUrl: trimmedEpg } : {}),
                 },
               });
         if (!res.ok) {
@@ -239,6 +248,23 @@ function LoginPage() {
                 </p>
               </div>
             )}
+
+            {isIptv && (
+              <div className="space-y-2">
+                <Label htmlFor="epgUrl">TV guide (EPG) URL — optional</Label>
+                <Input
+                  id="epgUrl"
+                  value={epgUrl}
+                  onChange={(e) => setEpgUrl(e.target.value)}
+                  placeholder="http://provider.tv/xmltv.php?username=…"
+                  autoComplete="url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank and Relay will look for the guide your provider offers.
+                </p>
+              </div>
+            )}
+
 
             <div className={`space-y-2 ${isIptv && iptvMode === "m3u" ? "hidden" : ""}`}>
               <Label htmlFor="server">{isIptv ? "Xtream server URL" : "Server URL"}</Label>

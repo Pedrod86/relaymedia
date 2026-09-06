@@ -24,6 +24,8 @@ export type MediaCredential = {
   userName: string;
   /** IPTV only: how the provider was connected. */
   mode?: "xtream" | "m3u";
+  /** IPTV only: XMLTV guide URL (auto-detected or supplied by the user). */
+  epgUrl?: string;
 };
 
 /** The subset that is safe to send to the browser (no token). */
@@ -147,6 +149,19 @@ export async function addCredential(
   kept.push(next);
   await writeVault(kept);
   return toPublic(next);
+}
+
+/** Patch a stored credential in place (e.g. attaching an IPTV guide URL). */
+export async function updateCredential(
+  id: string,
+  patch: Partial<Omit<MediaCredential, "id">>,
+): Promise<PublicMediaServer | null> {
+  const creds = await readVault();
+  const found = creds.find((c) => c.id === id);
+  if (!found) return null;
+  Object.assign(found, patch);
+  await writeVault(creds);
+  return toPublic(found);
 }
 
 export async function removeCredential(id: string): Promise<PublicMediaServer[]> {
