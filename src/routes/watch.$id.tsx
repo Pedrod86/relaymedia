@@ -691,6 +691,28 @@ function Player({
           e.preventDefault();
           seekBy(e.shiftKey ? -60 : -10);
           break;
+        case "ArrowUp":
+        case "ArrowDown": {
+          // Remote up/down reveals the controls and moves focus between the
+          // top bar and the transport row so the D-pad never gets stuck.
+          e.preventDefault();
+          bumpChrome();
+          const scope = e.key === "ArrowDown" ? '[data-player-chrome="bottom"]' : "header";
+          window.setTimeout(() => {
+            const root = document.querySelector(scope);
+            const items = root
+              ? Array.from(
+                  root.querySelectorAll<HTMLElement>(
+                    'button, a[href], select, input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])',
+                  ),
+                )
+              : [];
+            if (!items.length) return;
+            const idx = items.indexOf(document.activeElement as HTMLElement);
+            (idx >= 0 ? items[idx] : items[0]).focus();
+          }, 0);
+          break;
+        }
         case "MediaStop":
           e.preventDefault();
           videoRef.current?.pause();
@@ -701,7 +723,8 @@ function Player({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bumpChrome]);
 
 
   const decodeOptions: { id: DecodeMode; label: string }[] = [
@@ -1067,7 +1090,8 @@ function Player({
 
         {/* Remote/touch-friendly transport bar. Auto-hides while something is playing. */}
         <div
-          className={`absolute bottom-0 left-0 right-0 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
+          data-player-chrome="bottom"
+          className={`absolute bottom-0 left-0 right-0 z-30 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
             chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
           aria-hidden={!chromeVisible}
