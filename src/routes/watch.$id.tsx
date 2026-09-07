@@ -1001,7 +1001,7 @@ function Player({
         </div>
       )}
 
-      <div className="relative flex flex-1 items-center justify-center">
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
         <video
           ref={videoRef}
           controls={false}
@@ -1009,7 +1009,7 @@ function Player({
 
           playsInline
           crossOrigin="anonymous"
-          className="h-full max-h-[88vh] w-full bg-black"
+          className="absolute inset-0 m-auto h-full w-full bg-black object-contain"
         >
           {textSubs.map((s) => (
             <track
