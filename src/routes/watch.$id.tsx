@@ -670,6 +670,14 @@ function Player({
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      // When the remote is already inside the controls, let the buttons handle
+      // Enter and sideways moves themselves.
+      const inChrome = Boolean(
+        el?.closest('[data-player-chrome="bottom"], header'),
+      );
+      if (inChrome && (e.key === "Enter" || e.key === " " || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        return;
+      }
       switch (e.key) {
         case " ":
         case "Enter":
