@@ -856,7 +856,7 @@ function Player({
       </header>
 
       {showDetails && (
-        <div className="mx-6 mb-3">
+        <div className="absolute top-16 left-0 right-0 z-30 mx-6">
           <PlaybackDetails
             check={check}
             mode={mode ?? null}
