@@ -230,14 +230,26 @@ function IptvPage() {
                   </span>
                 </div>
 
-                <p className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <CalendarClock className="h-3.5 w-3.5" />
-                  {guide.isLoading
-                    ? "Loading TV guide…"
-                    : guide.data?.available
-                      ? "TV guide loaded — tap a channel name to see what's on."
-                      : "No TV guide available for this provider."}
-                </p>
+                  <span>
+                    {guide.isFetching
+                      ? "Loading TV guide…"
+                      : guide.data?.available
+                        ? "TV guide loaded — tap a channel name to see what's on."
+                        : "No TV guide available for this provider."}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1.5 px-2 text-xs"
+                    disabled={guide.isFetching}
+                    onClick={() => void guide.refetch()}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${guide.isFetching ? "animate-spin" : ""}`} />
+                    Refresh guide
+                  </Button>
+                </div>
 
                 <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
                   {["All", ...groups].map((g) => (
