@@ -106,13 +106,17 @@ export function TorboxRow({ tv = false }: { tv?: boolean }) {
           No playable downloads in your TorBox cloud yet.
         </p>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
+        <div
+          data-section-id={tv ? "torbox" : undefined}
+          className="flex gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]"
+        >
           {playable.map((item) => (
             <button
               key={item.key}
               type="button"
               onClick={() => onPlay(item)}
-              className="group flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-lg border bg-card/60 text-left ring-1 ring-border transition hover:ring-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              {...(tv ? { "data-tv-card": true, tabIndex: 0 } : {})}
+              className="group flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-lg border bg-card/60 text-left ring-1 ring-border transition hover:ring-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus:ring-2 focus:ring-primary"
             >
               <div className="flex aspect-video w-full items-center justify-center bg-muted">
                 <Play className="h-8 w-8 text-primary transition group-hover:scale-110" />
