@@ -751,9 +751,9 @@ function Player({
   }, [nativePlayer, mode]);
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
       <header
-        className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-6 py-3 transition-opacity duration-200 ${
           chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
         aria-hidden={!chromeVisible}
