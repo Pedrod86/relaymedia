@@ -250,7 +250,7 @@ function TorboxPlayer() {
         )}
       </header>
 
-      <div className="flex flex-1 items-center justify-center">
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
         {link.isLoading ? (
           <p className="flex items-center gap-2 text-sm opacity-80">
             <Loader2 className="h-4 w-4 animate-spin" /> Resolving your TorBox stream…
@@ -288,7 +288,7 @@ function TorboxPlayer() {
 
       {url && (
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-4 pt-10 transition-opacity ${chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"}`}
+          className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-4 pt-10 transition-opacity ${chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"}`}
           aria-hidden={!chromeVisible}
         >
           <div className="flex items-center gap-3 text-[11px] tabular-nums">
