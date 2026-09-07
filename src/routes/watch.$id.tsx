@@ -869,7 +869,7 @@ function Player({
       )}
 
       {showPanel && (
-        <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
+        <div className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
                 <p className="mb-2 font-medium">Decoding</p>
