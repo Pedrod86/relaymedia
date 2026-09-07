@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CalendarClock, Loader2, Radio, Search, Trash2, Tv, X } from "lucide-react";
+import { CalendarClock, Loader2, Radio, RefreshCw, Search, Trash2, Tv, X } from "lucide-react";
 
 import { iptvChannels, iptvGuide, listIptvServers, removeIptvServer } from "@/lib/iptv.functions";
 import { Button } from "@/components/ui/button";
