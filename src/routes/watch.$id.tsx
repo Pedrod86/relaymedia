@@ -670,6 +670,14 @@ function Player({
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      // When the remote is already inside the controls, let the buttons handle
+      // Enter and sideways moves themselves.
+      const inChrome = Boolean(
+        el?.closest('[data-player-chrome="bottom"], header'),
+      );
+      if (inChrome && (e.key === "Enter" || e.key === " " || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        return;
+      }
       switch (e.key) {
         case " ":
         case "Enter":
@@ -691,6 +699,28 @@ function Player({
           e.preventDefault();
           seekBy(e.shiftKey ? -60 : -10);
           break;
+        case "ArrowUp":
+        case "ArrowDown": {
+          // Remote up/down reveals the controls and moves focus between the
+          // top bar and the transport row so the D-pad never gets stuck.
+          e.preventDefault();
+          bumpChrome();
+          const scope = e.key === "ArrowDown" ? '[data-player-chrome="bottom"]' : "header";
+          window.setTimeout(() => {
+            const root = document.querySelector(scope);
+            const items = root
+              ? Array.from(
+                  root.querySelectorAll<HTMLElement>(
+                    'button, a[href], select, input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])',
+                  ),
+                )
+              : [];
+            if (!items.length) return;
+            const idx = items.indexOf(document.activeElement as HTMLElement);
+            (idx >= 0 ? items[idx] : items[0]).focus();
+          }, 0);
+          break;
+        }
         case "MediaStop":
           e.preventDefault();
           videoRef.current?.pause();
@@ -701,7 +731,8 @@ function Player({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bumpChrome]);
 
 
   const decodeOptions: { id: DecodeMode; label: string }[] = [
@@ -751,9 +782,9 @@ function Player({
   }, [nativePlayer, mode]);
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
       <header
-        className={`flex flex-wrap items-center justify-between gap-2 px-6 py-3 transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-6 py-3 transition-opacity duration-200 ${
           chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
         }`}
         aria-hidden={!chromeVisible}
@@ -856,7 +887,7 @@ function Player({
       </header>
 
       {showDetails && (
-        <div className="mx-6 mb-3">
+        <div className="absolute top-16 left-0 right-0 z-30 mx-6">
           <PlaybackDetails
             check={check}
             mode={mode ?? null}
@@ -869,7 +900,7 @@ function Player({
       )}
 
       {showPanel && (
-        <div className="mx-6 mb-3 rounded-lg border border-white/10 bg-white/5 p-4 text-xs">
+        <div className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
                 <p className="mb-2 font-medium">Decoding</p>
@@ -1001,7 +1032,7 @@ function Player({
         </div>
       )}
 
-      <div className="relative flex flex-1 items-center justify-center">
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
         <video
           ref={videoRef}
           controls={false}
@@ -1009,7 +1040,7 @@ function Player({
 
           playsInline
           crossOrigin="anonymous"
-          className="h-full max-h-[88vh] w-full bg-black"
+          className="absolute inset-0 m-auto h-full w-full bg-black object-contain"
         >
           {textSubs.map((s) => (
             <track
@@ -1067,7 +1098,8 @@ function Player({
 
         {/* Remote/touch-friendly transport bar. Auto-hides while something is playing. */}
         <div
-          className={`absolute bottom-0 left-0 right-0 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
+          data-player-chrome="bottom"
+          className={`absolute bottom-0 left-0 right-0 z-30 flex flex-col gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent px-4 pt-8 pb-5 transition-opacity duration-200 ${
             chromeVisible ? "opacity-100" : "invisible pointer-events-none opacity-0"
           }`}
           aria-hidden={!chromeVisible}
