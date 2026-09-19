@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://stream-vault.live/sitemap.xml
