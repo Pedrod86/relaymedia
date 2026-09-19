@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://stream-vault.live/</loc>
+  </url>
+  <url>
+    <loc>https://stream-vault.live/auth</loc>
+  </url>
+  <url>
+    <loc>https://stream-vault.live/login</loc>
+  </url>
+</urlset>
