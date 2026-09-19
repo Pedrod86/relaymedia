@@ -142,6 +142,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Relay Media — Stream Emby, Jellyfin, Plex & More" },
       { name: "description", content: "Relay Media is your all-in-one streaming app for Emby, Jellyfin, Plex, IPTV and TorBox — watch your libraries on phone, tablet, TV and the web." },
       { name: "author", content: "Lovable" },
+      { name: "google-site-verification", content: "iMsMBC9HFkZfrCrPNnNSGDI5HYDAhePVgvB-pO_1K3w" },
       { property: "og:title", content: "Relay Media — Stream Emby, Jellyfin, Plex & More" },
       { property: "og:description", content: "Relay Media is your all-in-one streaming app for Emby, Jellyfin, Plex, IPTV and TorBox — watch your libraries on phone, tablet, TV and the web." },
       { property: "og:type", content: "website" },
