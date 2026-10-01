@@ -1037,6 +1037,7 @@ function Player({
         </div>
       )}
 
+      <h1 className="sr-only">{(itemQ.data?.item as any)?.Name ?? "Now Playing"}</h1>
       <div className="absolute inset-0 z-0 flex items-center justify-center">
         <video
           ref={videoRef}

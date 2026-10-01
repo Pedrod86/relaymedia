@@ -165,7 +165,7 @@ function LoginPage() {
           <div className="mb-6">
             <img
               src={relayLogo.url}
-              alt="Relay Media logo"
+              alt="Relay Media"
               className="mx-auto mb-4 h-24 w-24 rounded-2xl object-cover shadow-lg"
             />
             <h1 className="text-3xl font-semibold tracking-tight">Add a server</h1>

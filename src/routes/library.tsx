@@ -522,12 +522,13 @@ function LibraryContent({
           alt="Relay Media"
           className="size-8 shrink-0 rounded-md object-cover"
         />
+        <h1 className="sr-only">Media Library</h1>
         {prefs.showServerGreeting && (
           <div className="min-w-0">
             <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground sm:text-xs">
               {server.kind} · {server.name}
             </p>
-            <h1 className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</h1>
+            <p className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</p>
           </div>
         )}
         {prefs.quickActions && (
