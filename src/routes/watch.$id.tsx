@@ -44,7 +44,12 @@ import {
 
 
 export const Route = createFileRoute("/watch/$id")({
-  head: () => ({ meta: [{ title: "Watch — Media" }] }),
+  head: () => ({
+    meta: [
+      { title: "Now Playing — Relay Media" },
+      { name: "description", content: "Watch this title from your media server with subtitles, audio tracks and hardware decoding." },
+    ],
+  }),
   // `audio` carries the language chosen on the title page into playback.
   validateSearch: (search: Record<string, unknown>): { audio?: number } => {
     const n = Number(search.audio);

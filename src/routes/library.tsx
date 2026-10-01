@@ -42,8 +42,8 @@ import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, Monito
 export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
-      { title: "Library — Media" },
-      { name: "description", content: "Browse your media library." },
+      { title: "Your Library — Relay Media" },
+      { name: "description", content: "Browse your movies, TV shows, live TV and downloads from your connected media servers." },
     ],
   }),
   component: LibraryPage,

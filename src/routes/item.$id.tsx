@@ -29,9 +29,9 @@ import {
 export const Route = createFileRoute("/item/$id")({
   head: () => ({
     meta: [
-      { title: "Title details — Media" },
-      { name: "description", content: "Cast, ratings, runtime and media details for this movie or TV show." },
-      { property: "og:title", content: "Title details — Media" },
+      { title: "Movie & TV Details — Relay Media" },
+      { name: "description", content: "Cast, ratings, runtime and media details for this movie or TV show on your server." },
+      { property: "og:title", content: "Movie & TV Details — Relay Media" },
       { property: "og:description", content: "Cast, ratings, runtime and media details." },
     ],
   }),
