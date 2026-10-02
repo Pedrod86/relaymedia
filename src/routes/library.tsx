@@ -1024,6 +1024,15 @@ function TVLibrarySection({
         {q.data.items.map((it) => (
           <TVCard key={it.Id} item={it} server={server} kind="primary" />
         ))}
+        <Link
+          to="/view/$id"
+          params={{ id }}
+          data-tv-card
+          tabIndex={0}
+          className="flex aspect-[2/3] w-44 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 text-lg font-semibold text-muted-foreground outline-none transition focus:scale-105 focus:border-primary focus:text-primary"
+        >
+          See all →
+        </Link>
       </div>
     </section>
   );

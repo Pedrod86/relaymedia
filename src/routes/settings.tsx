@@ -27,6 +27,7 @@ import { AccountPanel } from "@/components/AccountPanel";
 import { TorboxPanel } from "@/components/TorboxPanel";
 import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
+import { SimklPanel } from "@/components/SimklPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
 import { PersonalizationHub } from "@/components/personalization/PersonalizationHub";
@@ -196,6 +197,7 @@ function SettingsPage() {
           <AiPicksPanel serverId={active.id} />
           <DiscordPanel />
           <TraktPanel />
+          <SimklPanel />
           <TorboxPanel />
           <ActiveServerPanel server={active} only="sync" />
         </>
