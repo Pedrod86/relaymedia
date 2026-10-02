@@ -1,3 +1,4 @@
+import { profileSuffix } from "./profiles";
 // Personal watch history — stored per media server in localStorage.
 //
 // It holds no credentials: just a small snapshot of each item (id, title,
@@ -26,7 +27,7 @@ export type HistoryEntry = {
 };
 
 function keyFor(serverId: string) {
-  return KEY_PREFIX + serverId;
+  return KEY_PREFIX + serverId + profileSuffix();
 }
 
 export function loadHistory(serverId: string): HistoryEntry[] {

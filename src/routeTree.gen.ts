@@ -14,7 +14,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IptvRouteImport } from './routes/iptv'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MultiviewRouteImport } from './routes/multiview'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as ProfilesRouteImport } from './routes/profiles'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
@@ -52,9 +54,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MultiviewRoute = MultiviewRouteImport.update({
+  id: '/multiview',
+  path: '/multiview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfilesRoute = ProfilesRouteImport.update({
+  id: '/profiles',
+  path: '/profiles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -119,7 +131,9 @@ export interface FileRoutesByFullPath {
   '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
+  '/profiles': typeof ProfilesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -138,7 +152,9 @@ export interface FileRoutesByTo {
   '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
+  '/profiles': typeof ProfilesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -158,7 +174,9 @@ export interface FileRoutesById {
   '/iptv': typeof IptvRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
+  '/profiles': typeof ProfilesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -179,7 +197,9 @@ export interface FileRouteTypes {
     | '/iptv'
     | '/library'
     | '/login'
+    | '/multiview'
     | '/play'
+    | '/profiles'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -198,7 +218,9 @@ export interface FileRouteTypes {
     | '/iptv'
     | '/library'
     | '/login'
+    | '/multiview'
     | '/play'
+    | '/profiles'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -217,7 +239,9 @@ export interface FileRouteTypes {
     | '/iptv'
     | '/library'
     | '/login'
+    | '/multiview'
     | '/play'
+    | '/profiles'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -237,7 +261,9 @@ export interface RootRouteChildren {
   IptvRoute: typeof IptvRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  MultiviewRoute: typeof MultiviewRoute
   PlayRoute: typeof PlayRoute
+  ProfilesRoute: typeof ProfilesRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ItemIdRoute: typeof ItemIdRoute
@@ -288,11 +314,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/multiview': {
+      id: '/multiview'
+      path: '/multiview'
+      fullPath: '/multiview'
+      preLoaderRoute: typeof MultiviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/play': {
       id: '/play'
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profiles': {
+      id: '/profiles'
+      path: '/profiles'
+      fullPath: '/profiles'
+      preLoaderRoute: typeof ProfilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -381,7 +421,9 @@ const rootRouteChildren: RootRouteChildren = {
   IptvRoute: IptvRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  MultiviewRoute: MultiviewRoute,
   PlayRoute: PlayRoute,
+  ProfilesRoute: ProfilesRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ItemIdRoute: ItemIdRoute,

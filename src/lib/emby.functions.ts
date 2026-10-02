@@ -149,6 +149,7 @@ const ITEM_FIELDS = [
   "RemoteTrailers",
   "ExternalUrls",
   "ProviderIds",
+  "Chapters",
 ].join(",");
 
 export const embyGetItem = createServerFn({ method: "POST" })
@@ -191,8 +192,33 @@ export const embyGetItem = createServerFn({ method: "POST" })
         /* parent unavailable */
       }
     }
+    if (item) item.SkipMarkers = embySkipMarkers(item);
     return { item };
   });
+
+/** Intro / credits ranges (seconds) from Emby/Jellyfin chapter markers. */
+function embySkipMarkers(item: any) {
+  const ch: any[] = Array.isArray(item?.Chapters) ? item.Chapters : [];
+  const runtime = item?.RunTimeTicks ? item.RunTimeTicks / 1e7 : 0;
+  const out: { kind: "intro" | "credits"; start: number; end: number }[] = [];
+  const t = (c: any) => (c?.StartPositionTicks ?? 0) / 1e7;
+  let introStart: number | null = null;
+  ch.forEach((c, i) => {
+    const name = String(c?.Name ?? "").toLowerCase();
+    const mt = String(c?.MarkerType ?? "");
+    const next = ch[i + 1] ? t(ch[i + 1]) : runtime;
+    if (mt === "IntroStart") introStart = t(c);
+    else if (mt === "IntroEnd" && introStart != null) {
+      out.push({ kind: "intro", start: introStart, end: t(c) });
+      introStart = null;
+    } else if (mt === "CreditsStart") out.push({ kind: "credits", start: t(c), end: runtime });
+    else if (/\b(intro|opening|recap)\b/.test(name) && next > t(c))
+      out.push({ kind: "intro", start: t(c), end: next });
+    else if (/\b(credits|outro|ending|end credits)\b/.test(name))
+      out.push({ kind: "credits", start: t(c), end: runtime || next });
+  });
+  return out;
+}
 
 
 export const embyGetResume = createServerFn({ method: "POST" })

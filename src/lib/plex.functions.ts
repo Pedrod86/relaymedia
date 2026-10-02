@@ -246,10 +246,17 @@ export const plexGetItem = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireCredential } = await import("./vault.server");
     const c = await requireCredential(data.serverId);
-    const json = await plexFetch(c, `/library/metadata/${encodeURIComponent(data.itemId)}`);
+    const json = await plexFetch(c, `/library/metadata/${encodeURIComponent(data.itemId)}?includeMarkers=1`);
     const m = (json.MediaContainer?.Metadata ?? [])[0];
     if (!m) throw new Error("Item not found");
     const item = normalizeMetadata(m);
+    item.SkipMarkers = (Array.isArray(m.Marker) ? m.Marker : [])
+      .filter((k: any) => k?.type === "intro" || k?.type === "credits")
+      .map((k: any) => ({
+        kind: k.type as "intro" | "credits",
+        start: (k.startTimeOffset ?? 0) / 1000,
+        end: (k.endTimeOffset ?? 0) / 1000,
+      }));
     // For shows/seasons we also fetch children so the UI can render episodes.
     if (item.IsFolder) {
       try {
