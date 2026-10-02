@@ -739,17 +739,60 @@ function Player({
   }
 
   useEffect(() => {
+    // Move focus to the nearest visible control in the arrow's direction, so
+    // the remote can reach every button in the top bar, the transport row and
+    // any open panel (subtitles, language, options…).
+    function moveFocus(dir: string, from: HTMLElement | null): boolean {
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'header button, header a[href], [data-player-chrome] button, [data-player-chrome] a[href], [data-player-chrome] select, [data-player-chrome] input, [data-player-panel] button, [data-player-panel] select, [data-player-panel] input',
+        ),
+      ).filter((x) => !x.hasAttribute("disabled") && x.offsetParent !== null && x.getClientRects().length > 0);
+      if (!items.length) return false;
+      if (!from || !items.includes(from)) {
+        (items.find((x) => x.closest("[data-player-chrome]")) ?? items[0])!.focus();
+        return true;
+      }
+      const a = from.getBoundingClientRect();
+      const ax = a.left + a.width / 2;
+      const ay = a.top + a.height / 2;
+      let best: HTMLElement | null = null;
+      let bestScore = Infinity;
+      for (const x of items) {
+        if (x === from) continue;
+        const r = x.getBoundingClientRect();
+        const dx = r.left + r.width / 2 - ax;
+        const dy = r.top + r.height / 2 - ay;
+        let main: number, cross: number;
+        if (dir === "ArrowRight") { if (dx <= 4) continue; main = dx; cross = Math.abs(dy); }
+        else if (dir === "ArrowLeft") { if (dx >= -4) continue; main = -dx; cross = Math.abs(dy); }
+        else if (dir === "ArrowDown") { if (dy <= 4) continue; main = dy; cross = Math.abs(dx); }
+        else { if (dy >= -4) continue; main = -dy; cross = Math.abs(dx); }
+        const score = main + cross * 3;
+        if (score < bestScore) { bestScore = score; best = x; }
+      }
+      best?.focus();
+      return true;
+    }
+
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
-      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
-      // When the remote is already inside the controls, let the buttons handle
-      // Enter and sideways moves themselves.
+      const arrow = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key);
       const inChrome = Boolean(
-        el?.closest('[data-player-chrome="bottom"], header'),
+        el?.closest('[data-player-chrome], header, [data-player-panel]'),
       );
-      if (inChrome && (e.key === "Enter" || e.key === " " || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      if (inChrome) {
+        if (!arrow) return; // Enter / Space press the focused button natively.
+        // Seek bar keeps left/right for scrubbing.
+        if (el?.tagName === "INPUT" && (el as HTMLInputElement).type === "range" &&
+            (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        bumpChrome();
+        moveFocus(e.key, el);
         return;
       }
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
       switch (e.key) {
         case " ":
         case "Enter":
@@ -773,24 +816,10 @@ function Player({
           break;
         case "ArrowUp":
         case "ArrowDown": {
-          // Remote up/down reveals the controls and moves focus between the
-          // top bar and the transport row so the D-pad never gets stuck.
+          // Remote up/down reveals the controls and puts focus on them.
           e.preventDefault();
           bumpChrome();
-          const scope = e.key === "ArrowDown" ? '[data-player-chrome="bottom"]' : "header";
-          window.setTimeout(() => {
-            const root = document.querySelector(scope);
-            const items = root
-              ? Array.from(
-                  root.querySelectorAll<HTMLElement>(
-                    'button, a[href], select, input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])',
-                  ),
-                )
-              : [];
-            if (!items.length) return;
-            const idx = items.indexOf(document.activeElement as HTMLElement);
-            (idx >= 0 ? items[idx] : items[0]).focus();
-          }, 0);
+          window.setTimeout(() => moveFocus(e.key, null), 50);
           break;
         }
         case "MediaStop":
@@ -959,7 +988,7 @@ function Player({
       </header>
 
       {showDetails && (
-        <div className="absolute top-16 left-0 right-0 z-30 mx-6">
+        <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6">
           <PlaybackDetails
             check={check}
             mode={mode ?? null}
@@ -972,7 +1001,7 @@ function Player({
       )}
 
       {showPanel && (
-        <div className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
+        <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
                 <p className="mb-2 font-medium">Decoding</p>
