@@ -553,6 +553,50 @@ function Player({
     };
   }, [mode]);
 
+  // ---- End time, sleep timer, intro/credits skip ---------------------------
+  const endsAt = useMemo(() => {
+    if (!duration || duration <= 0) return null;
+    const remaining = (duration - position) / (speed || 1);
+    return new Date(Date.now() + remaining * 1000).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Math.floor(position / 30), duration, speed]);
+
+  const [sleepLeft, setSleepLeft] = useState<number | null>(null);
+  const [sleepAfterEpisode, setSleepAfterEpisode] = useState(false);
+  const sleepAfterRef = useRef(false);
+  sleepAfterRef.current = sleepAfterEpisode;
+
+  useEffect(() => {
+    if (sleepLeft === null) return;
+    if (sleepLeft <= 0) {
+      videoRef.current?.pause();
+      setSleepLeft(null);
+      return;
+    }
+    const t = setTimeout(() => {
+      if (!videoRef.current?.paused) setSleepLeft((s) => (s === null ? null : s - 1));
+      else setSleepLeft((s) => s);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [sleepLeft]);
+
+  const skipMarkers: { kind: "intro" | "credits"; start: number; end: number }[] =
+    ((itemQ.data?.item as any)?.SkipMarkers ?? []).filter((m: any) => m && m.end > m.start);
+  const activeSkip = skipMarkers.find((m) => position >= m.start && position < m.end - 1) ?? null;
+  const doSkip = () => {
+    const v = videoRef.current;
+    if (!v || !activeSkip) return;
+    if (activeSkip.kind === "credits" && nextEpisode?.Id && !sleepAfterRef.current) {
+      v.pause();
+      setNextCountdown(0);
+      return;
+    }
+    v.currentTime = Math.min(activeSkip.end, Number.isFinite(v.duration) ? v.duration - 1 : activeSkip.end);
+  };
+
   function fmtTime(secs: number) {
     if (!Number.isFinite(secs) || secs <= 0) return "0:00";
     const s = Math.floor(secs % 60);
@@ -1096,6 +1140,22 @@ function Player({
 
 
 
+        {activeSkip && (
+          <button
+            type="button"
+            onClick={doSkip}
+            className="absolute right-6 bottom-36 z-40 rounded-lg border border-white/40 bg-black/70 px-5 py-3 text-base font-semibold text-white backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-white"
+          >
+            {activeSkip.kind === "intro" ? "Skip Intro ⏭" : nextEpisode ? "Skip Credits · Next ⏭" : "Skip Credits ⏭"}
+          </button>
+        )}
+
+        {(sleepLeft !== null || sleepAfterEpisode) && chromeVisible && (
+          <span className="pointer-events-none absolute top-16 right-6 z-40 rounded-full bg-black/70 px-3 py-1 text-xs text-white">
+            😴 {sleepAfterEpisode ? "Sleep after this" : `Sleep in ${Math.ceil((sleepLeft ?? 0) / 60)} min`}
+          </span>
+        )}
+
         {seekHint && (
           <span className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-sm font-medium">
             {seekHint}
@@ -1128,7 +1188,29 @@ function Player({
               className="h-1.5 flex-1 cursor-pointer accent-primary"
             />
             <span className="w-14 opacity-80">{fmtTime(duration)}</span>
+            {endsAt && <span className="hidden whitespace-nowrap opacity-70 sm:inline">Ends {endsAt}</span>}
+            <select
+              aria-label="Sleep timer"
+              value={sleepAfterEpisode ? "ep" : sleepLeft !== null ? "on" : "off"}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSleepAfterEpisode(v === "ep");
+                setSleepLeft(v === "off" || v === "ep" || v === "on" ? (v === "on" ? sleepLeft : null) : Number(v) * 60);
+                bumpChrome();
+              }}
+              className="rounded-full bg-white/10 px-2 py-1 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <option value="off">Sleep: off</option>
+              {sleepLeft !== null && <option value="on">Sleep: {Math.ceil(sleepLeft / 60)}m</option>}
+              <option value="ep">After this</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+            </select>
           </div>
+          {endsAt && <p className="text-center text-[11px] opacity-70 sm:hidden">Ends at {endsAt}</p>}
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
