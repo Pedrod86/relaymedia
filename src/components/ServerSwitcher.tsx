@@ -55,7 +55,21 @@ export function ServerSwitcher({
               Pick which media server to browse. Use up/down then OK on a remote.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
+          <div
+            className="space-y-2"
+            onKeyDown={(e) => {
+              // Remote D-pad: move between servers ourselves; TV WebViews don't.
+              if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+              const list = Array.from(
+                e.currentTarget.querySelectorAll<HTMLElement>("button, a[href]"),
+              );
+              const i = list.indexOf(document.activeElement as HTMLElement);
+              const next = list[(i + (e.key === "ArrowDown" ? 1 : -1) + list.length) % list.length];
+              e.preventDefault();
+              e.stopPropagation();
+              next?.focus();
+            }}
+          >
             {servers.map((s, i) => {
               const isActive = s.id === active.id;
               return (
