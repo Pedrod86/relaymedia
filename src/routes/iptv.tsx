@@ -122,6 +122,57 @@ function IptvPage() {
       .slice(0, 600);
   }, [channels.data, group, search]);
 
+  // TV remote: move focus to the nearest button in the pressed direction, so
+  // the category chips and every channel in the grid are reachable.
+  const mainRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (playing || guideFor) return;
+    const onKey = (e: KeyboardEvent) => {
+      const dirs = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+      if (!dirs.includes(e.key)) return;
+      const root = mainRef.current;
+      if (!root) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.tagName === "INPUT" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
+      const items = Array.from(
+        root.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input"),
+      ).filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+      e.preventDefault();
+      if (!active || !root.contains(active)) {
+        items[0]!.focus();
+        return;
+      }
+      const a = active.getBoundingClientRect();
+      const ax = a.left + a.width / 2;
+      const ay = a.top + a.height / 2;
+      let best: HTMLElement | null = null;
+      let bestScore = Infinity;
+      for (const el of items) {
+        if (el === active) continue;
+        const r = el.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const dx = x - ax;
+        const dy = y - ay;
+        let main = 0;
+        let cross = 0;
+        if (e.key === "ArrowRight") { if (dx <= 4) continue; main = dx; cross = Math.abs(dy); }
+        if (e.key === "ArrowLeft") { if (dx >= -4) continue; main = -dx; cross = Math.abs(dy); }
+        if (e.key === "ArrowDown") { if (dy <= 4) continue; main = dy; cross = Math.abs(dx); }
+        if (e.key === "ArrowUp") { if (dy >= -4) continue; main = -dy; cross = Math.abs(dx); }
+        const score = main + cross * 3;
+        if (score < bestScore) { bestScore = score; best = el; }
+      }
+      if (best) {
+        best.focus({ preventScroll: true });
+        best.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [playing, guideFor]);
+
   async function onRemove(id: string) {
     await removeFn({ data: { serverId: id } });
     setServerId(null);
@@ -131,7 +182,10 @@ function IptvPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pb-16">
+    <main
+      ref={mainRef}
+      className="min-h-screen bg-background pb-16 [&_button:focus]:outline-none [&_button:focus]:ring-2 [&_button:focus]:ring-primary"
+    >
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur-xl">
         <Link to="/library" className="text-sm text-muted-foreground hover:text-foreground">
           ← Library
