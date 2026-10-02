@@ -67,3 +67,16 @@ export function kidsSafe(item: any): boolean {
   if (!r) return true;
   return !MATURE.test(r.replace(/^[A-Z]{2}-/, ""));
 }
+
+import { useEffect, useState } from "react";
+
+/** Reactive current profile (hydration-safe: starts as Main). */
+export function useActiveProfile(): Profile {
+  const [p, setP] = useState<Profile>(DEFAULT_PROFILE);
+  useEffect(() => {
+    const sync = () => setP(activeProfile());
+    sync();
+    return onProfileChange(sync);
+  }, []);
+  return p;
+}

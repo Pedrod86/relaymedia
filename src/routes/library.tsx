@@ -37,7 +37,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users } from "lucide-react";
-import { activeProfile, onProfileChange } from "@/lib/profiles";
+import { useActiveProfile } from "@/lib/profiles";
 
 
 export const Route = createFileRoute("/library")({
@@ -134,17 +134,6 @@ function LibraryContent({
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [kidsMode, setKidsMode] = useState(false);
-  const [profileName, setProfileName] = useState("Main");
-  useEffect(() => {
-    const sync = () => {
-      const p = activeProfile();
-      setKidsMode(p.kids);
-      setProfileName(p.name);
-    };
-    sync();
-    return onProfileChange(sync);
-  }, []);
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
@@ -457,7 +446,7 @@ function LibraryContent({
         <Tv className="size-5 text-primary" />
         {tvMode ? "Exit TV mode" : "TV mode"}
       </Button>
-      {!kidsMode && (
+      {!useActiveProfile().kids && (
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"
@@ -470,7 +459,7 @@ function LibraryContent({
         </Link>
       </Button>
       )}
-      {!kidsMode && (
+      {!useActiveProfile().kids && (
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"
@@ -491,7 +480,7 @@ function LibraryContent({
       >
         <Link to="/profiles">
           <Users className="size-5 text-primary" />
-          Profiles · {profileName}
+          Profiles · {useActiveProfile().name}
         </Link>
       </Button>
       <Button
@@ -626,7 +615,7 @@ function LibraryContent({
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {!kidsMode && <TorboxRow />}
+        {!useActiveProfile().kids && <TorboxRow />}
 
 
         {sections.map((s) =>
@@ -843,7 +832,7 @@ function TVLayout({
           )}
 
           <div className="mb-8">
-            {!kidsMode && <TorboxRow tv />}
+            {!useActiveProfile().kids && <TorboxRow tv />}
           </div>
 
           {sections.map((s) =>
