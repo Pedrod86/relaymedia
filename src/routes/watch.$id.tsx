@@ -988,7 +988,7 @@ function Player({
       </header>
 
       {showDetails && (
-        <div className="absolute top-16 left-0 right-0 z-30 mx-6">
+        <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6">
           <PlaybackDetails
             check={check}
             mode={mode ?? null}
@@ -1001,7 +1001,7 @@ function Player({
       )}
 
       {showPanel && (
-        <div className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
+        <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6 max-h-[70vh] overflow-y-auto rounded-lg border border-white/10 bg-black/85 p-4 text-xs backdrop-blur">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
                 <p className="mb-2 font-medium">Decoding</p>
