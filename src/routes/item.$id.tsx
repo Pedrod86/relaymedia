@@ -70,6 +70,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const [hdrSupport, setHdrSupport] = useState<HdrSupport>(NO_HDR);
   // Audio language chosen for playback (null = the server's default track).
   const [audioChoice, setAudioChoice] = useState<number | null>(null);
+  const [versionChoice, setVersionChoice] = useState(0);
   useEffect(() => {
     setPrefs(loadPlayerPrefs());
     void probeCodecs().then((c) => {
@@ -162,7 +163,25 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   const producers = people.filter((p) => p.Type === "Producer").map((p) => p.Name);
 
 
-  const source = item.MediaSources?.[0];
+  // Several copies of the same title (4K, 1080p, remux…) — let the viewer pick.
+  const versions: string[] = isPlex
+    ? (item._plexVersions ?? [])
+    : (item.MediaSources ?? []).length > 1
+      ? (item.MediaSources as any[]).map((ms: any, i: number) => {
+          const v = (ms.MediaStreams ?? []).find((st: any) => st.Type === "Video");
+          const res = v?.Height ? (v.Height >= 2000 ? "4K" : `${v.Height}p`) : null;
+          const bits = [
+            ms.Name && ms.Name !== item.Name ? ms.Name : null,
+            res,
+            v?.VideoRange && v.VideoRange !== "SDR" ? v.VideoRange : null,
+            v?.Codec ? String(v.Codec).toUpperCase() : null,
+            ms.Container ? String(ms.Container).toUpperCase() : null,
+            ms.Size ? `${(ms.Size / 1e9).toFixed(1)} GB` : null,
+          ].filter(Boolean);
+          return bits.join(" · ") || `Version ${i + 1}`;
+        })
+      : [];
+  const source = item.MediaSources?.[isPlex ? 0 : versionChoice] ?? item.MediaSources?.[0];
   const streams: any[] = source?.MediaStreams ?? item.MediaStreams ?? [];
   const videoStreams = streams.filter((s) => s.Type === "Video");
   const audioStreams = streams.filter((s) => s.Type === "Audio");
@@ -275,6 +294,33 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                 </dl>
               )}
 
+              {versions.length > 1 && !isFolder && (
+                <div className="mt-6">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Version
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {versions.map((label, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setVersionChoice(i);
+                          setAudioChoice(null);
+                        }}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary ${
+                          versionChoice === i
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "bg-card/70 text-foreground/80 hover:bg-card"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {audioStreams.length > 1 && (
                 <div className="mt-6">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -314,7 +360,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
                   <Link
                     to="/watch/$id"
                     params={{ id: item.Id }}
-                    search={{ audio: audioChoice ?? undefined }}
+                    search={{ audio: audioChoice ?? undefined, v: versionChoice || undefined }}
                   >
                     <Button size="lg">▶ Play</Button>
                   </Link>
