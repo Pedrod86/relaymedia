@@ -35,6 +35,12 @@ export type PlayerPrefs = {
    * strict — always align the source cadence to the display refresh rate
    */
   afr: AfrMode;
+  /** Speaker layout to ask for: 2 = stereo, 6 = 5.1, 8 = 7.1 surround. */
+  audioChannels: 2 | 6 | 8;
+  /** Send Dolby Digital / DD+ / DTS / TrueHD untouched to a receiver or soundbar. */
+  audioPassthrough: boolean;
+  /** Preferred audio language (ISO code like "eng"); "" = server default. */
+  audioLanguage: string;
 };
 
 export const DEFAULT_PREFS: PlayerPrefs = {
@@ -45,6 +51,9 @@ export const DEFAULT_PREFS: PlayerPrefs = {
   hdr: "auto",
   maxHeight: 2160,
   afr: "auto",
+  audioChannels: 6,
+  audioPassthrough: false,
+  audioLanguage: "",
 };
 
 const KEY = "media_player_prefs_v1";

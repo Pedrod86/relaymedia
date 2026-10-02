@@ -334,11 +334,22 @@ function Player({
     return streams
       .filter((st) => st.Type === "Audio")
       .map((st) => ({
+        lang: String(st.Language ?? "").toLowerCase(),
         index: st.Index as number,
         label: st.DisplayTitle || st.Language || st.Title || `Track ${st.Index}`,
         isDefault: !!st.IsDefault,
       }));
   }, [itemQ.data, isEmbyFamily]);
+
+  // Preferred audio language from Settings, when the viewer didn't pick one.
+  const langApplied = useRef(false);
+  useEffect(() => {
+    if (langApplied.current || audioIndex !== null || !prefs.audioLanguage || !audioTracks.length) return;
+    langApplied.current = true;
+    const want = prefs.audioLanguage.toLowerCase();
+    const hit = audioTracks.find((a: any) => a.lang === want || a.lang.startsWith(want.slice(0, 2)));
+    if (hit && !hit.isDefault) setAudioIndex(hit.index);
+  }, [audioTracks, prefs.audioLanguage, audioIndex]);
 
   // Auto-enable the first text subtitle track when requested.
   useEffect(() => {
@@ -352,6 +363,8 @@ function Player({
     const list = allowedCodecs(caps, prefs, "audio");
     // Ask for Dolby Digital / Digital Plus only where the platform can decode
     // it; MSE-based HLS in the browser cannot, so keep it to direct playback.
+    if (prefs.audioPassthrough && prefs.decode !== "software" && (env.eac3 || mode === "direct"))
+      return [...new Set([...list, "eac3", "ac3", "dts", "truehd"])];
     if (env.eac3 && mode === "direct" && prefs.decode !== "software")
       return [...new Set([...list, "eac3", "ac3"])];
     return list;
@@ -377,6 +390,7 @@ function Player({
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
       audioIndex: audioIndex ?? undefined,
+      audioChannels: prefs.audioChannels,
       version,
       session: sessionId,
       hdr: hdrParam,

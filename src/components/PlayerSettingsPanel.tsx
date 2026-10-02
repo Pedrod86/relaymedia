@@ -130,6 +130,53 @@ export function PlayerSettingsPanel() {
         </div>
       </div>
 
+      <div className="mt-6">
+        <p className="text-sm font-medium">Audio</p>
+        <div className="mt-2 grid gap-4 sm:grid-cols-3">
+          <label className="block text-sm">
+            <span className="font-medium">Speakers</span>
+            <select
+              value={prefs.audioChannels}
+              onChange={(e) => update({ audioChannels: Number(e.target.value) as 2 | 6 | 8 })}
+              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              <option value={2}>Stereo (2.0)</option>
+              <option value={6}>Surround 5.1</option>
+              <option value={8}>Surround 7.1</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="font-medium">Preferred language</span>
+            <select
+              value={prefs.audioLanguage}
+              onChange={(e) => update({ audioLanguage: e.target.value })}
+              className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              {[
+                ["", "Server default"], ["eng", "English"], ["spa", "Spanish"], ["fre", "French"],
+                ["ger", "German"], ["ita", "Italian"], ["por", "Portuguese"], ["jpn", "Japanese"],
+                ["kor", "Korean"], ["chi", "Chinese"], ["hin", "Hindi"], ["ara", "Arabic"],
+                ["rus", "Russian"], ["dut", "Dutch"], ["pol", "Polish"], ["tur", "Turkish"],
+              ].map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-start gap-3 pt-7 text-sm">
+            <Checkbox
+              checked={prefs.audioPassthrough}
+              onCheckedChange={(c) => update({ audioPassthrough: !!c })}
+            />
+            <span>
+              <span className="font-medium">Passthrough to receiver</span>
+              <span className="block text-xs text-muted-foreground">
+                Send Dolby Digital, DD+, DTS and TrueHD untouched to a soundbar or AV receiver.
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="font-medium">Quality cap</span>
