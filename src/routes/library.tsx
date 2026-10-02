@@ -133,6 +133,16 @@ function LibraryContent({
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
+  // Put the remote straight onto the reorder list when it opens.
+  useEffect(() => {
+    if (!customizing) return;
+    const t = window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>("[data-customize-panel] li button:not([disabled])")
+        ?.focus();
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [customizing]);
   const [navOpen, setNavOpen] = useState(false);
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
@@ -329,7 +339,42 @@ function LibraryContent({
   }
 
   const customizePanel = customizing ? (
-    <div className="rounded-lg border bg-card/60 p-4">
+    <div
+      data-customize-panel
+      className="rounded-lg border bg-card/60 p-4"
+      onKeyDown={(e) => {
+        // Remote D-pad inside the reorder list: up/down between rows (same
+        // column), left/right between the ↑/↓ buttons. Disabled buttons skipped.
+        if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        const panel = e.currentTarget;
+        const rows = [
+          Array.from(panel.querySelectorAll<HTMLElement>("[data-cust-top] button:not([disabled])")),
+          ...Array.from(panel.querySelectorAll<HTMLElement>("li")).map((li) =>
+            Array.from(li.querySelectorAll<HTMLElement>("button:not([disabled])")),
+          ),
+        ].filter((r) => r.length);
+        const ae = document.activeElement as HTMLElement;
+        let r = rows.findIndex((row) => row.includes(ae));
+        let c = r >= 0 ? rows[r]!.indexOf(ae) : 0;
+        e.preventDefault();
+        e.stopPropagation();
+        if (r < 0) r = 0;
+        else if (e.key === "ArrowDown") r = Math.min(rows.length - 1, r + 1);
+        else if (e.key === "ArrowUp") r = Math.max(0, r - 1);
+        else if (e.key === "ArrowRight") c += 1;
+        else c -= 1;
+        const row = rows[r]!;
+        const label = ae?.getAttribute("aria-label") ?? "";
+        // Keep the same direction (up/down) column when hopping rows.
+        let target = row[Math.max(0, Math.min(row.length - 1, c))];
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          const same = row.find((b) => (b.getAttribute("aria-label") ?? "").split(" ").pop() === label.split(" ").pop());
+          if (same) target = same;
+        }
+        target?.focus();
+        target?.scrollIntoView({ block: "nearest" });
+      }}
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold">Content order</p>
@@ -337,7 +382,7 @@ function LibraryContent({
             Move rows up or down. Saved on this device.
           </p>
         </div>
-        <div className="flex shrink-0 gap-1">
+        <div data-cust-top className="flex shrink-0 gap-1">
           {history.length > 0 && (
             <Button
               variant="ghost"
