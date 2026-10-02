@@ -134,6 +134,17 @@ function LibraryContent({
   const [refreshing, setRefreshing] = useState(false);
   const [customizing, setCustomizing] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [kidsMode, setKidsMode] = useState(false);
+  const [profileName, setProfileName] = useState("Main");
+  useEffect(() => {
+    const sync = () => {
+      const p = activeProfile();
+      setKidsMode(p.kids);
+      setProfileName(p.name);
+    };
+    sync();
+    return onProfileChange(sync);
+  }, []);
   const [order, setOrder] = useState<string[]>([]);
   useEffect(() => setOrder(loadSectionOrder(server.id)), [server.id]);
 
