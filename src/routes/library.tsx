@@ -36,7 +36,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users } from "lucide-react";
+import { activeProfile, onProfileChange } from "@/lib/profiles";
 
 
 export const Route = createFileRoute("/library")({
@@ -445,6 +446,7 @@ function LibraryContent({
         <Tv className="size-5 text-primary" />
         {tvMode ? "Exit TV mode" : "TV mode"}
       </Button>
+      {!kidsMode && (
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"
@@ -454,6 +456,31 @@ function LibraryContent({
         <Link to="/iptv">
           <Radio className="size-5 text-primary" />
           Live TV
+        </Link>
+      </Button>
+      )}
+      {!kidsMode && (
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/multiview">
+          <Grid2x2 className="size-5 text-primary" />
+          Multi-View
+        </Link>
+      </Button>
+      )}
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/profiles">
+          <Users className="size-5 text-primary" />
+          Profiles · {profileName}
         </Link>
       </Button>
       <Button
@@ -588,7 +615,7 @@ function LibraryContent({
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        <TorboxRow />
+        {!kidsMode && <TorboxRow />}
 
 
         {sections.map((s) =>
@@ -805,7 +832,7 @@ function TVLayout({
           )}
 
           <div className="mb-8">
-            <TorboxRow tv />
+            {!kidsMode && <TorboxRow tv />}
           </div>
 
           {sections.map((s) =>
