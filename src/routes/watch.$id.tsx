@@ -190,6 +190,7 @@ function Player({
     const video = videoRef.current;
     if (!video) return;
     const onEnded = () => {
+      if (sleepAfterRef.current) return; // sleep timer: stop after this episode
       if (nextEpisode?.Id) setNextCountdown(8);
     };
     video.addEventListener("ended", onEnded);
