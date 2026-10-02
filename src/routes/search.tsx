@@ -50,7 +50,7 @@ function SearchPage() {
   return <SearchContent server={active} />;
 }
 
-type Hit = { item: any; server: MediaServer; sources: MediaServer[] };
+type Hit = { item: any; server: MediaServer; sources: { server: MediaServer; id: string }[] };
 
 function SearchContent({ server }: { server: MediaServer }) {
   const navigate = useNavigate();
@@ -95,8 +95,8 @@ function SearchContent({ server }: { server: MediaServer }) {
           if (kids && !kidsSafe(item)) continue;
           const key = `${String(item.Type).toLowerCase()}|${cleanName(item.Name).toLowerCase()}|${item.ProductionYear ?? ""}|${item.SeriesName ?? ""}|${item.ParentIndexNumber ?? ""}|${item.IndexNumber ?? ""}`;
           const hit = map.get(key);
-          if (hit) hit.sources.push(sv);
-          else map.set(key, { item, server: sv, sources: [sv] });
+          if (hit) hit.sources.push({ server: sv, id: String(item.Id) });
+          else map.set(key, { item, server: sv, sources: [{ server: sv, id: String(item.Id) }] });
         }
       }
       return { hits: [...map.values()], failed: settled.filter((s) => s.status === "rejected").length };
@@ -267,12 +267,12 @@ function SearchContent({ server }: { server: MediaServer }) {
                   <div className="mt-1 flex flex-wrap gap-1">
                     {sources.map((s2) => (
                       <button
-                        key={s2.id}
+                        key={s2.server.id}
                         type="button"
-                        onClick={() => open(s2, it.Id)}
+                        onClick={() => open(s2.server, s2.id)}
                         className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {s2.name}
+                        {s2.server.name}
                       </button>
                     ))}
                   </div>
