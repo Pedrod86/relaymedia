@@ -157,6 +157,9 @@ function LibraryContent({
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      // A dialog opened from the drawer (e.g. server switcher) owns the remote.
+      const ae = document.activeElement as HTMLElement | null;
+      if (ae?.closest('[role="dialog"]:not(#relay-nav-drawer)') && !ae.closest("#relay-nav-drawer")) return;
       const list = items();
       if (!list.length) return;
       e.preventDefault();
@@ -727,6 +730,7 @@ function TVLayout({
 
     const handler = (e: KeyboardEvent) => {
       if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      if (document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')) return;
 
       const active = document.activeElement as HTMLElement | null;
       const card = active?.closest<HTMLElement>("[data-tv-card]") ?? null;
