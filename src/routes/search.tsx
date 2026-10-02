@@ -6,6 +6,7 @@ import { embySearch } from "@/lib/emby.functions";
 import { plexSearch } from "@/lib/plex.functions";
 import { imageUrl, cleanName, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { activeProfile, kidsSafe } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/search")({
@@ -46,11 +47,18 @@ function SearchPage() {
   }, [isLoading, active, navigate]);
 
   if (!active) return null;
-  return <SearchContent key={active.id} server={active} />;
+  return <SearchContent server={active} />;
 }
 
+type Hit = { item: any; server: MediaServer; sources: MediaServer[] };
+
 function SearchContent({ server }: { server: MediaServer }) {
-  const isPlex = server.kind === "plex";
+  const navigate = useNavigate();
+  const { servers: allServers, switchTo } = useMediaServers();
+  const searchable = useMemo(
+    () => allServers.filter((s) => ["emby", "jellyfin", "plex", "silo"].includes(s.kind as string)),
+    [allServers],
+  );
   const searchEmby = useServerFn(embySearch);
   const searchPlex = useServerFn(plexSearch);
 
@@ -64,14 +72,41 @@ function SearchContent({ server }: { server: MediaServer }) {
     return () => clearTimeout(t);
   }, [query]);
 
+  // Federated search: every connected server at once; the same title on
+  // several servers collapses into one card with a source picker.
   const results = useQuery({
-    queryKey: ["search", server.id, debounced],
-    enabled: debounced.length >= 2,
-    queryFn: () =>
-      isPlex
-        ? searchPlex({ data: { serverId: server.id, query: debounced } })
-        : searchEmby({ data: { serverId: server.id, query: debounced } }),
+    queryKey: ["search-all", searchable.map((s) => s.id).join(","), debounced],
+    enabled: debounced.length >= 2 && searchable.length > 0,
+    queryFn: async () => {
+      const settled = await Promise.allSettled(
+        searchable.map(async (sv) => {
+          const r: any =
+            sv.kind === "plex"
+              ? await searchPlex({ data: { serverId: sv.id, query: debounced } })
+              : await searchEmby({ data: { serverId: sv.id, query: debounced } });
+          return (r?.items ?? []).map((item: any) => ({ item, server: sv }));
+        }),
+      );
+      const kids = activeProfile().kids;
+      const map = new Map<string, Hit>();
+      for (const s of settled) {
+        if (s.status !== "fulfilled") continue;
+        for (const { item, server: sv } of s.value) {
+          if (kids && !kidsSafe(item)) continue;
+          const key = `${String(item.Type).toLowerCase()}|${cleanName(item.Name).toLowerCase()}|${item.ProductionYear ?? ""}|${item.SeriesName ?? ""}|${item.ParentIndexNumber ?? ""}|${item.IndexNumber ?? ""}`;
+          const hit = map.get(key);
+          if (hit) hit.sources.push(sv);
+          else map.set(key, { item, server: sv, sources: [sv] });
+        }
+      }
+      return { hits: [...map.values()], failed: settled.filter((s) => s.status === "rejected").length };
+    },
   });
+
+  const open = (sv: MediaServer, id: string) => {
+    if (sv.id !== server.id) switchTo(sv.id);
+    navigate({ to: "/item/$id", params: { id: String(id) } });
+  };
 
   const press = useCallback((ch: string) => setQuery((q) => (q + ch).slice(0, 100)), []);
   const backspace = useCallback(() => setQuery((q) => q.slice(0, -1)), []);
@@ -100,7 +135,7 @@ function SearchContent({ server }: { server: MediaServer }) {
     return () => window.removeEventListener("keydown", handler);
   }, [press, backspace]);
 
-  const items = useMemo(() => results.data?.items ?? [], [results.data]);
+  const hits = useMemo(() => results.data?.hits ?? [], [results.data]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -108,7 +143,7 @@ function SearchContent({ server }: { server: MediaServer }) {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {server.kind} · {server.name}
+              All servers · {searchable.length} connected
             </p>
             <h1 className="text-lg font-semibold">Search</h1>
           </div>
@@ -179,19 +214,23 @@ function SearchContent({ server }: { server: MediaServer }) {
           {results.error && (
             <p className="text-destructive">Search failed. Check your server connection.</p>
           )}
-          {debounced.length >= 2 && !results.isFetching && items.length === 0 && (
+          {debounced.length >= 2 && !results.isFetching && hits.length === 0 && (
             <p className="text-muted-foreground">No matches for “{debounced}”.</p>
           )}
 
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-4">
-            {items.map((it: any) => {
+            {hits.map(({ item: it, server: sv, sources }) => {
               const isEpisode = it.Type === "Episode" || it.Type === "episode";
-              const src = imageUrl(server, it, isEpisode ? "Thumb" : "Primary", { maxWidth: 500 });
+              const src = imageUrl(sv, it, isEpisode ? "Thumb" : "Primary", { maxWidth: 500 });
               return (
+                <div key={`${sv.id}-${it.Id}`}>
                 <Link
-                  key={it.Id}
                   to="/item/$id"
                   params={{ id: String(it.Id) }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    open(sv, it.Id);
+                  }}
                   data-tv-card
                   tabIndex={0}
                   className="tv-card group overflow-hidden rounded-xl outline-none"
@@ -224,6 +263,24 @@ function SearchContent({ server }: { server: MediaServer }) {
                       : [it.Type, it.ProductionYear].filter(Boolean).join(" · ")}
                   </p>
                 </Link>
+                {sources.length > 1 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {sources.map((s2) => (
+                      <button
+                        key={s2.id}
+                        type="button"
+                        onClick={() => open(s2, it.Id)}
+                        className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {s2.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {sources.length === 1 && searchable.length > 1 && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{sv.name}</p>
+                )}
+                </div>
               );
             })}
           </div>
