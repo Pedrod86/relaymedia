@@ -98,6 +98,7 @@ function LibraryContent({
   servers: MediaServer[];
   onSwitch: (id: string) => void;
 }) {
+  const profile = useActiveProfile();
   const navigate = useNavigate();
   const { prefs } = usePersonalization();
   const [tvMode, setTvMode] = useState(false);
@@ -494,7 +495,7 @@ function LibraryContent({
         <Tv className="size-5 text-primary" />
         {tvMode ? "Exit TV mode" : "TV mode"}
       </Button>
-      {!useActiveProfile().kids && (
+      {!profile.kids && (
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"
@@ -507,7 +508,7 @@ function LibraryContent({
         </Link>
       </Button>
       )}
-      {!useActiveProfile().kids && (
+      {!profile.kids && (
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"
@@ -528,7 +529,7 @@ function LibraryContent({
       >
         <Link to="/profiles">
           <Users className="size-5 text-primary" />
-          Profiles · {useActiveProfile().name}
+          Profiles · {profile.name}
         </Link>
       </Button>
       <Button
@@ -663,7 +664,7 @@ function LibraryContent({
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}
 
-        {!useActiveProfile().kids && <TorboxRow />}
+        {!profile.kids && <TorboxRow />}
 
 
         {sections.map((s) =>
@@ -706,6 +707,7 @@ function TVLayout({
 
   backdropItems: any[];
 }) {
+  const profile = useActiveProfile();
   const [activeSectionId, setActiveSectionId] = useState(sections[0]?.id ?? "resume");
   const rowsRef = useRef<Record<string, HTMLDivElement | null>>({});
   const mainRef = useRef<HTMLDivElement | null>(null);
@@ -881,7 +883,7 @@ function TVLayout({
           )}
 
           <div className="mb-8">
-            {!useActiveProfile().kids && <TorboxRow tv />}
+            {!profile.kids && <TorboxRow tv />}
           </div>
 
           {sections.map((s) =>
