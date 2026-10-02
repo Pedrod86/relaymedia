@@ -1,3 +1,4 @@
+import { profileSuffix } from "./profiles";
 // Favourites and "watch later" — stored per media server in localStorage.
 //
 // Like watch history, this holds no credentials: only a small snapshot of each
@@ -45,7 +46,7 @@ function snapshot(item: any): Record<string, unknown> {
 }
 
 function keyFor(serverId: string, list: SavedList) {
-  return `${KEY_PREFIX}${list}:${serverId}`;
+  return `${KEY_PREFIX}${list}:${serverId}${profileSuffix()}`;
 }
 
 export function loadSaved(serverId: string, list: SavedList): SavedEntry[] {
