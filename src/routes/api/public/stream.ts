@@ -245,7 +245,7 @@ async function handle(request: Request) {
     headers.set("X-Plex-Token", cred.token);
     headers.set("X-Plex-Client-Identifier", DEVICE_ID);
   } else {
-    const kindName = cred.kind === "jellyfin" ? "jellyfin" : "emby";
+    const kindName = cred.kind === "jellyfin" || cred.kind === "silo" ? "jellyfin" : "emby";
     const auth = `MediaBrowser Client="LovableMedia", Device="Web Browser", DeviceId="${DEVICE_ID}", Version="1.0.0", Token="${cred.token}", UserId="${cred.userId}"`;
     headers.set("X-Emby-Token", cred.token);
     headers.set("X-Emby-Authorization", auth);

@@ -19,7 +19,7 @@ const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 export const embyLogin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      kind: z.enum(["emby", "jellyfin"]),
+      kind: z.enum(["emby", "jellyfin", "silo"]),
       serverUrl: z.string().url().max(500),
       username: z.string().min(1).max(200),
       password: z.string().max(500),
