@@ -51,9 +51,13 @@ export const Route = createFileRoute("/watch/$id")({
     ],
   }),
   // `audio` carries the language chosen on the title page into playback.
-  validateSearch: (search: Record<string, unknown>): { audio?: number } => {
+  validateSearch: (search: Record<string, unknown>): { audio?: number; v?: number } => {
+    const out: { audio?: number; v?: number } = {};
     const n = Number(search.audio);
-    return search.audio != null && Number.isFinite(n) ? { audio: n } : {};
+    if (search.audio != null && Number.isFinite(n)) out.audio = n;
+    const v = Number(search.v);
+    if (search.v != null && Number.isInteger(v) && v >= 0) out.v = v;
+    return out;
   },
   component: WatchPage,
 });
@@ -61,7 +65,7 @@ export const Route = createFileRoute("/watch/$id")({
 function WatchPage() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
-  const { audio } = Route.useSearch();
+  const { audio, v } = Route.useSearch();
   const { active, isLoading } = useMediaServers();
 
   useEffect(() => {
@@ -69,7 +73,7 @@ function WatchPage() {
   }, [isLoading, active, navigate]);
 
   if (!active) return null;
-  return <Player key={active.id} server={active} itemId={id} initialAudioIndex={audio} />;
+  return <Player key={active.id} server={active} itemId={id} initialAudioIndex={audio} version={v} />;
 }
 
 type SubTrack = {
@@ -85,10 +89,12 @@ function Player({
   server,
   itemId,
   initialAudioIndex,
+  version = 0,
 }: {
   server: MediaServer;
   itemId: string;
   initialAudioIndex?: number;
+  version?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefs, setPrefs] = useState<PlayerPrefs>(loadPlayerPrefs);
@@ -293,7 +299,8 @@ function Player({
   const subtitles: SubTrack[] = useMemo(() => {
     if (!isEmbyFamily) return [];
     const item: any = itemQ.data?.item;
-    const sources: any[] = item?.MediaSources ?? [];
+    const all: any[] = item?.MediaSources ?? [];
+    const sources: any[] = all[version] ? [all[version], ...all.filter((_, i) => i !== version)] : all;
     const out: SubTrack[] = [];
     for (const src of sources) {
       const sid = src.Id ?? itemId;
@@ -322,7 +329,7 @@ function Player({
   const audioTracks = useMemo(() => {
     if (!isEmbyFamily) return [] as Array<{ index: number; label: string; isDefault?: boolean }>;
     const item: any = itemQ.data?.item;
-    const src: any = (item?.MediaSources ?? [])[0];
+    const src: any = (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0];
     const streams: any[] = src?.MediaStreams ?? item?.MediaStreams ?? [];
     return streams
       .filter((st) => st.Type === "Audio")
@@ -370,6 +377,7 @@ function Player({
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
       audioIndex: audioIndex ?? undefined,
+      version,
       session: sessionId,
       hdr: hdrParam,
       maxHeight: prefs.maxHeight,

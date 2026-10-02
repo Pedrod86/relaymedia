@@ -31,6 +31,8 @@ const querySchema = z.object({
   subtitleIndex: z.coerce.number().int().min(0).max(200).optional(),
   /** Audio track index (viewer's language choice). */
   audioIndex: z.coerce.number().int().min(0).max(200).optional(),
+  /** Which version (media source) of a multi-version title to play. */
+  version: z.coerce.number().int().min(0).max(50).optional(),
   container: z.string().regex(/^[a-z0-9]{2,5}$/).default("mp4"),
   /** Stable per-playback id so the server reuses one transcode session. */
   session: z.string().max(120).optional(),
@@ -236,7 +238,7 @@ async function handle(request: Request) {
     const { plexFetch } = await import("@/lib/media.server");
     try {
       const meta = await plexFetch(cred, `/library/metadata/${encodeURIComponent(q.item)}`);
-      const part = meta?.MediaContainer?.Metadata?.[0]?.Media?.[0]?.Part?.[0];
+      const part = meta?.MediaContainer?.Metadata?.[0]?.Media?.[q.version ?? 0]?.Part?.[0];
       if (!part?.key) return new Response("no playable part found", { status: 404 });
       path = part.key as string;
     } catch {
@@ -265,7 +267,7 @@ async function handle(request: Request) {
       const infoRes = await fetchUpstream(infoUrl.toString(), { method: "GET", headers });
       if (infoRes.ok) {
         const info: any = await infoRes.json();
-        const src = info?.MediaSources?.[0];
+        const src = info?.MediaSources?.[q.version ?? 0] ?? info?.MediaSources?.[0];
         if (src?.Id) mediaSourceId = String(src.Id);
       } else {
         try { await infoRes.body?.cancel(); } catch { /* ignore */ }
