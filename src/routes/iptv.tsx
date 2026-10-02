@@ -182,7 +182,10 @@ function IptvPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pb-16">
+    <main
+      ref={mainRef}
+      className="min-h-screen bg-background pb-16 [&_button:focus]:outline-none [&_button:focus]:ring-2 [&_button:focus]:ring-primary"
+    >
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur-xl">
         <Link to="/library" className="text-sm text-muted-foreground hover:text-foreground">
           ← Library
