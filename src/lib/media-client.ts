@@ -294,6 +294,8 @@ export type StreamOptions = {
   subtitleIndex?: number;
   /** Audio track (MediaStream index) to play — the language chosen by the viewer. */
   audioIndex?: number;
+  /** Version (media source) index for titles with several copies. */
+  version?: number;
   container?: string;
   /** Stable id for one playback attempt — keeps the server transcode session warm. */
   session?: string;
@@ -322,6 +324,7 @@ export function streamUrl(s: MediaServer, itemId: string, opts: StreamOptions) {
   if (opts.audioChannels) params.set("audioChannels", String(opts.audioChannels));
   if (opts.subtitleIndex !== undefined) params.set("subtitleIndex", String(opts.subtitleIndex));
   if (opts.audioIndex !== undefined) params.set("audioIndex", String(opts.audioIndex));
+  if (opts.version) params.set("version", String(opts.version));
   if (opts.container) params.set("container", opts.container);
   if (opts.session) params.set("session", opts.session);
   if (opts.start) params.set("start", String(opts.start));

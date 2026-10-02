@@ -117,6 +117,17 @@ function normalizeMetadata(m: any): any {
     BackdropImageTags: m.art ? [m.art] : undefined,
     // Carry through media parts so the watch page can resolve a direct stream
     // without a second round-trip.
+    _plexVersions: Array.isArray(m.Media) && m.Media.length > 1
+      ? m.Media.map((md: any) =>
+          [
+            md.videoResolution ? (/^\d+$/.test(String(md.videoResolution)) ? `${md.videoResolution}p` : String(md.videoResolution).toUpperCase()) : null,
+            md.videoCodec ? String(md.videoCodec).toUpperCase() : null,
+            md.audioCodec ? String(md.audioCodec).toUpperCase() : null,
+            md.container ? String(md.container).toUpperCase() : null,
+            md.bitrate ? `${(md.bitrate / 1000).toFixed(1)} Mbps` : null,
+          ].filter(Boolean).join(" · ") || "Version",
+        )
+      : undefined,
     _plexParts: Array.isArray(m.Media)
       ? m.Media.flatMap((md: any) =>
           Array.isArray(md.Part) ? md.Part.map((p: any) => ({ key: p.key, container: p.container })) : []
