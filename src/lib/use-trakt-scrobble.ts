@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { traktScrobble } from "@/lib/trakt.functions";
+import { simklScrobble } from "@/lib/simkl.functions";
 
 type ScrobbleIds = { imdb?: string; tmdb?: number; tvdb?: number };
 
@@ -74,6 +75,7 @@ export function useTraktScrobble(
   enabled = true,
 ) {
   const scrobbleFn = useServerFn(traktScrobble);
+  const simklFn = useServerFn(simklScrobble);
   const lastAction = useRef<"start" | "pause" | "stop" | null>(null);
   const targetRef = useRef<ScrobbleTarget | null>(target);
   targetRef.current = target;
@@ -95,6 +97,7 @@ export function useTraktScrobble(
       if (lastAction.current === action && action !== "stop") return;
       lastAction.current = action;
       try {
+        void simklFn({ data: { ...t, action, progress } }).catch(() => null);
         const res = await scrobbleFn({ data: { ...t, action, progress } });
         // A missing/expired Trakt link shouldn't spam the network for the rest
         // of the film — stop trying for this playback session.
