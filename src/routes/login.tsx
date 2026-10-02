@@ -33,7 +33,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "silo", label: "Silo", hint: "silo.example.com (coming soon)" },
+  { value: "silo", label: "Silo", hint: "192.168.1.50:8096 or silo.example.com" },
   { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
 ];
 
@@ -94,11 +94,7 @@ function LoginPage() {
         navigate({ to: "/iptv" });
         return;
       }
-      if (kind === "silo") {
-        setError("Silo support is coming soon.");
-        return;
-      }
-      if (kind === "emby" || kind === "jellyfin") {
+      if (kind === "emby" || kind === "jellyfin" || kind === "silo") {
         const res = await embyLoginFn({
           data: { kind, serverUrl: cleanUrl, username, password },
         });
