@@ -27,17 +27,41 @@ export const embyLogin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     assertSafeServerUrl(data.serverUrl);
-    const url = `${normalizeUrl(data.serverUrl)}/Users/AuthenticateByName`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Emby-Authorization": embyAuthHeader(),
-        // Jellyfin prefers the Authorization header but accepts X-Emby-Authorization.
-        Authorization: embyAuthHeader(),
-      },
-      body: JSON.stringify({ Username: data.username, Pw: data.password }),
-    });
+    // Some servers (notably Silo) serve their web app at the root and expose the
+    // Jellyfin-compatible API under a sub-path. Try the root first, then common
+    // prefixes, and only accept a real JSON response.
+    const root = normalizeUrl(data.serverUrl);
+    const bases = [root, `${root}/jellyfin`, `${root}/emby`, `${root}/api`, `${root}/api/jellyfin`];
+    let res: Response | null = null;
+    let apiBase = root;
+    for (const base of bases) {
+      const r = await fetch(`${base}/Users/AuthenticateByName`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Emby-Authorization": embyAuthHeader(),
+          Authorization: embyAuthHeader(),
+        },
+        body: JSON.stringify({ Username: data.username, Pw: data.password }),
+      }).catch(() => null);
+      if (!r) continue;
+      const ct = r.headers.get("content-type") ?? "";
+      if (r.ok && !ct.includes("json")) continue; // HTML web page, not the API
+      if (r.status === 404 || r.status === 405) continue;
+      res = r;
+      apiBase = base;
+      break;
+    }
+    if (!res) {
+      return {
+        ok: false as const,
+        error:
+          data.kind === "silo"
+            ? "This address opened Silo's web page, not its Jellyfin connection. Turn on Jellyfin compatibility in Silo's settings and use that address/port."
+            : "This address didn't respond like a media server. Check the address and port.",
+      };
+    }
     if (!res.ok) {
       // Never reflect the upstream body to the caller (SSRF response disclosure).
       const text = await res.text().catch(() => "");
@@ -53,11 +77,15 @@ export const embyLogin = createServerFn({ method: "POST" })
       };
     }
 
-
-    const json = (await res.json()) as {
-      AccessToken: string;
-      User: { Id: string; Name: string };
-    };
+    let json: { AccessToken: string; User: { Id: string; Name: string } };
+    try {
+      json = await res.json();
+    } catch {
+      return { ok: false as const, error: "The server sent an unexpected reply. Check the address and port." };
+    }
+    if (!json?.AccessToken || !json?.User?.Id) {
+      return { ok: false as const, error: "The server didn't return a login session." };
+    }
     const { addCredential } = await import("./vault.server");
     const { registerDevice } = await import("./devices.server");
     await registerDevice();
