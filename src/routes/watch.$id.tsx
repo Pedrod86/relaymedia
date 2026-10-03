@@ -862,6 +862,13 @@ function Player({
       maxBitrate: prefs.maxBitrate,
       maxHeight: prefs.maxHeight,
       hdr: hdrParam,
+      // ExoPlayer decodes Dolby Digital / Digital Plus, DTS and TrueHD with the
+      // device's own decoders, so ask the server to keep the original audio
+      // instead of transcoding it down to AAC stereo.
+      audioCodec: ["eac3", "ac3", "dts", "truehd", "aac", "mp3"],
+      audioChannels: prefs.audioChannels,
+      audioIndex: audioIndex ?? undefined,
+      version,
       container: check?.directContainer ?? "mkv",
       remux: false,
     });
