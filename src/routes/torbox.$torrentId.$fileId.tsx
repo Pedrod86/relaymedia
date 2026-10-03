@@ -3,7 +3,7 @@ import { BrandLoader } from "@/components/BrandLoader";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MonitorPlay, PictureInPicture2 } from "lucide-react";
+import { MonitorPlay, PictureInPicture2 } from "lucide-react";
 import { torboxPlayUrl } from "@/lib/torbox.functions";
 import { media3Available, media3Play } from "@/lib/native-player";
 import { isTvDevice } from "@/lib/platform";
