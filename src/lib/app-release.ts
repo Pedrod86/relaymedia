@@ -16,8 +16,8 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.1",
-  versionCode: 3,
+  versionName: "1.2",
+  versionCode: 4,
   apkUrl: "https://relay-media.lovable.app/downloads/relay-media-latest.apk",
   notes: "Native Media3/ExoPlayer playback, offline recovery screen and stability fixes.",
   mandatory: false,
