@@ -93,7 +93,7 @@ export const embyLogin = createServerFn({ method: "POST" })
     const server = await addCredential({
       kind: data.kind,
       name: new URL(normalizeUrl(data.serverUrl)).host,
-      serverUrl: data.serverUrl,
+      serverUrl: apiBase,
       token: json.AccessToken,
       userId: json.User.Id,
       userName: json.User.Name,
