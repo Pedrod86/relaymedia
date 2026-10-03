@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { BrandLoader } from "@/components/BrandLoader";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -659,7 +660,7 @@ function LibraryContent({
       <div className="mx-auto max-w-7xl space-y-12 px-6 py-8">
         {customizePanel}
 
-        {views.isLoading && <p className="text-muted-foreground">Loading library…</p>}
+        {views.isLoading && <BrandLoader label="Loading your library…" />}
         {views.error && (
           <p className="text-destructive">Failed to load library. Check your server and try again.</p>
         )}

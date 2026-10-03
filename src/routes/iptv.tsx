@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrandLoader } from "@/components/BrandLoader";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CalendarClock, Loader2, Radio, RefreshCw, Search, Trash2, Tv, X } from "lucide-react";
+import { CalendarClock, Radio, RefreshCw, Search, Trash2, Tv, X } from "lucide-react";
 
 import { iptvChannels, iptvGuide, listIptvServers, removeIptvServer } from "@/lib/iptv.functions";
 import { Button } from "@/components/ui/button";
@@ -256,11 +257,7 @@ function IptvPage() {
               ))}
             </div>
 
-            {channels.isLoading && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading channels…
-              </p>
-            )}
+            {channels.isLoading && <BrandLoader label="Loading channels…" />}
             {channels.error && (
               <p className="text-sm text-destructive" role="alert">
                 {(channels.error as Error).message}

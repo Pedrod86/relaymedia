@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { BrandLoader } from "@/components/BrandLoader";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -134,7 +135,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
   );
 
 
-  if (!item) return <div className="p-8 text-muted-foreground">Loading…</div>;
+  if (!item) return <BrandLoader label="Loading title…" />;
 
   const backdrop = imageUrl(server, item, "Backdrop", { maxWidth: 1920 });
   const poster = imageUrl(server, item, "Primary", { maxWidth: 400 });

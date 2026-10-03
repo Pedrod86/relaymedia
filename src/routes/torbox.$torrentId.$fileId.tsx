@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrandLoader } from "@/components/BrandLoader";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MonitorPlay, PictureInPicture2 } from "lucide-react";
+import { MonitorPlay, PictureInPicture2 } from "lucide-react";
 import { torboxPlayUrl } from "@/lib/torbox.functions";
 import { media3Available, media3Play } from "@/lib/native-player";
 import { isTvDevice } from "@/lib/platform";
@@ -252,9 +253,7 @@ function TorboxPlayer() {
 
       <div className="absolute inset-0 z-0 flex items-center justify-center">
         {link.isLoading ? (
-          <p className="flex items-center gap-2 text-sm opacity-80">
-            <Loader2 className="h-4 w-4 animate-spin" /> Resolving your TorBox stream…
-          </p>
+          <BrandLoader label="Resolving your TorBox stream…" />
         ) : !url ? (
           <p className="max-w-md px-6 text-center text-sm text-red-300">
             {link.data && !link.data.ok
