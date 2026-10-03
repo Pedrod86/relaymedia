@@ -138,7 +138,10 @@ function embyPath(
   // Dolby Digital / Digital Plus is multichannel by nature: when the client can
   // take it, allow up to 5.1/7.1 so the original track is copied, not downmixed.
   const dolbyAudio = /\b(eac3|ec-3|ac3|ac-3)\b/.test(audioCodecs);
-  const channels = dolbyAudio ? Math.max(q.audioChannels, 6) : q.audioChannels;
+  // Only go multichannel when the client explicitly asked for it; otherwise
+  // downmix to stereo AAC so every device actually produces sound.
+  const multi = q.audioChannels > 2;
+  const channels = q.audioChannels;
 
   const params = new URLSearchParams({
     UserId: userId,
@@ -146,10 +149,10 @@ function embyPath(
     MediaSourceId: mediaSourceId,
     PlaySessionId: session,
     VideoCodec: q.videoCodec || "h264,hevc",
-    AudioCodec: audioCodecs,
+    AudioCodec: multi ? audioCodecs : "aac,mp3",
     VideoBitrate: String(q.maxBitrate),
 
-    AudioBitrate: dolbyAudio ? "768000" : "192000",
+    AudioBitrate: multi && dolbyAudio ? "768000" : "192000",
     MaxAudioChannels: String(channels),
     TranscodingMaxAudioChannels: String(channels),
 
