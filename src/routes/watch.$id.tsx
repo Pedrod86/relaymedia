@@ -610,7 +610,21 @@ function Player({
 
   const skipMarkers: { kind: "intro" | "credits"; start: number; end: number }[] =
     ((itemQ.data?.item as any)?.SkipMarkers ?? []).filter((m: any) => m && m.end > m.start);
-  const activeSkip = skipMarkers.find((m) => position >= m.start && position < m.end - 1) ?? null;
+  const activeSkipRaw = skipMarkers.find((m) => position >= m.start && position < m.end - 1) ?? null;
+  const activeSkip = prefs.introSkip === "never" ? null : activeSkipRaw;
+  const autoSkippedRef = useRef<Set<number>>(new Set());
+  const [undoSkip, setUndoSkip] = useState<{ from: number } | null>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (prefs.introSkip !== "always" || !v || !activeSkipRaw || activeSkipRaw.kind !== "intro") return;
+    if (autoSkippedRef.current.has(activeSkipRaw.start)) return;
+    autoSkippedRef.current.add(activeSkipRaw.start);
+    const from = v.currentTime;
+    v.currentTime = Math.min(activeSkipRaw.end, Number.isFinite(v.duration) ? v.duration - 1 : activeSkipRaw.end);
+    setUndoSkip({ from });
+    const t = setTimeout(() => setUndoSkip(null), 6000);
+    return () => clearTimeout(t);
+  }, [prefs.introSkip, activeSkipRaw?.start, activeSkipRaw?.kind]);
   const doSkip = () => {
     const v = videoRef.current;
     if (!v || !activeSkip) return;
@@ -1201,7 +1215,18 @@ function Player({
 
 
 
-        {activeSkip && (
+        {undoSkip && (
+          <button
+            type="button"
+            autoFocus
+            onClick={() => { if (videoRef.current) videoRef.current.currentTime = undoSkip.from; setUndoSkip(null); }}
+            className="absolute right-6 bottom-36 z-40 rounded-lg border border-white/40 bg-black/70 px-5 py-3 text-base font-semibold text-white backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-white"
+          >
+            Intro skipped · Undo ↩
+          </button>
+        )}
+
+        {activeSkip && !undoSkip && !(prefs.introSkip === "always" && activeSkip.kind === "intro") && (
           <button
             type="button"
             onClick={doSkip}

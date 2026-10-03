@@ -41,6 +41,8 @@ export type PlayerPrefs = {
   audioPassthrough: boolean;
   /** Preferred audio language (ISO code like "eng"); "" = server default. */
   audioLanguage: string;
+  /** Intro/credits skipping: always skip, show a button, or never. */
+  introSkip: "always" | "ask" | "never";
 };
 
 export const DEFAULT_PREFS: PlayerPrefs = {
@@ -54,6 +56,7 @@ export const DEFAULT_PREFS: PlayerPrefs = {
   audioChannels: 6,
   audioPassthrough: false,
   audioLanguage: "",
+  introSkip: "ask",
 };
 
 const KEY = "media_player_prefs_v1";

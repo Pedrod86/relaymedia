@@ -177,6 +177,18 @@ export function PlayerSettingsPanel() {
         </div>
       </div>
 
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold">Skip intros</h3>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {([["always","Skip automatically"],["ask","Ask to skip"],["never","Never"]] as const).map(([v,l]) => (
+            <button key={v} type="button" onClick={() => update({ introSkip: v })}
+              className={`rounded-md border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${prefs.introSkip === v ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="font-medium">Quality cap</span>
