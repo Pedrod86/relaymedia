@@ -138,7 +138,7 @@ function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }
       </header>
 
       <div className="mx-auto max-w-7xl px-6 py-8">
-        {items.isLoading && <p className="text-muted-foreground">Loading…</p>}
+        {items.isLoading && <BrandLoader label="Loading library…" />}
         {items.error && (
           <p className="text-destructive">Failed to load this library.</p>
         )}

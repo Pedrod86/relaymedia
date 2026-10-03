@@ -256,11 +256,7 @@ function IptvPage() {
               ))}
             </div>
 
-            {channels.isLoading && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading channels…
-              </p>
-            )}
+            {channels.isLoading && <BrandLoader label="Loading channels…" />}
             {channels.error && (
               <p className="text-sm text-destructive" role="alert">
                 {(channels.error as Error).message}
