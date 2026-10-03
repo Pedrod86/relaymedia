@@ -73,9 +73,21 @@ public class Media3PlayerActivity extends AppCompatActivity {
             .setEnableDecoderFallback(true)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON);
 
-        player = new ExoPlayer.Builder(this, renderers)
-            .setTrackSelector(trackSelector)
-            .build();
+        // Styled ASS/SSA subtitles via libass; falls back to a plain player if it can't start.
+        ExoPlayer.Builder builder = new ExoPlayer.Builder(this, renderers).setTrackSelector(trackSelector);
+        try {
+            player = io.github.peerless2012.ass.media.kt.AssPlayerKt.buildWithAssSupport(
+                builder,
+                this,
+                io.github.peerless2012.ass.media.type.AssRenderType.OVERLAY_OPEN_GL,
+                playerView.getSubtitleView(),
+                new androidx.media3.datasource.DefaultDataSource.Factory(this),
+                new androidx.media3.extractor.DefaultExtractorsFactory(),
+                renderers
+            );
+        } catch (Throwable t) {
+            player = new ExoPlayer.Builder(this, renderers).setTrackSelector(trackSelector).build();
+        }
         playerView.setPlayer(player);
         playerView.setKeepContentOnPlayerReset(true);
         playerView.requestFocus();
