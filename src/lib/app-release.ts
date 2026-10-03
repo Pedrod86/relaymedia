@@ -16,8 +16,8 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.3",
-  versionCode: 5,
+  versionName: "1.4",
+  versionCode: 6,
   apkUrl: "https://relay-media.lovable.app/downloads/relay-media-latest.apk",
   notes: "Dolby Digital+ (E-AC3) kept in the native player, branded loading screens and TV remote fixes.",
   mandatory: false,
