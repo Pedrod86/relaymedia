@@ -390,7 +390,9 @@ function Player({
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
       audioIndex: audioIndex ?? undefined,
-      audioChannels: prefs.audioChannels,
+      // Multichannel tracks often decode silently in the built-in player, so
+      // only ask for 5.1/7.1 when passthrough to a receiver is switched on.
+      audioChannels: prefs.audioPassthrough ? prefs.audioChannels : 2,
       version,
       session: sessionId,
       hdr: hdrParam,
