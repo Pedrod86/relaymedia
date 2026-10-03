@@ -72,6 +72,10 @@ dependencies {
     implementation "androidx.media3:media3-exoplayer-dash:$media3Version"
     implementation "androidx.media3:media3-ui:$media3Version"
     implementation "androidx.media3:media3-session:$media3Version"
+    // Software FFmpeg audio decoders (DTS, DTS-HD, TrueHD, E-AC3, AC3) for boxes without them.
+    implementation "org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1"
+    // libass rendering for styled ASS/SSA (anime) subtitles, including ones embedded in MKV.
+    implementation "io.github.peerless2012:ass-media:0.4.0"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
