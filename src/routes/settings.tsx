@@ -28,6 +28,7 @@ import { TorboxPanel } from "@/components/TorboxPanel";
 import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { SimklPanel } from "@/components/SimklPanel";
+import { LATEST_ANDROID_RELEASE } from "@/lib/app-release";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
 import { PersonalizationHub } from "@/components/personalization/PersonalizationHub";
@@ -294,7 +295,7 @@ function SettingsPage() {
 function AboutPanel() {
   return (
     <section className="rounded-lg border p-6">
-      <h2 className="text-base font-semibold">About Relay</h2>
+      <h2 className="text-base font-semibold">About Relay Media</h2>
       <dl className="mt-4 space-y-3 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">App</dt>
@@ -302,7 +303,7 @@ function AboutPanel() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Version</dt>
-          <dd className="font-medium">1.1</dd>
+          <dd className="font-medium">{LATEST_ANDROID_RELEASE.versionName}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Supported services</dt>
@@ -310,8 +311,8 @@ function AboutPanel() {
         </div>
       </dl>
       <p className="mt-4 text-xs text-muted-foreground">
-        Relay is a client for your own media servers. All artwork and media belong to
-        their respective owners. Sign-ins are stored encrypted server-side.
+        Relay Media is a client for your own media servers. All artwork and media belong
+        to their respective owners. Sign-ins are stored encrypted server-side.
       </p>
     </section>
   );
