@@ -50,7 +50,13 @@ async function getText(url: string, signal?: AbortSignal) {
     ...(signal ? { signal } : {}),
   });
   if (!res.ok) throw new Error(`Provider request failed (${res.status}).`);
-  return res.text();
+  // Gzipped guides (e.g. *.xml.gz) arrive as raw gzip bytes — inflate them.
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf[0] === 0x1f && buf[1] === 0x8b) {
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+  }
+  return new TextDecoder().decode(buf);
 }
 
 // ── Sealed playback tokens ────────────────────────────────────────────────
