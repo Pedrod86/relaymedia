@@ -82,7 +82,10 @@ function LoginPage() {
     setTestBusy(true);
     try {
       const cleanUrl = normalizeServerInput(serverUrl, kind);
-      const res = await embyTestFn({ data: { kind, serverUrl: cleanUrl } });
+      // testConnection is only rendered for emby/jellyfin/silo, so the cast is safe.
+      const res = await embyTestFn({
+        data: { kind: kind as "emby" | "jellyfin" | "silo", serverUrl: cleanUrl },
+      });
       if (res.ok) {
         setTestResult({
           ok: true,
