@@ -58,6 +58,45 @@ function LoginPage() {
   const [usePlexToken, setUsePlexToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const SILO_EXAMPLE_URL = "https://s4058p1517-jf.koolclubvibe.com";
+
+  async function copySiloExample() {
+    try {
+      await navigator.clipboard.writeText(SILO_EXAMPLE_URL);
+      setTestResult({ ok: true, message: "Example address copied — paste it into the box below." });
+    } catch {
+      setServerUrl(SILO_EXAMPLE_URL);
+      setTestResult({ ok: true, message: "Example address filled in for you." });
+    }
+  }
+
+  async function testConnection() {
+    setTestResult(null);
+    setTestBusy(true);
+    try {
+      const cleanUrl = normalizeServerInput(serverUrl, kind);
+      const res = await embyTestFn({ data: { kind, serverUrl: cleanUrl } });
+      if (res.ok) {
+        setTestResult({
+          ok: true,
+          message: `Connected to ${res.serverName ?? "the server"}${res.productName ? ` (${res.productName})` : ""}. You can sign in now.`,
+        });
+        if (res.apiBase !== cleanUrl) setServerUrl(res.apiBase);
+      } else {
+        setTestResult({ ok: false, message: res.error });
+      }
+    } catch {
+      setTestResult({
+        ok: false,
+        message: "Could not reach that address. Check the address, port and that it's online.",
+      });
+    } finally {
+      setTestBusy(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
