@@ -134,6 +134,7 @@ export const embyTestConnection = createServerFn({ method: "POST" })
         ok: true as const,
         serverName: json.ServerName ?? null,
         productName: json.ProductName ?? null,
+        version: json.Version ?? null,
         apiBase: base,
       };
     }
