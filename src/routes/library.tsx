@@ -522,6 +522,19 @@ function LibraryContent({
         </Link>
       </Button>
       )}
+      {!profile.kids && (
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/requests">
+          <Inbox className="size-5 text-primary" />
+          Requests
+        </Link>
+      </Button>
+      )}
       <Button
         variant="ghost"
         className="min-h-12 w-full justify-start gap-3 text-base"

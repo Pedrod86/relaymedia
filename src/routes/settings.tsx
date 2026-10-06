@@ -28,6 +28,7 @@ import { TorboxPanel } from "@/components/TorboxPanel";
 import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { SimklPanel } from "@/components/SimklPanel";
+import { RequestsPanel } from "@/components/RequestsPanel";
 import { LATEST_ANDROID_RELEASE } from "@/lib/app-release";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
@@ -199,6 +200,7 @@ function SettingsPage() {
           <DiscordPanel />
           <TraktPanel />
           <SimklPanel />
+          <RequestsPanel />
           <TorboxPanel />
           <ActiveServerPanel server={active} only="sync" />
         </>
