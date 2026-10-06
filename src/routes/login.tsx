@@ -89,7 +89,7 @@ function LoginPage() {
       if (res.ok) {
         setTestResult({
           ok: true,
-          message: `Connected to ${res.serverName ?? "the server"}${res.productName ? ` (${res.productName})` : ""}. You can sign in now.`,
+          message: `Connected to ${res.serverName ?? "the server"}${res.productName ? ` — ${res.productName}` : ""}${res.version ? ` (API v${res.version})` : ""}. You can sign in now.`,
         });
         if (res.apiBase !== cleanUrl) setServerUrl(res.apiBase);
       } else {
