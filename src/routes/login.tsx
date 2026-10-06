@@ -75,6 +75,10 @@ function LoginPage() {
 
   async function testConnection() {
     setTestResult(null);
+    if (!serverUrl.trim()) {
+      setTestResult({ ok: false, message: "Enter the server address first." });
+      return;
+    }
     setTestBusy(true);
     try {
       const cleanUrl = normalizeServerInput(serverUrl, kind);
