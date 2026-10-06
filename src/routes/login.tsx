@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import relayLogo from "@/assets/relay-logo.png.asset.json";
 import loginHeroes from "@/assets/login-heroes.jpg";
 
-import { embyLogin } from "@/lib/emby.functions";
+import { embyLogin, embyTestConnection } from "@/lib/emby.functions";
 import { iptvAddM3u, iptvAddXtream } from "@/lib/iptv.functions";
 import { plexAddServer } from "@/lib/plex.functions";
 import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
@@ -41,6 +41,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { kind: kindParam } = Route.useSearch();
   const embyLoginFn = useServerFn(embyLogin);
+  const embyTestFn = useServerFn(embyTestConnection);
   const plexAddServerFn = useServerFn(plexAddServer);
   const iptvXtreamFn = useServerFn(iptvAddXtream);
   const iptvM3uFn = useServerFn(iptvAddM3u);
@@ -57,6 +58,52 @@ function LoginPage() {
   const [usePlexToken, setUsePlexToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const SILO_EXAMPLE_URL = "https://s4058p1517-jf.koolclubvibe.com";
+
+  async function copySiloExample() {
+    try {
+      await navigator.clipboard.writeText(SILO_EXAMPLE_URL);
+      setTestResult({ ok: true, message: "Example address copied — paste it into the box below." });
+    } catch {
+      setServerUrl(SILO_EXAMPLE_URL);
+      setTestResult({ ok: true, message: "Example address filled in for you." });
+    }
+  }
+
+  async function testConnection() {
+    setTestResult(null);
+    if (!serverUrl.trim()) {
+      setTestResult({ ok: false, message: "Enter the server address first." });
+      return;
+    }
+    setTestBusy(true);
+    try {
+      const cleanUrl = normalizeServerInput(serverUrl, kind);
+      // testConnection is only rendered for emby/jellyfin/silo, so the cast is safe.
+      const res = await embyTestFn({
+        data: { kind: kind as "emby" | "jellyfin" | "silo", serverUrl: cleanUrl },
+      });
+      if (res.ok) {
+        setTestResult({
+          ok: true,
+          message: `Connected to ${res.serverName ?? "the server"}${res.productName ? ` (${res.productName})` : ""}. You can sign in now.`,
+        });
+        if (res.apiBase !== cleanUrl) setServerUrl(res.apiBase);
+      } else {
+        setTestResult({ ok: false, message: res.error });
+      }
+    } catch {
+      setTestResult({
+        ok: false,
+        message: "Could not reach that address. Check the address, port and that it's online.",
+      });
+    } finally {
+      setTestBusy(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -277,6 +324,16 @@ function LoginPage() {
                   <span className="font-medium text-foreground">8096</span>, or a separate address like{" "}
                   <code className="rounded bg-background px-1">silo-jf.example.com</code>). Enter that one here.
                 </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <code className="rounded bg-background px-2 py-1 text-xs break-all">{SILO_EXAMPLE_URL}</code>
+                  <Button type="button" variant="outline" size="sm" onClick={copySiloExample}>
+                    Copy example
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  That's a real working example — your own address will look the same, with your server's
+                  name instead.
+                </p>
               </div>
             )}
 
@@ -294,6 +351,27 @@ function LoginPage() {
                 <p className="text-xs text-muted-foreground">
                   Not Silo's website address — the Jellyfin-compatible one from Silo's settings.
                 </p>
+              )}
+              {(kind === "emby" || kind === "jellyfin" || kind === "silo") && (
+                <div className="space-y-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={testConnection}
+                    disabled={testBusy || busy}
+                  >
+                    {testBusy ? "Testing…" : "Test connection"}
+                  </Button>
+                  {testResult && (
+                    <p
+                      role="status"
+                      className={`text-xs ${testResult.ok ? "text-green-500" : "text-destructive"}`}
+                    >
+                      {testResult.message}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

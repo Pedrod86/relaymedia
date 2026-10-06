@@ -101,6 +101,47 @@ export const embyLogin = createServerFn({ method: "POST" })
     return { ok: true as const, server };
   });
 
+// Lightweight reachability check for the sign-in screen: pings the public
+// System/Info endpoint (no credentials needed) across the same candidate
+// prefixes embyLogin tries, so the user can verify the address before typing
+// their username and password.
+export const embyTestConnection = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      kind: z.enum(["emby", "jellyfin", "silo"]),
+      serverUrl: z.string().url().max(500),
+    }),
+  )
+  .handler(async ({ data }) => {
+    assertSafeServerUrl(data.serverUrl);
+    const root = normalizeUrl(data.serverUrl);
+    const bases = [root, `${root}/jellyfin`, `${root}/emby`, `${root}/api`, `${root}/api/jellyfin`];
+    for (const base of bases) {
+      const r = await fetch(`${base}/System/Info/Public`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
+      }).catch(() => null);
+      if (!r || !r.ok) continue;
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("json")) continue; // HTML web page, not the API
+      const json = (await r.json().catch(() => null)) as { ServerName?: string; ProductName?: string } | null;
+      if (!json || typeof json !== "object") continue;
+      return {
+        ok: true as const,
+        serverName: json.ServerName ?? null,
+        productName: json.ProductName ?? null,
+        apiBase: base,
+      };
+    }
+    return {
+      ok: false as const,
+      error:
+        data.kind === "silo"
+          ? "That address didn't answer as a Jellyfin-compatible server. Use the Jellyfin-compatible URL from Silo's settings (usually port 8096), not Silo's website address."
+          : "That address didn't answer as a media server. Check the address and port.",
+    };
+  });
+
 export const embyGetViews = createServerFn({ method: "POST" })
   .inputValidator(serverRef)
   .handler(async ({ data }) => {
