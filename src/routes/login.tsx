@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import relayLogo from "@/assets/relay-logo.png.asset.json";
 import loginHeroes from "@/assets/login-heroes.jpg";
 
-import { embyLogin } from "@/lib/emby.functions";
+import { embyLogin, embyTestConnection } from "@/lib/emby.functions";
 import { iptvAddM3u, iptvAddXtream } from "@/lib/iptv.functions";
 import { plexAddServer } from "@/lib/plex.functions";
 import { setActiveServerId, normalizeServerInput, type ServerKind } from "@/lib/media-client";
