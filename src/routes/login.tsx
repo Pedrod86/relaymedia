@@ -32,9 +32,9 @@ export const Route = createFileRoute("/login")({
 const FAST = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists";
 const ORG = "https://iptv-org.github.io/iptv";
 const FREE_TV: { name: string; desc: string; url: string; epg?: string }[] = [
-  { name: "Pluto TV", desc: "Hundreds of free channels", url: `${FAST}/plutotv_all.m3u` },
-  { name: "Samsung TV Plus", desc: "Free movies, news & shows", url: `${FAST}/samsungtvplus_all.m3u` },
-  { name: "Plex Free Channels", desc: "Plex's free live TV", url: `${FAST}/plex_all.m3u` },
+  { name: "Pluto TV", desc: "Hundreds of free channels", url: `${FAST}/plutotv_gb.m3u`, epg: "https://i.mjh.nz/PlutoTV/gb.xml.gz" },
+  { name: "Samsung TV Plus", desc: "Free movies, news & shows", url: `${FAST}/samsungtvplus_gb.m3u`, epg: "https://i.mjh.nz/SamsungTVPlus/gb.xml.gz" },
+  { name: "Plex Free Channels", desc: "Plex's free live TV", url: `${FAST}/plex_gb.m3u`, epg: "https://i.mjh.nz/Plex/gb.xml.gz" },
   { name: "UK Free-to-air", desc: "Public UK channels", url: `${ORG}/countries/uk.m3u` },
   { name: "Free Movies", desc: "Movie channels worldwide", url: `${ORG}/categories/movies.m3u` },
   { name: "Free Kids", desc: "Cartoons & kids TV", url: `${ORG}/categories/kids.m3u` },
