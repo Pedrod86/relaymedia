@@ -61,7 +61,7 @@ function LoginPage() {
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const SILO_EXAMPLE_URL = "https://s4058p1517-jf.koolclubvibe.com";
+  const SILO_EXAMPLE_URL = "https://silo1234-jf.yourprovider.com";
 
   async function copySiloExample() {
     try {
@@ -331,8 +331,8 @@ function LoginPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  That's a real working example — your own address will look the same, with your server's
-                  name instead.
+                  That's just an example — your own address will follow the same pattern, with your
+                  server's name instead. Silo's settings show you the exact one to use.
                 </p>
               </div>
             )}
