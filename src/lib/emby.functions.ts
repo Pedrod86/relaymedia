@@ -124,7 +124,11 @@ export const embyTestConnection = createServerFn({ method: "POST" })
       if (!r || !r.ok) continue;
       const ct = r.headers.get("content-type") ?? "";
       if (!ct.includes("json")) continue; // HTML web page, not the API
-      const json = (await r.json().catch(() => null)) as { ServerName?: string; ProductName?: string } | null;
+      const json = (await r.json().catch(() => null)) as {
+        ServerName?: string;
+        ProductName?: string;
+        Version?: string;
+      } | null;
       if (!json || typeof json !== "object") continue;
       return {
         ok: true as const,
