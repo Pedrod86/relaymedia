@@ -37,7 +37,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users, Inbox } from "lucide-react";
 import { useActiveProfile } from "@/lib/profiles";
 
 
