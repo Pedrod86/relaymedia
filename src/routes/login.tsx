@@ -29,6 +29,19 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+const FAST = "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists";
+const ORG = "https://iptv-org.github.io/iptv";
+const FREE_TV: { name: string; desc: string; url: string; epg?: string }[] = [
+  { name: "Pluto TV", desc: "Hundreds of free channels", url: `${FAST}/plutotv_all.m3u` },
+  { name: "Samsung TV Plus", desc: "Free movies, news & shows", url: `${FAST}/samsungtvplus_all.m3u` },
+  { name: "Plex Free Channels", desc: "Plex's free live TV", url: `${FAST}/plex_all.m3u` },
+  { name: "UK Free-to-air", desc: "Public UK channels", url: `${ORG}/countries/uk.m3u` },
+  { name: "Free Movies", desc: "Movie channels worldwide", url: `${ORG}/categories/movies.m3u` },
+  { name: "Free Kids", desc: "Cartoons & kids TV", url: `${ORG}/categories/kids.m3u` },
+  { name: "Free News", desc: "24/7 news channels", url: `${ORG}/categories/news.m3u` },
+  { name: "Free Sports", desc: "Sports channels", url: `${ORG}/categories/sports.m3u` },
+];
+
 const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
@@ -241,6 +254,42 @@ function LoginPage() {
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
+            {isIptv && (
+              <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-sm font-medium">Free TV channels — no account needed</p>
+                <p className="text-xs text-muted-foreground">
+                  Tap one to add free, legal channels straight to Live TV.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {FREE_TV.map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      disabled={busy}
+                      onClick={async () => {
+                        setError(null);
+                        setBusy(true);
+                        try {
+                          const res = await iptvM3uFn({
+                            data: { url: p.url, name: p.name, ...(p.epg ? { epgUrl: p.epg } : {}) },
+                          });
+                          if (!res.ok) setError(res.error);
+                          else navigate({ to: "/iptv" });
+                        } catch {
+                          setError("Couldn't add those channels right now. Try again shortly.");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                      className="rounded-lg border border-border px-3 py-2 text-left text-sm transition hover:border-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                    >
+                      <span className="block font-medium">{p.name}</span>
+                      <span className="block text-xs text-muted-foreground">{p.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {isIptv && (
               <div className="grid grid-cols-2 gap-2">
                 {(["xtream", "m3u"] as const).map((m) => (
