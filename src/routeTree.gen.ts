@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MultiviewRouteImport } from './routes/multiview'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as ProfilesRouteImport } from './routes/profiles'
+import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
@@ -67,6 +68,11 @@ const PlayRoute = PlayRouteImport.update({
 const ProfilesRoute = ProfilesRouteImport.update({
   id: '/profiles',
   path: '/profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
   '/profiles': typeof ProfilesRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
   '/profiles': typeof ProfilesRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/multiview': typeof MultiviewRoute
   '/play': typeof PlayRoute
   '/profiles': typeof ProfilesRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/item/$id': typeof ItemIdRoute
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/multiview'
     | '/play'
     | '/profiles'
+    | '/requests'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/multiview'
     | '/play'
     | '/profiles'
+    | '/requests'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/multiview'
     | '/play'
     | '/profiles'
+    | '/requests'
     | '/search'
     | '/settings'
     | '/item/$id'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   MultiviewRoute: typeof MultiviewRoute
   PlayRoute: typeof PlayRoute
   ProfilesRoute: typeof ProfilesRoute
+  RequestsRoute: typeof RequestsRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ItemIdRoute: typeof ItemIdRoute
@@ -333,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/profiles'
       fullPath: '/profiles'
       preLoaderRoute: typeof ProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -424,6 +444,7 @@ const rootRouteChildren: RootRouteChildren = {
   MultiviewRoute: MultiviewRoute,
   PlayRoute: PlayRoute,
   ProfilesRoute: ProfilesRoute,
+  RequestsRoute: RequestsRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ItemIdRoute: ItemIdRoute,
