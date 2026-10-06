@@ -349,6 +349,27 @@ function LoginPage() {
                   Not Silo's website address — the Jellyfin-compatible one from Silo's settings.
                 </p>
               )}
+              {(kind === "emby" || kind === "jellyfin" || kind === "silo") && (
+                <div className="space-y-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={testConnection}
+                    disabled={testBusy || busy}
+                  >
+                    {testBusy ? "Testing…" : "Test connection"}
+                  </Button>
+                  {testResult && (
+                    <p
+                      role="status"
+                      className={`text-xs ${testResult.ok ? "text-green-500" : "text-destructive"}`}
+                    >
+                      {testResult.message}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {isPlex && (
