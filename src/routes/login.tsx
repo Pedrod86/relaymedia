@@ -321,6 +321,16 @@ function LoginPage() {
                   <span className="font-medium text-foreground">8096</span>, or a separate address like{" "}
                   <code className="rounded bg-background px-1">silo-jf.example.com</code>). Enter that one here.
                 </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <code className="rounded bg-background px-2 py-1 text-xs break-all">{SILO_EXAMPLE_URL}</code>
+                  <Button type="button" variant="outline" size="sm" onClick={copySiloExample}>
+                    Copy example
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  That's a real working example — your own address will look the same, with your server's
+                  name instead.
+                </p>
               </div>
             )}
 
