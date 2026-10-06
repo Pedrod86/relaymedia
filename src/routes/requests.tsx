@@ -78,7 +78,7 @@ function RequestsPage() {
       ) : !connected ? (
         <div className="rounded-xl border bg-card p-6 text-center">
           <p className="mb-4">Connect Overseerr or Jellyseerr to start requesting films and shows.</p>
-          <Button asChild><Link to="/settings">Open Settings</Link></Button>
+          <Button asChild><Link to="/settings" search={{ section: "integrations" }}>Open Settings</Link></Button>
         </div>
       ) : (
         <>
