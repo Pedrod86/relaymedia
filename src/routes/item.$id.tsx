@@ -9,6 +9,7 @@ import { cleanName, imageUrl, ticksToTime, type MediaServer } from "@/lib/media-
 import { useMediaServers } from "@/lib/use-servers";
 import { Button } from "@/components/ui/button";
 import { TrailerPreview } from "@/components/TrailerPreview";
+import { TitleExtras } from "@/components/TitleExtras";
 import { useSavedItem } from "@/lib/use-saved-items";
 import { toast } from "sonner";
 
@@ -636,6 +637,7 @@ function Detail({ server, id }: { server: MediaServer; id: string }) {
         </div>
       )}
 
+      <TitleExtras item={item} />
       <SimilarSection server={server} item={item} />
     </main>
 
