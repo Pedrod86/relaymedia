@@ -33,7 +33,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "silo", label: "Silo", hint: "192.168.1.50:8096 or silo.example.com" },
+  { value: "silo", label: "Silo", hint: "Silo's Jellyfin-compatible URL, e.g. silo-jf.example.com or 192.168.1.50:8096" },
   { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
 ];
 
