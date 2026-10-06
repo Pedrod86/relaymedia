@@ -33,7 +33,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "silo", label: "Silo", hint: "192.168.1.50:8096 or silo.example.com" },
+  { value: "silo", label: "Silo", hint: "Silo's Jellyfin-compatible URL, e.g. silo-jf.example.com or 192.168.1.50:8096" },
   { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
 ];
 
@@ -262,8 +262,26 @@ function LoginPage() {
             )}
 
 
+            {kind === "silo" && (
+              <div className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">Two addresses — which one goes here?</p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Silo website address</span>{" "}
+                  (e.g. <code className="rounded bg-background px-1">silo.example.com</code>) — that's the page you
+                  open in a browser to manage Silo. Relay Media can't use this one.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Jellyfin-compatible URL</span> — this is what you
+                  enter. Turn on the <span className="font-medium text-foreground">Jellyfin compatibility</span>{" "}
+                  option in Silo's own settings; it shows the address and port there (usually port{" "}
+                  <span className="font-medium text-foreground">8096</span>, or a separate address like{" "}
+                  <code className="rounded bg-background px-1">silo-jf.example.com</code>). Enter that one here.
+                </p>
+              </div>
+            )}
+
             <div className={`space-y-2 ${isIptv && iptvMode === "m3u" ? "hidden" : ""}`}>
-              <Label htmlFor="server">{isIptv ? "Xtream server URL" : "Server URL"}</Label>
+              <Label htmlFor="server">{isIptv ? "Xtream server URL" : kind === "silo" ? "Silo Jellyfin-compatible URL" : "Server URL"}</Label>
               <Input
                 id="server"
                 placeholder={KINDS.find((k) => k.value === kind)?.hint}
@@ -272,6 +290,11 @@ function LoginPage() {
                 required={!(isIptv && iptvMode === "m3u")}
                 autoComplete="url"
               />
+              {kind === "silo" && (
+                <p className="text-xs text-muted-foreground">
+                  Not Silo's website address — the Jellyfin-compatible one from Silo's settings.
+                </p>
+              )}
             </div>
 
             {isPlex && (
