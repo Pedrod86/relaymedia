@@ -41,6 +41,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { kind: kindParam } = Route.useSearch();
   const embyLoginFn = useServerFn(embyLogin);
+  const embyTestFn = useServerFn(embyTestConnection);
   const plexAddServerFn = useServerFn(plexAddServer);
   const iptvXtreamFn = useServerFn(iptvAddXtream);
   const iptvM3uFn = useServerFn(iptvAddM3u);
