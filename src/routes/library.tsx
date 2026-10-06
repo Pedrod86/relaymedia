@@ -37,7 +37,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users } from "lucide-react";
+import { Home, Search, RefreshCw, ArrowUpDown, Tv, Settings, Menu, Cloud, MonitorSmartphone, Radio, Grid2x2, Users, Inbox } from "lucide-react";
 import { useActiveProfile } from "@/lib/profiles";
 
 
@@ -519,6 +519,19 @@ function LibraryContent({
         <Link to="/multiview">
           <Grid2x2 className="size-5 text-primary" />
           Multi-View
+        </Link>
+      </Button>
+      )}
+      {!profile.kids && (
+      <Button
+        variant="ghost"
+        className="min-h-12 w-full justify-start gap-3 text-base"
+        asChild
+        onClick={() => setNavOpen(false)}
+      >
+        <Link to="/requests">
+          <Inbox className="size-5 text-primary" />
+          Requests
         </Link>
       </Button>
       )}
