@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
+import { plexGetItem } from "@/lib/plex.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
 import { useAudioFx } from "@/lib/use-audio-fx";
 import {
@@ -166,6 +167,13 @@ function Player({
     enabled: isEmbyFamily,
     queryKey: ["watch-item", server.id, itemId],
     queryFn: () => getItemEmby({ data: { serverId: server.id, itemId } }),
+  });
+  // Plex: only used for its audio track list.
+  const getItemPlex = useServerFn(plexGetItem);
+  const plexItemQ = useQuery({
+    enabled: !isEmbyFamily,
+    queryKey: ["watch-plex-item", server.id, itemId],
+    queryFn: () => getItemPlex({ data: { serverId: server.id, itemId } }),
   });
 
   // Trakt scrobbling: start/pause/stop follow the <video> element.
@@ -346,9 +354,10 @@ function Player({
 
   // Audio tracks (languages) offered by the first media source.
   const audioTracks = useMemo(() => {
-    if (!isEmbyFamily) return [] as Array<{ index: number; label: string; lang: string; isDefault?: boolean; descriptive?: boolean }>;
-    const item: any = itemQ.data?.item;
-    const src: any = (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0];
+    const item: any = isEmbyFamily ? itemQ.data?.item : plexItemQ.data?.item;
+    const src: any = isEmbyFamily
+      ? (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0]
+      : undefined;
     const streams: any[] = src?.MediaStreams ?? item?.MediaStreams ?? [];
     return streams
       .filter((st) => st.Type === "Audio")
@@ -359,7 +368,7 @@ function Player({
         isDefault: !!st.IsDefault,
         descriptive: isDescriptive(st),
       }));
-  }, [itemQ.data, isEmbyFamily]);
+  }, [itemQ.data, plexItemQ.data, isEmbyFamily, version]);
 
   // Preferred audio language from Settings, when the viewer didn't pick one.
   const langApplied = useRef(false);
@@ -404,8 +413,11 @@ function Player({
     setError(null);
     let hlsInstance: Hls | null = null;
 
+    // Plex serves the original file in direct mode, which can't switch audio
+    // tracks — a chosen track goes through Plex's transcoder instead.
+    const effMode = !isEmbyFamily && audioIndex !== null ? "hls" : mode;
     const src = streamUrl(server, itemId, {
-      mode,
+      mode: effMode,
       videoCodec: videoCodecs,
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
@@ -433,7 +445,7 @@ function Player({
     const nativeHls =
       !Hls.isSupported() && video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
-    if (mode === "direct" || nativeHls) {
+    if (effMode === "direct" || nativeHls) {
       // Native playback: let the browser's own range-based buffering run — it
       // maps directly onto the hardware decoder's demand.
       video.preload = "auto";
@@ -982,7 +994,7 @@ function Player({
 
 
 
-          {isEmbyFamily && audioTracks.length > 1 && (
+          {audioTracks.length > 1 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
               <span className="opacity-70">Audio</span>
               <select
@@ -1514,7 +1526,7 @@ function Player({
               </label>
             )}
 
-            {isEmbyFamily && audioTracks.length > 1 && (
+            {audioTracks.length > 1 && (
               <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
                 <span className="opacity-70">Audio</span>
                 <select

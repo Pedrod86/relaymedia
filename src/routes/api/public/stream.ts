@@ -244,6 +244,46 @@ async function handle(request: Request) {
       const part = meta?.MediaContainer?.Metadata?.[0]?.Media?.[q.version ?? 0]?.Part?.[0];
       if (!part?.key) return new Response("no playable part found", { status: 404 });
       path = part.key as string;
+      if (q.audioIndex !== undefined) {
+        // Same flat ordering as plexStreams() in plex.functions.ts.
+        let i = 0;
+        let streamId: unknown;
+        for (const md of meta?.MediaContainer?.Metadata?.[0]?.Media ?? []) {
+          for (const pt of md.Part ?? []) {
+            for (const st of pt.Stream ?? []) {
+              if (i++ === q.audioIndex && st.streamType === 2) streamId = st.id;
+            }
+          }
+        }
+        if (streamId !== undefined && part.id !== undefined) {
+          const base = normalizeUrl(cred.serverUrl);
+          await fetchUpstream(
+            `${base}/library/parts/${encodeURIComponent(String(part.id))}?audioStreamID=${encodeURIComponent(String(streamId))}&allParts=1`,
+            { method: "PUT", headers: new Headers({ "X-Plex-Token": cred.token, "X-Plex-Client-Identifier": DEVICE_ID, Accept: "application/json" }) },
+          ).then((r) => r.body?.cancel()).catch(() => {});
+        }
+      }
+      if (q.mode === "hls") {
+        const tp = new URLSearchParams({
+          path: `/library/metadata/${q.item}`,
+          mediaIndex: String(q.version ?? 0),
+          partIndex: "0",
+          protocol: "hls",
+          directPlay: "0",
+          directStream: "1",
+          directStreamAudio: "0",
+          fastSeek: "1",
+          maxVideoBitrate: String(Math.round(q.maxBitrate / 1000)),
+          session: q.session ?? DEVICE_ID,
+          "X-Plex-Session-Identifier": q.session ?? DEVICE_ID,
+          "X-Plex-Client-Identifier": DEVICE_ID,
+          "X-Plex-Product": "Relay Media",
+          "X-Plex-Platform": "Chrome",
+          "X-Plex-Token": cred.token,
+        });
+        if (q.start) tp.set("offset", String(Math.floor(q.start)));
+        path = `/video/:/transcode/universal/start.m3u8?${tp}`;
+      }
     } catch {
       return new Response("failed to resolve stream", { status: 502 });
     }
