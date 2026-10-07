@@ -189,7 +189,30 @@ const AUDIO_PROBES: Probe[] = [
   { name: "eac3", label: "Dolby Digital+ (E-AC3)", track: "audio", contentType: 'audio/mp4; codecs="ec-3"' },
   { name: "opus", label: "Opus", track: "audio", contentType: 'audio/webm; codecs="opus"' },
   { name: "flac", label: "FLAC", track: "audio", contentType: 'audio/mp4; codecs="flac"' },
+  { name: "vorbis", label: "Ogg Vorbis", track: "audio", contentType: 'audio/ogg; codecs="vorbis"' },
+  { name: "alac", label: "Apple Lossless (ALAC)", track: "audio", contentType: 'audio/mp4; codecs="alac"' },
+  { name: "pcm", label: "WAV / PCM (uncompressed)", track: "audio", contentType: 'audio/wav; codecs="1"' },
+  { name: "aiff", label: "AIFF (uncompressed)", track: "audio", contentType: "audio/aiff" },
 ];
+
+/** Extra MIME types tried when the primary probe says no (legacy checks). */
+const AUDIO_ALT: Record<string, string[]> = {
+  flac: ["audio/flac", "audio/x-flac"],
+  vorbis: ['audio/webm; codecs="vorbis"', "audio/ogg"],
+  alac: ['audio/x-m4a; codecs="alac"'],
+  pcm: ["audio/wav", "audio/wave", "audio/x-wav"],
+  aiff: ["audio/x-aiff", "audio/aif"],
+};
+
+/** Map server-reported audio codec names onto our probe names. */
+export function normalizeAudioCodec(c?: string): string | undefined {
+  if (!c) return c;
+  const v = c.toLowerCase();
+  if (v.startsWith("pcm") || v === "wav" || v === "lpcm") return v.includes("be") ? "aiff" : "pcm";
+  if (v === "aif" || v === "aiff") return "aiff";
+  if (v === "ogg" || v === "vorbis") return "vorbis";
+  return v;
+}
 
 /**
  * Probe the browser for codec support and hardware-decode capability.
@@ -226,7 +249,8 @@ export async function probeCodecs(): Promise<CodecCap[]> {
       const ms = (window as any).MediaSource;
       supported =
         (ms?.isTypeSupported?.(p.contentType) ?? false) ||
-        video.canPlayType(p.contentType) === "probably";
+        video.canPlayType(p.contentType) === "probably" ||
+        (p.track === "audio" && (AUDIO_ALT[p.name] ?? []).some((t) => video.canPlayType(t) !== ""));
     }
 
     return { ...p, supported, hardware };
@@ -241,7 +265,7 @@ export async function probeCodecs(): Promise<CodecCap[]> {
   // instead of the browser table there.
   const tvBox = isTvDevice() || isAndroidTvBox() || isAndroidNative();
   if (tvBox) {
-    const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3"]);
+    const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3", "flac", "vorbis", "alac", "pcm", "mp3", "aac"]);
     return list.map((c) => (forced.has(c.name) ? { ...c, supported: true, hardware: true } : c));
   }
 
@@ -364,12 +388,14 @@ const SERVER_CODEC: Record<string, string> = {
   dvhe5: "hevc",
   dvhe8: "hevc",
   av1_10bit: "av1",
+  pcm: "pcm_s16le,pcm_s24le",
+  aiff: "pcm_s16be,pcm_s24be",
 };
 
 /** Codecs we are willing to ask the server for, given the decode preference. */
 export function allowedCodecs(caps: CodecCap[], prefs: PlayerPrefs, track: "video" | "audio") {
   const pool = caps.filter((c) => c.track === track && c.supported);
-  const names = (list: CodecCap[]) => [...new Set(list.map((c) => SERVER_CODEC[c.name] ?? c.name))];
+  const names = (list: CodecCap[]) => [...new Set(list.flatMap((c) => (SERVER_CODEC[c.name] ?? c.name).split(",")))];
   if (prefs.decode === "hardware") {
     const hw = pool.filter((c) => c.hardware);
     if (hw.length) return names(hw);
@@ -413,7 +439,7 @@ export type StreamCheck = {
 };
 
 
-const DIRECT_CONTAINERS = ["mp4", "m4v", "mov", "webm"];
+const DIRECT_CONTAINERS = ["mp4", "m4v", "m4a", "mov", "webm", "ogg", "oga", "flac", "wav", "mp3", "aac"];
 
 function rangeOf(v: any): string {
   const raw = String(v?.VideoRangeType ?? v?.VideoRange ?? "SDR").toUpperCase();
@@ -444,7 +470,7 @@ export function checkItemPlayback(
   const a = streams.find((s) => s.Type === "Audio");
   const container = (source?.Container ?? item?.Container ?? "").toLowerCase() || undefined;
   const videoCodec = (v?.Codec ?? "").toLowerCase() || undefined;
-  const audioCodec = (a?.Codec ?? "").toLowerCase() || undefined;
+  const audioCodec = normalizeAudioCodec((a?.Codec ?? "").toLowerCase() || undefined);
 
   const videoRange = rangeOf(v);
   const isDolbyVision = videoRange === "DOVI" || !!v?.DvProfile || !!v?.DvVersionMajor;
