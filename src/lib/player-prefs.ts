@@ -388,12 +388,14 @@ const SERVER_CODEC: Record<string, string> = {
   dvhe5: "hevc",
   dvhe8: "hevc",
   av1_10bit: "av1",
+  pcm: "pcm_s16le,pcm_s24le",
+  aiff: "pcm_s16be,pcm_s24be",
 };
 
 /** Codecs we are willing to ask the server for, given the decode preference. */
 export function allowedCodecs(caps: CodecCap[], prefs: PlayerPrefs, track: "video" | "audio") {
   const pool = caps.filter((c) => c.track === track && c.supported);
-  const names = (list: CodecCap[]) => [...new Set(list.map((c) => SERVER_CODEC[c.name] ?? c.name))];
+  const names = (list: CodecCap[]) => [...new Set(list.flatMap((c) => (SERVER_CODEC[c.name] ?? c.name).split(",")))];
   if (prefs.decode === "hardware") {
     const hw = pool.filter((c) => c.hardware);
     if (hw.length) return names(hw);
