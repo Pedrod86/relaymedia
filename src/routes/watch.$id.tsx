@@ -1014,55 +1014,55 @@ function Player({
         </div>
       </header>
 
-      {showDetails && (
-        {soundOpen && (
-          <div
-            data-player-panel
-            className="absolute bottom-28 right-4 z-40 w-[min(92vw,340px)] space-y-3 rounded-xl border border-white/10 bg-black/85 p-4 text-sm backdrop-blur"
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-semibold">Sound</p>
-              <button type="button" onClick={() => setSoundOpen(false)} className="rounded px-2 opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Close sound options">✕</button>
-            </div>
-            <label className="block">
-              <span className="flex justify-between"><span>Volume boost</span><span>{Math.round(fx.boost * 100)}%</span></span>
-              <input type="range" min={1} max={2} step={0.1} value={fx.boost} onChange={(e) => updateFx({ boost: Number(e.target.value) })} className="w-full accent-primary" />
-            </label>
-            {[
-              ["night", "Night mode", "Quieter bangs, louder whispers"],
-              ["voice", "Clear voices", "Lifts speech over music and effects"],
-              ["remember", "Remember volume", "Keeps your level between titles"],
-            ].map(([k, label, hint]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => updateFx({ [k]: !(fx as any)[k] } as any)}
-                className="flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <span>
-                  <span className="block">{label}</span>
-                  <span className="block text-xs opacity-60">{hint}</span>
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${(fx as any)[k] ? "bg-primary text-primary-foreground" : "bg-white/10"}`}>{(fx as any)[k] ? "On" : "Off"}</span>
-              </button>
-            ))}
-            <label className="block">
-              <span className="flex justify-between"><span>Audio sync (delay sound)</span><span>{fx.delayMs} ms</span></span>
-              <input type="range" min={0} max={500} step={25} value={fx.delayMs} onChange={(e) => updateFx({ delayMs: Number(e.target.value) })} className="w-full accent-primary" />
-            </label>
-            <div className="rounded-lg bg-white/5 p-3 text-xs leading-relaxed">
-              <p className="mb-1 font-medium">Sound in use now</p>
-              <p>Volume: {muted ? "Muted" : `${Math.round(volume * 100)}%`}{fx.boost !== 1 ? ` × ${Math.round(fx.boost * 100)}% boost` : ""}</p>
-              <p>Track: {(audioTracks.find((a) => a.index === audioIndex) ?? audioTracks.find((a) => a.isDefault) ?? audioTracks[0])?.label ?? "Default"}</p>
-              <p>Speakers: {prefs.audioPassthrough ? "Passthrough to receiver" : "Stereo"}</p>
-              <p>Effects: {[fx.night && "Night mode", fx.voice && "Clear voices", fx.delayMs && `${fx.delayMs} ms delay`].filter(Boolean).join(", ") || "None"}</p>
-              {(fx.boost !== 1 || fx.night || fx.voice || fx.delayMs > 0) && prefs.audioPassthrough && (
-                <p className="mt-1 opacity-70">Effects don't apply while passthrough sends sound straight to your receiver.</p>
-              )}
-            </div>
-            <button type="button" onClick={() => updateFx({ boost: 1, night: false, voice: false, delayMs: 0 })} className="w-full rounded-lg bg-white/10 py-2 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Reset sound</button>
+      {soundOpen && (
+        <div
+          data-player-panel
+          className="absolute bottom-28 right-4 z-40 w-[min(92vw,340px)] space-y-3 rounded-xl border border-white/10 bg-black/85 p-4 text-sm backdrop-blur"
+        >
+          <div className="flex items-center justify-between">
+            <p className="font-semibold">Sound</p>
+            <button type="button" onClick={() => setSoundOpen(false)} className="rounded px-2 opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Close sound options">✕</button>
           </div>
-        )}
+          <label className="block">
+            <span className="flex justify-between"><span>Volume boost</span><span>{Math.round(fx.boost * 100)}%</span></span>
+            <input type="range" min={1} max={2} step={0.1} value={fx.boost} onChange={(e) => updateFx({ boost: Number(e.target.value) })} className="w-full accent-primary" />
+          </label>
+          {[
+            ["night", "Night mode", "Quieter bangs, louder whispers"],
+            ["voice", "Clear voices", "Lifts speech over music and effects"],
+            ["remember", "Remember volume", "Keeps your level between titles"],
+          ].map(([k, label, hint]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => updateFx({ [k]: !(fx as any)[k] } as any)}
+              className="flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <span>
+                <span className="block">{label}</span>
+                <span className="block text-xs opacity-60">{hint}</span>
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-xs ${(fx as any)[k] ? "bg-primary text-primary-foreground" : "bg-white/10"}`}>{(fx as any)[k] ? "On" : "Off"}</span>
+            </button>
+          ))}
+          <label className="block">
+            <span className="flex justify-between"><span>Audio sync (delay sound)</span><span>{fx.delayMs} ms</span></span>
+            <input type="range" min={0} max={500} step={25} value={fx.delayMs} onChange={(e) => updateFx({ delayMs: Number(e.target.value) })} className="w-full accent-primary" />
+          </label>
+          <div className="rounded-lg bg-white/5 p-3 text-xs leading-relaxed">
+            <p className="mb-1 font-medium">Sound in use now</p>
+            <p>Volume: {muted ? "Muted" : `${Math.round(volume * 100)}%`}{fx.boost !== 1 ? ` × ${Math.round(fx.boost * 100)}% boost` : ""}</p>
+            <p>Track: {(audioTracks.find((a) => a.index === audioIndex) ?? audioTracks.find((a) => a.isDefault) ?? audioTracks[0])?.label ?? "Default"}</p>
+            <p>Speakers: {prefs.audioPassthrough ? "Passthrough to receiver" : "Stereo"}</p>
+            <p>Effects: {[fx.night && "Night mode", fx.voice && "Clear voices", fx.delayMs && `${fx.delayMs} ms delay`].filter(Boolean).join(", ") || "None"}</p>
+            {(fx.boost !== 1 || fx.night || fx.voice || fx.delayMs > 0) && prefs.audioPassthrough && (
+              <p className="mt-1 opacity-70">Effects don't apply while passthrough sends sound straight to your receiver.</p>
+            )}
+          </div>
+          <button type="button" onClick={() => updateFx({ boost: 1, night: false, voice: false, delayMs: 0 })} className="w-full rounded-lg bg-white/10 py-2 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Reset sound</button>
+        </div>
+      )}
+      {showDetails && (
         <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6">
           <PlaybackDetails
             check={check}
