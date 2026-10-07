@@ -360,7 +360,7 @@ function Player({
         isDefault: !!st.IsDefault,
         descriptive: isDescriptive(st),
       }));
-  }, [itemQ.data, isEmbyFamily]);
+  }, [itemQ.data, isEmbyFamily, version]);
 
   // Preferred audio language from Settings, when the viewer didn't pick one.
   const langApplied = useRef(false);

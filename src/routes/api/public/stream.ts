@@ -259,7 +259,7 @@ async function handle(request: Request) {
           const base = normalizeUrl(cred.serverUrl);
           await fetchUpstream(
             `${base}/library/parts/${encodeURIComponent(String(part.id))}?audioStreamID=${encodeURIComponent(String(streamId))}&allParts=1`,
-            { method: "PUT", headers: { "X-Plex-Token": cred.token, "X-Plex-Client-Identifier": DEVICE_ID, Accept: "application/json" } },
+            { method: "PUT", headers: new Headers({ "X-Plex-Token": cred.token, "X-Plex-Client-Identifier": DEVICE_ID, Accept: "application/json" }) },
           ).then((r) => r.body?.cancel()).catch(() => {});
         }
       }
