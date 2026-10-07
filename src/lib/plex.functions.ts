@@ -67,7 +67,10 @@ function plexStreams(m: any): any[] {
           VideoRange: s.colorTrc === "smpte2084" ? "HDR" : undefined,
           ChannelLayout: s.audioChannelLayout,
           Language: s.language,
-          DisplayTitle: s.displayTitle ?? s.extendedDisplayTitle,
+          DisplayTitle: s.extendedDisplayTitle ?? s.displayTitle,
+          Title: s.title,
+          IsDefault: !!s.selected || !!s.default,
+          PlexStreamId: s.id,
         });
       }
     }

@@ -346,9 +346,10 @@ function Player({
 
   // Audio tracks (languages) offered by the first media source.
   const audioTracks = useMemo(() => {
-    if (!isEmbyFamily) return [] as Array<{ index: number; label: string; lang: string; isDefault?: boolean; descriptive?: boolean }>;
     const item: any = itemQ.data?.item;
-    const src: any = (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0];
+    const src: any = isEmbyFamily
+      ? (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0]
+      : undefined;
     const streams: any[] = src?.MediaStreams ?? item?.MediaStreams ?? [];
     return streams
       .filter((st) => st.Type === "Audio")
@@ -404,8 +405,11 @@ function Player({
     setError(null);
     let hlsInstance: Hls | null = null;
 
+    // Plex serves the original file in direct mode, which can't switch audio
+    // tracks — a chosen track goes through Plex's transcoder instead.
+    const effMode = !isEmbyFamily && audioIndex !== null ? "hls" : mode;
     const src = streamUrl(server, itemId, {
-      mode,
+      mode: effMode,
       videoCodec: videoCodecs,
       audioCodec: audioCodecs,
       maxBitrate: prefs.maxBitrate,
@@ -433,7 +437,7 @@ function Player({
     const nativeHls =
       !Hls.isSupported() && video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
-    if (mode === "direct" || nativeHls) {
+    if (effMode === "direct" || nativeHls) {
       // Native playback: let the browser's own range-based buffering run — it
       // maps directly onto the hardware decoder's demand.
       video.preload = "auto";
