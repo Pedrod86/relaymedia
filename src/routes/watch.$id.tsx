@@ -44,6 +44,24 @@ import {
 } from "@/lib/afr";
 
 
+const LANGS: Record<string, string> = { eng: "English", en: "English", fre: "French", fra: "French", fr: "French", ger: "German", deu: "German", de: "German", spa: "Spanish", es: "Spanish", ita: "Italian", it: "Italian", jpn: "Japanese", ja: "Japanese", kor: "Korean", ko: "Korean", chi: "Chinese", zho: "Chinese", zh: "Chinese", por: "Portuguese", pt: "Portuguese", rus: "Russian", ru: "Russian", hin: "Hindi", hi: "Hindi", ara: "Arabic", ar: "Arabic", dut: "Dutch", nld: "Dutch", nl: "Dutch", pol: "Polish", pl: "Polish", tur: "Turkish", tr: "Turkish", swe: "Swedish", sv: "Swedish", nor: "Norwegian", dan: "Danish", fin: "Finnish" };
+
+function isDescriptive(st: any): boolean {
+  const t = `${st.Title ?? ""} ${st.DisplayTitle ?? ""}`.toLowerCase();
+  return !!st.IsHearingImpaired || /audio description|described|descriptive|visually impaired|\(ad\)|\[ad\]|\bad\b/.test(t);
+}
+
+function audioLabel(st: any): string {
+  const code = String(st.Language ?? "").toLowerCase();
+  const lang = LANGS[code] ?? (code ? code.toUpperCase() : "Unknown");
+  const ch = st.Channels ? (st.Channels >= 8 ? "7.1" : st.Channels >= 6 ? "5.1" : st.Channels === 1 ? "Mono" : "Stereo") : "";
+  const raw = String(st.Codec ?? "").toUpperCase();
+  const codec = raw === "EAC3" ? "Dolby Digital+" : raw === "AC3" ? "Dolby Digital" : raw === "TRUEHD" ? "TrueHD" : raw;
+  const title = st.Title && !/^(stereo|surround|mono|5\.1|7\.1)$/i.test(st.Title) ? ` – ${st.Title}` : "";
+  const ad = isDescriptive(st) && !/descri/i.test(title) ? " (Audio description)" : "";
+  return [lang, ch, codec].filter(Boolean).join(" · ") + title + ad;
+}
+
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({
     meta: [
@@ -328,7 +346,7 @@ function Player({
 
   // Audio tracks (languages) offered by the first media source.
   const audioTracks = useMemo(() => {
-    if (!isEmbyFamily) return [] as Array<{ index: number; label: string; isDefault?: boolean }>;
+    if (!isEmbyFamily) return [] as Array<{ index: number; label: string; lang: string; isDefault?: boolean; descriptive?: boolean }>;
     const item: any = itemQ.data?.item;
     const src: any = (item?.MediaSources ?? [])[version] ?? (item?.MediaSources ?? [])[0];
     const streams: any[] = src?.MediaStreams ?? item?.MediaStreams ?? [];
@@ -337,8 +355,9 @@ function Player({
       .map((st) => ({
         lang: String(st.Language ?? "").toLowerCase(),
         index: st.Index as number,
-        label: st.DisplayTitle || st.Language || st.Title || `Track ${st.Index}`,
+        label: audioLabel(st),
         isDefault: !!st.IsDefault,
+        descriptive: isDescriptive(st),
       }));
   }, [itemQ.data, isEmbyFamily]);
 
@@ -348,7 +367,7 @@ function Player({
     if (langApplied.current || audioIndex !== null || !prefs.audioLanguage || !audioTracks.length) return;
     langApplied.current = true;
     const want = prefs.audioLanguage.toLowerCase();
-    const hit = audioTracks.find((a: any) => a.lang === want || a.lang.startsWith(want.slice(0, 2)));
+    const hit = audioTracks.find((a: any) => !a.descriptive && (a.lang === want || a.lang.startsWith(want.slice(0, 2))));
     if (hit && !hit.isDefault) setAudioIndex(hit.index);
   }, [audioTracks, prefs.audioLanguage, audioIndex]);
 
@@ -965,7 +984,7 @@ function Player({
 
           {isEmbyFamily && audioTracks.length > 1 && (
             <label className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
-              <span className="opacity-70">Language</span>
+              <span className="opacity-70">Audio</span>
               <select
                 value={audioIndex ?? ""}
                 onChange={(e) =>
@@ -1049,6 +1068,27 @@ function Player({
             <span className="flex justify-between"><span>Audio sync (delay sound)</span><span>{fx.delayMs} ms</span></span>
             <input type="range" min={0} max={500} step={25} value={fx.delayMs} onChange={(e) => updateFx({ delayMs: Number(e.target.value) })} className="w-full accent-primary" />
           </label>
+          {audioTracks.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs opacity-70">Audio track</p>
+              <div className="max-h-40 space-y-1 overflow-y-auto">
+                {audioTracks.map((a) => {
+                  const on = audioIndex === a.index || (audioIndex === null && a.isDefault);
+                  return (
+                    <button
+                      key={a.index}
+                      type="button"
+                      onClick={() => setAudioIndex(a.index)}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${on ? "bg-primary text-primary-foreground" : "bg-white/5"}`}
+                    >
+                      <span>{a.label}</span>
+                      {a.descriptive && <span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">AD</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="rounded-lg bg-white/5 p-3 text-xs leading-relaxed">
             <p className="mb-1 font-medium">Sound in use now</p>
             <p>Volume: {muted ? "Muted" : `${Math.round(volume * 100)}%`}{fx.boost !== 1 ? ` × ${Math.round(fx.boost * 100)}% boost` : ""}</p>
@@ -1476,7 +1516,7 @@ function Player({
 
             {isEmbyFamily && audioTracks.length > 1 && (
               <label className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-sm">
-                <span className="opacity-70">Language</span>
+                <span className="opacity-70">Audio</span>
                 <select
                   value={audioIndex ?? ""}
                   onChange={(e) => {
