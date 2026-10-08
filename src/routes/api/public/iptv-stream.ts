@@ -29,16 +29,29 @@ async function handle(request: Request) {
   for (const [k, v] of Object.entries(target.headers)) headers.set(k, v);
   headers.delete("cookie");
 
-  let upstream: Response;
-  try {
-    upstream = await fetchUpstream(target.url, {
-      method: request.method === "HEAD" ? "HEAD" : "GET",
-      headers,
-      signal: request.signal,
+  const method = request.method === "HEAD" ? "HEAD" : "GET";
+  let upstream: Response | undefined;
+  let lastErr: any;
+  // Attempt 1: full forwarded headers. Attempt 2: minimal headers (some
+  // providers reject forwarded range/accept headers or stall on them).
+  for (const h of [headers, new Headers({ "user-agent": UA, ...target.headers })]) {
+    try {
+      upstream = await fetchUpstream(target.url, { method, headers: h, signal: request.signal });
+      break;
+    } catch (e: any) {
+      if (request.signal?.aborted) return new Response(null, { status: 499 });
+      lastErr = e;
+    }
+  }
+  if (!upstream) {
+    console.error("[iptv-stream] upstream unreachable:", lastErr?.message ?? lastErr);
+    // The provider refuses connections from our server (common: IP blocks,
+    // non-standard ports). Hand the player the direct address so the user's
+    // own device connects to their provider instead of failing outright.
+    return new Response(null, {
+      status: 302,
+      headers: { location: target.url, "cache-control": "no-store", "access-control-allow-origin": "*" },
     });
-  } catch (e: any) {
-    if (e?.name === "AbortError") return new Response(null, { status: 499 });
-    return new Response("upstream unreachable", { status: 502 });
   }
 
   const sourceUrl = new URL(upstream.url || target.url);
