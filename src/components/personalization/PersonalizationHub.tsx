@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { usePersonalization, type ImageType, type SeasonalEffect } from "@/lib/personalization";
+import { CustomCssPanel } from "./CustomCssPanel";
 
 function Row({
   label,
@@ -92,6 +93,14 @@ export function PersonalizationHub({
     icon: React.ComponentType<{ className?: string }>;
     render: () => ReactNode;
   }[] = [
+    {
+      id: "custom-css",
+      group: "General",
+      title: "Custom CSS",
+      desc: "Backgrounds, colours and custom styles",
+      icon: PanelsTopLeft,
+      render: () => <CustomCssPanel />,
+    },
     {
       id: "navigation",
       group: "General",

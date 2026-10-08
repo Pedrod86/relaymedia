@@ -29,6 +29,7 @@ import { useAndroidBackButton, EXIT_REQUEST_EVENT } from "@/lib/use-back-button"
 import { isNativeApp } from "@/lib/platform";
 import { SeasonalEffects } from "@/components/SeasonalEffects";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { CustomCss } from "@/components/CustomCss";
 
 function NotFoundComponent() {
   return (
@@ -228,6 +229,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <CustomCss />
       <Toaster />
       <SeasonalEffects />
       <ExitConfirmDialog />
