@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, RotateCcw, Save } from "lucide-react";
+import { Check, Eye, Palette, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CUSTOM_CSS_LIMIT, loadCustomCss, saveCustomCss } from "@/lib/custom-css";
+import { CUSTOM_CSS_THEMES } from "@/lib/custom-css-themes";
 
 const EXAMPLE = `:root {
   --background: oklch(0.18 0.02 220);
@@ -22,6 +23,7 @@ export function CustomCssPanel() {
   const [css, setCss] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [preview, setPreview] = useState("");
+  const [savedCss, setSavedCss] = useState("");
   const frame = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export function CustomCssPanel() {
     setCss(saved.css);
     setEnabled(saved.enabled);
     setPreview(saved.css);
+    setSavedCss(saved.css);
   }, []);
 
   function renderPreview() {
@@ -52,6 +55,7 @@ export function CustomCssPanel() {
     try {
       saveCustomCss({ css: nextCss, enabled: nextEnabled });
       setEnabled(nextEnabled);
+      setSavedCss(nextCss);
       toast.success("Custom CSS saved on this device");
     } catch {
       toast.error("Couldn't save your changes. Device storage may be full.");
@@ -76,6 +80,27 @@ export function CustomCssPanel() {
         <Button variant="outline" onClick={() => setPreview(css)}><Eye className="size-4" />Preview</Button>
         <Button variant="outline" onClick={() => { setCss(EXAMPLE); setPreview(EXAMPLE); }}>Load example</Button>
         <Button variant="ghost" onClick={() => { persist("", false); setCss(""); setPreview(""); }}><RotateCcw className="size-4" />Reset</Button>
+      </div>
+      <div className="space-y-3">
+        <h3 className="text-base font-semibold">CSS themes</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {CUSTOM_CSS_THEMES.map((theme) => (
+            <Button key={theme.id} variant={css === theme.css ? "secondary" : "outline"}
+              aria-pressed={css === theme.css}
+              className="tv-card h-auto min-h-20 justify-start whitespace-normal p-4 text-left"
+              onClick={() => {
+                if (css.trim() && css !== savedCss && css !== theme.css && !window.confirm("Replace your unsaved CSS with this theme?")) return;
+                setCss(theme.css);
+                setPreview(theme.css);
+              }}>
+              {css === theme.css ? <Check className="size-5 shrink-0" /> : <Palette className="size-5 shrink-0" />}
+              <span className="min-w-0"><span className="block font-semibold">{theme.name}</span>
+                <span className="block text-xs text-muted-foreground">{theme.description}</span></span>
+            </Button>
+          ))}
+        </div>
+        <Button disabled={!CUSTOM_CSS_THEMES.some((theme) => theme.css === css)}
+          onClick={() => persist(css, true)}><Check className="size-4" />Apply theme</Button>
       </div>
       <iframe ref={frame} title="Custom CSS preview" sandbox="allow-same-origin" srcDoc={PREVIEW}
         onLoad={renderPreview} className="h-80 w-full rounded-lg border bg-background" />
