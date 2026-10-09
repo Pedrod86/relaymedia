@@ -1192,6 +1192,10 @@ function Player({
             mode={mode}
             attempts={attempts}
             entries={diag}
+            caps={caps}
+            hdr={hdr}
+            env={env}
+            decodePref={prefs.decode}
           />
         </div>
       )}

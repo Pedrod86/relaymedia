@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import type { CodecCap, HdrSupport, PlaybackEnv } from "@/lib/player-prefs";
 
 export type DiagEntry = { at: number; level: "info" | "warn" | "error"; text: string };
 
@@ -28,7 +29,30 @@ export function PlaybackDiagnostics(props: {
   mode: string | null;
   attempts: string[];
   entries: DiagEntry[];
+  caps: CodecCap[];
+  hdr: HdrSupport;
+  env: PlaybackEnv;
+  decodePref: string;
 }) {
+  const fmt = (track: "video" | "audio") =>
+    props.caps.filter((c) => c.track === track).map((c) =>
+      `${c.label}: ${c.supported ? (c.hardware ? "yes (hardware)" : "yes (software)") : "no"}`);
+  const yn = (v: boolean) => (v ? "yes" : "no");
+  const hdrLines = [
+    `HDR display: ${yn(props.hdr.hdrDisplay)}`,
+    `HDR10: ${yn(props.hdr.hdr10)}`,
+    `HLG: ${yn(props.hdr.hlg)}`,
+    `Dolby Vision: ${yn(props.hdr.dolbyVision)}`,
+    `HEVC 10-bit: ${yn(props.hdr.hevcMain10)}`,
+    `4K hardware decode: ${yn(props.hdr.uhdHardware)}`,
+  ];
+  const platformLines = [
+    `Android app: ${yn(props.env.androidNative)}`,
+    `MKV without conversion: ${yn(props.env.mkv)}`,
+    `Dolby Digital / DD+ passthrough: ${yn(props.env.eac3)}`,
+    `HDR10 without tone-mapping: ${yn(props.env.hdr10)}`,
+    `Decoder setting: ${props.decodePref}`,
+  ];
   const lastError = [...props.entries].reverse().find((e) => e.level === "error");
   const report = [
     `Player: ${props.player}`,
@@ -37,6 +61,11 @@ export function PlaybackDiagnostics(props: {
     `Current method: ${props.mode ?? "—"}`,
     `Attempts: ${props.attempts.join(" → ") || "—"}`,
     `Failure: ${lastError?.text ?? "none"}`,
+    "",
+    "Video codecs:", ...fmt("video"),
+    "Audio codecs:", ...fmt("audio"),
+    "HDR:", ...hdrLines,
+    "Platform:", ...platformLines,
     "",
     ...props.entries.map((e) => `${new Date(e.at).toLocaleTimeString()} [${e.level}] ${e.text}`),
   ].join("\n");
@@ -66,6 +95,25 @@ export function PlaybackDiagnostics(props: {
         <dt className="text-white/60">Failure reason</dt>
         <dd className={lastError ? "text-destructive" : ""}>{lastError?.text ?? "None so far"}</dd>
       </dl>
+      <p className="mb-1 mt-4 font-medium">Device capabilities</p>
+      <div className="grid gap-3 sm:grid-cols-4">
+        {([
+          ["Video", fmt("video")],
+          ["Audio", fmt("audio")],
+          ["HDR", hdrLines],
+          ["Platform", platformLines],
+        ] as const).map(([title, lines]) => (
+          <div key={title}>
+            <p className="mb-1 text-white/60">{title}</p>
+            <ul className="space-y-0.5">
+              {lines.length === 0 && <li className="text-white/50">Still checking…</li>}
+              {lines.map((l) => (
+                <li key={l} className={l.endsWith(": no") ? "text-white/50" : ""}>{l}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
       <p className="mb-1 mt-4 font-medium">Event log</p>
       <ol className="space-y-0.5 font-mono text-[11px]">
         {props.entries.length === 0 && <li className="text-white/50">No events yet.</li>}
