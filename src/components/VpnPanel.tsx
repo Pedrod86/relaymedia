@@ -74,7 +74,7 @@ export function VpnPanel() {
               </span>
             </p>
           ) : (
-            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+            <p className="rounded-md border border-ring/40 bg-muted/40 p-3 text-sm">
               You're in the web app right now. The VPN connects inside the <strong>Relay Media Android app
               (version 1.7 or newer)</strong> on phones and TV boxes — but you can paste your config below, and
               it will be ready to save on your device.
