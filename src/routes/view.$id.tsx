@@ -8,6 +8,7 @@ import { plexGetItems, plexGetViews } from "@/lib/plex.functions";
 import { cleanName, itemTypesFor, type MediaServer } from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
 import { useMediaServers } from "@/lib/use-servers";
+import { isTvDevice } from "@/lib/platform";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -55,7 +56,7 @@ function ViewPage() {
   }, [isLoading, active, navigate]);
 
   if (!active) return null;
-  return <ViewContent key={active.id} server={active} viewId={id} />;
+  return <ViewContent key={active.id} server={active} viewId={id} tv={tv} />;
 }
 
 function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }) {
