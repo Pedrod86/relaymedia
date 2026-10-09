@@ -131,6 +131,7 @@ function Player({
   // Modes already attempted for this title, so HLS ⇄ direct fallbacks can't
   // bounce forever (that loop looked like "nothing plays").
   const triedModes = useRef(new Set<"hls" | "direct">());
+  useEffect(() => { triedModes.current = new Set(); }, [itemId]);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
   // Audio language: null = the server's default track.
