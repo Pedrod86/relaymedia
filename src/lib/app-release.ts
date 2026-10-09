@@ -16,9 +16,9 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.5",
-  versionCode: 7,
+  versionName: "1.6",
+  versionCode: 8,
   apkUrl: "https://relay-media.lovable.app/downloads/relay-media-latest.apk",
-  notes: "Connection test shows server name and API version, safer Silo sign-in help, and the latest fixes.",
+  notes: "Fixes the green screen on Android TV boxes, safer subtitle drawing, and a more reliable device player.",
   mandatory: false,
 };
