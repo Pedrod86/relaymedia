@@ -39,6 +39,16 @@ function ViewPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { active, isLoading } = useMediaServers();
+  const [tv, setTv] = useState(false);
+
+  useEffect(() => {
+    setTv(
+      isTvDevice() ||
+        (typeof localStorage === "undefined"
+          ? false
+          : localStorage.getItem("relay:tv-mode") === "1"),
+    );
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !active) navigate({ to: "/login" });
