@@ -64,20 +64,24 @@ export function VpnPanel() {
         your VPN provider (Mullvad, Proton, Surfshark, NordVPN and others offer one) and paste it here.
       </p>
 
-      {!ready ? null : !status ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          The VPN works in the Relay Media Android app (version 1.7 or newer) on phones and TV boxes.
-        </p>
-      ) : (
+      {!ready ? null : (
         <div className="mt-4 space-y-4">
-          <p className="text-sm">
-            Status:{" "}
-            <span className={status.connected ? "font-medium text-primary" : "text-muted-foreground"}>
-              {status.connected ? "Connected" : status.hasConfig ? "Disconnected" : "Not set up"}
-            </span>
-          </p>
+          {status ? (
+            <p className="text-sm">
+              Status:{" "}
+              <span className={status.connected ? "font-medium text-primary" : "text-muted-foreground"}>
+                {status.connected ? "Connected" : status.hasConfig ? "Disconnected" : "Not set up"}
+              </span>
+            </p>
+          ) : (
+            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              You're in the web app right now. The VPN connects inside the <strong>Relay Media Android app
+              (version 1.7 or newer)</strong> on phones and TV boxes — but you can paste your config below, and
+              it will be ready to save on your device.
+            </p>
+          )}
 
-          {status.hasConfig && (
+          {status?.hasConfig && (
             <div className="flex flex-wrap gap-2">
               {status.connected ? (
                 <Button disabled={busy} onClick={() => run((p) => p.disconnect(), "VPN disconnected")}>
@@ -99,15 +103,34 @@ export function VpnPanel() {
           )}
 
           <div className="space-y-2">
+            <label htmlFor="vpn-config" className="text-sm font-medium">
+              Your WireGuard config
+            </label>
             <textarea
+              id="vpn-config"
               value={config}
               onChange={(e) => setConfig(e.target.value)}
               placeholder={"[Interface]\nPrivateKey = …\nAddress = 10.0.0.2/32\n\n[Peer]\nPublicKey = …\nEndpoint = vpn.example.com:51820\nAllowedIPs = 0.0.0.0/0"}
               rows={8}
               spellCheck={false}
-              className="w-full rounded-md border bg-card p-3 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full min-h-24 rounded-md border bg-card p-3 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-            <input type="file" accept=".conf,text/plain" onChange={(e) => onFile(e.target.files?.[0])} className="text-sm" />
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="cursor-pointer rounded-md border px-3 py-2 text-sm hover:bg-accent">
+                Choose a .conf file…
+                <input
+                  type="file"
+                  accept=".conf,.conf.txt,text/plain"
+                  onChange={(e) => onFile(e.target.files?.[0])}
+                  className="sr-only"
+                />
+              </label>
+              {config.trim() && (
+                <Button variant="ghost" size="sm" onClick={() => setConfig("")}>
+                  Clear
+                </Button>
+              )}
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={appOnly} onCheckedChange={(c) => setAppOnly(!!c)} />
               Only use the VPN for Relay Media (other apps stay on your normal connection)
@@ -115,11 +138,15 @@ export function VpnPanel() {
             <Button
               variant="secondary"
               disabled={busy || !config.trim()}
-              onClick={() =>
-                run((p) => p.saveConfig({ config, appOnly }), "VPN config saved").then(() => setConfig(""))
-              }
+              onClick={() => {
+                if (!status) {
+                  toast.error("The VPN connects inside the Android app (1.7+). Paste the config there on your phone or TV box.");
+                  return;
+                }
+                run((p) => p.saveConfig({ config, appOnly }), "VPN config saved").then(() => setConfig(""));
+              }}
             >
-              {status.hasConfig ? "Replace config" : "Save config"}
+              {status?.hasConfig ? "Replace config" : "Save config"}
             </Button>
             <p className="text-xs text-muted-foreground">
               Your config is stored only inside the app on this device and never sent to our servers.
