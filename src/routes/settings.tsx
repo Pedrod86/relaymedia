@@ -30,6 +30,13 @@ import { TraktPanel } from "@/components/TraktPanel";
 import { SimklPanel } from "@/components/SimklPanel";
 import { RequestsPanel } from "@/components/RequestsPanel";
 import { LATEST_ANDROID_RELEASE } from "@/lib/app-release";
+import { Progress } from "@/components/ui/progress";
+import {
+  checkForUpdate,
+  downloadAndInstall,
+  openInstallPermission,
+  type UpdateCheck,
+} from "@/lib/app-update";
 import { VpnPanel } from "@/components/VpnPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
@@ -419,6 +426,7 @@ function AboutPanel() {
         Relay Media is a client for your own media servers. All artwork and media belong
         to their respective owners. Sign-ins are stored encrypted server-side.
       </p>
+      <UpdateCheckPanel />
     </section>
   );
 }
