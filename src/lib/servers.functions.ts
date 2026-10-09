@@ -82,3 +82,12 @@ export const refreshAllServers = createServerFn({ method: "POST" }).handler(asyn
     results,
   };
 });
+
+/** Short-lived token so the Android device player can open this server's streams. */
+export const deviceStreamToken = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ serverId: z.string().min(1).max(100) }))
+  .handler(async ({ data }) => {
+    const { requireCredential, sealDeviceToken } = await import("./vault.server");
+    const cred = await requireCredential(data.serverId);
+    return { token: await sealDeviceToken(cred) };
+  });
