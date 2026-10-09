@@ -73,19 +73,29 @@ public class Media3PlayerActivity extends AppCompatActivity {
             .setEnableDecoderFallback(true)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON);
 
-        // Styled ASS/SSA subtitles via libass; falls back to a plain player if it can't start.
+        // Styled ASS/SSA subtitles via libass — only when an ASS/SSA track was
+        // actually requested. The libass overlay sits on top of the video surface
+        // and on some TV boxes it covered the picture (green screen, sound only).
+        String requestedSub = getIntent().getStringExtra(EXTRA_SUBTITLE_URL);
+        boolean wantsAss = requestedSub != null && (requestedSub.contains(".ass") || requestedSub.contains(".ssa"));
         ExoPlayer.Builder builder = new ExoPlayer.Builder(this, renderers).setTrackSelector(trackSelector);
-        try {
-            player = io.github.peerless2012.ass.media.kt.AssPlayerKt.buildWithAssSupport(
-                builder,
-                this,
-                io.github.peerless2012.ass.media.type.AssRenderType.OVERLAY_OPEN_GL,
-                playerView.getSubtitleView(),
-                new androidx.media3.datasource.DefaultDataSource.Factory(this),
-                new androidx.media3.extractor.DefaultExtractorsFactory(),
-                renderers
-            );
-        } catch (Throwable t) {
+        player = null;
+        if (wantsAss) {
+            try {
+                player = io.github.peerless2012.ass.media.kt.AssPlayerKt.buildWithAssSupport(
+                    builder,
+                    this,
+                    io.github.peerless2012.ass.media.type.AssRenderType.OVERLAY_CANVAS,
+                    playerView.getSubtitleView(),
+                    new androidx.media3.datasource.DefaultDataSource.Factory(this),
+                    new androidx.media3.extractor.DefaultExtractorsFactory(),
+                    renderers
+                );
+            } catch (Throwable t) {
+                player = null;
+            }
+        }
+        if (player == null) {
             player = new ExoPlayer.Builder(this, renderers).setTrackSelector(trackSelector).build();
         }
         playerView.setPlayer(player);
@@ -115,7 +125,9 @@ public class Media3PlayerActivity extends AppCompatActivity {
         player.addListener(new Player.Listener() {
             @Override
             public void onPlayerError(PlaybackException error) {
-                errorView.setText("Playback error: " + error.getErrorCodeName());
+                Throwable cause = error.getCause();
+                errorView.setText("Playback error: " + error.getErrorCodeName()
+                    + (cause != null && cause.getMessage() != null ? "\n" + cause.getMessage() : ""));
                 errorView.setVisibility(View.VISIBLE);
             }
 

@@ -48,7 +48,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+            android:theme="@style/AppTheme.Player" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

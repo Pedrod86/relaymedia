@@ -19,6 +19,7 @@ import {
   probeHdr,
   savePlayerPrefs,
   wantsHdrPassthrough,
+  isDolbyVisionOnly,
   detectPlaybackEnv,
   NO_HDR,
   WEB_ENV,
@@ -950,6 +951,37 @@ function Player({
       return;
     }
     const abs = (u: string) => `${new URL(u, window.location.origin).toString()}&vt=${encodeURIComponent(vt)}`;
+    // Dolby Vision without an HDR10 base layer turns green on boxes with no DV
+    // decoder; have the server convert those to a normal picture instead.
+    const dvSupported = caps.some((c) => (c.name === "dvhe5" || c.name === "dvhe8") && c.supported);
+    const dvOnly = isEmbyFamily && isDolbyVisionOnly(itemQ.data?.item, version);
+    if (dvOnly && !dvSupported) {
+      logDiag("warn", "Dolby Vision (no HDR10 base) and this device has no Dolby Vision decoder — asking the server for a converted picture");
+      const url = abs(streamUrl(server, itemId, {
+        mode: "hls",
+        session: sessionId,
+        videoCodec: ["hevc", "h264"],
+        audioCodec: ["eac3", "ac3", "aac", "mp3"],
+        audioChannels: prefs.audioChannels,
+        audioIndex: audioIndex ?? undefined,
+        maxBitrate: prefs.maxBitrate,
+        maxHeight: prefs.maxHeight,
+        hdr: "tonemap",
+        version,
+      }));
+      const ok = await media3Play({
+        url,
+        title: itemQ.data?.item?.Name ?? "",
+        startPositionMs: Math.floor((videoRef.current?.currentTime ?? 0) * 1000),
+        tunneling: false,
+      });
+      if (ok) {
+        setActivePlayer("Device player (Media3) — converted stream");
+        setAttempts((a) => [...a, "device player (converted)"]);
+        videoRef.current?.pause();
+      } else logDiag("error", "Device player couldn't be opened");
+      return;
+    }
     const url = abs(streamUrl(server, itemId, {
       mode: "direct",
       session: sessionId,
