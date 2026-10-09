@@ -216,3 +216,29 @@ export async function openJson<T>(value: string): Promise<T | null> {
     return null;
   }
 }
+
+/**
+ * Device stream tokens: the Android device player (ExoPlayer) does not share the
+ * WebView's cookies, so it can't present the httpOnly vault. A short-lived
+ * sealed token carrying just one credential lets it open that server's streams.
+ */
+const DEVICE_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+
+export async function sealDeviceToken(cred: MediaCredential): Promise<string> {
+  return sealJson({ c: cred, exp: Date.now() + DEVICE_TOKEN_TTL_MS });
+}
+
+export async function openDeviceToken(token: string | null): Promise<MediaCredential | null> {
+  if (!token) return null;
+  const v = await openJson<{ c: MediaCredential; exp: number }>(token);
+  if (!v?.c || typeof v.exp !== "number" || v.exp < Date.now()) return null;
+  return v.c;
+}
+
+/** Resolve the credential for a stream request from the cookie or a device token. */
+export async function credentialForStream(request: Request, sid: string): Promise<MediaCredential | null> {
+  const fromCookie = (await readVaultFromRequest(request)).find((c) => c.id === sid);
+  if (fromCookie) return fromCookie;
+  const fromToken = await openDeviceToken(new URL(request.url).searchParams.get("vt"));
+  return fromToken && fromToken.id === sid ? fromToken : null;
+}
