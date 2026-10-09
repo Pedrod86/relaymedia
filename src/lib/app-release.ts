@@ -16,9 +16,9 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.6",
-  versionCode: 8,
-  apkUrl: "https://stream-vault.live/__l5e/assets-v1/30506d65-7af8-432f-b980-b6ab2d8c8a68/relay-media-1.6.apk",
-  notes: "Fixes the green screen on Android TV boxes, safer subtitle drawing, and a more reliable device player.",
+  versionName: "1.7",
+  versionCode: 9,
+  apkUrl: "https://stream-vault.live/__l5e/assets-v1/a01488fd-67f8-46b3-a138-f7c5a3d03563/relay-media-1.7.apk",
+  notes: "Adds a built-in WireGuard VPN (Settings → Integrations).",
   mandatory: false,
 };

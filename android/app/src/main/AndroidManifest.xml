@@ -50,6 +50,16 @@
             android:supportsPictureInPicture="true"
             android:theme="@style/AppTheme.Player" />
 
+        <!-- Built-in WireGuard VPN -->
+        <service
+            android:name="com.wireguard.android.backend.GoBackend$VpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -66,6 +76,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- In-app updater: download and hand a new APK to the package installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

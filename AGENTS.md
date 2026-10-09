@@ -5,3 +5,4 @@
 - The Android device player authenticates media/stream URLs with a short-lived sealed `vt` token on absolute URLs, because it cannot read the WebView's httpOnly vault cookie.
 - Stream redirects to a different host are never followed with media-server credentials; try once without them, then hand the address to the device, since CDNs reject foreign auth headers and often block server IPs.
 - Sign every APK from 1.6 on with the persistent release key kept in Files under relay-signing/v2 (copy its keystore.properties into android/ only for the build, then delete it), so each new APK installs over the previous one.
+- The built-in VPN is WireGuard via the native RelayVpn plugin; the config lives only in the APK's private SharedPreferences, never in web storage or our backend, because it holds a private key.
