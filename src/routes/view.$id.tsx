@@ -255,17 +255,20 @@ function ViewContent({
         {items.data && items.data.items.length === 0 && (
           <p className="text-muted-foreground">No items in this library.</p>
         )}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+          data-relay-grid
+        >
           {items.data?.items.map((it: any) => {
             return (
               <Link
                 key={it.Id}
                 to="/item/$id"
                 params={{ id: it.Id }}
-                className="group"
+                className="group tv-card rounded-lg outline-none"
               >
                 <div
-                  className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-hover:ring-primary"
+                  className="overflow-hidden rounded-lg bg-muted ring-1 ring-border transition group-focus-visible:ring-2 group-focus-visible:ring-primary"
                   style={{ aspectRatio: "2/3" }}
                 >
                   <MediaImage
