@@ -49,7 +49,7 @@ export async function media3Play(opts: {
   const p = plugin();
   if (!p) return false;
   try {
-    await p.play({ tunneling: true, ...opts });
+    await p.play({ ...opts, tunneling: false });
     return true;
   } catch {
     return false;
