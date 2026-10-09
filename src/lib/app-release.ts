@@ -16,8 +16,8 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.6",
-  versionCode: 8,
+  versionName: "1.7",
+  versionCode: 9,
   apkUrl: "https://stream-vault.live/__l5e/assets-v1/30506d65-7af8-432f-b980-b6ab2d8c8a68/relay-media-1.6.apk",
   notes: "Fixes the green screen on Android TV boxes, safer subtitle drawing, and a more reliable device player.",
   mandatory: false,

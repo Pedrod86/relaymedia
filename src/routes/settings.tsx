@@ -30,6 +30,7 @@ import { TraktPanel } from "@/components/TraktPanel";
 import { SimklPanel } from "@/components/SimklPanel";
 import { RequestsPanel } from "@/components/RequestsPanel";
 import { LATEST_ANDROID_RELEASE } from "@/lib/app-release";
+import { VpnPanel } from "@/components/VpnPanel";
 import { DiscordPanel } from "@/components/DiscordPanel";
 import { AiPicksPanel } from "@/components/AiPicksPanel";
 import { PersonalizationHub } from "@/components/personalization/PersonalizationHub";
@@ -191,11 +192,12 @@ function SettingsPage() {
     {
       id: "integrations",
       title: "Integrations",
-      desc: "AI picks, Discord, Trakt, TorBox, and library sync",
+      desc: "VPN, AI picks, Discord, Trakt, TorBox, and library sync",
       icon: Share2,
-      keywords: "integrations ai discord trakt torbox scrobble sync refresh library",
+      keywords: "integrations vpn wireguard ai discord trakt torbox scrobble sync refresh library",
       render: () => (
         <>
+          <VpnPanel />
           <AiPicksPanel serverId={active.id} />
           <DiscordPanel />
           <TraktPanel />
