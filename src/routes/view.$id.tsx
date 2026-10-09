@@ -59,7 +59,15 @@ function ViewPage() {
   return <ViewContent key={active.id} server={active} viewId={id} tv={tv} />;
 }
 
-function ViewContent({ server, viewId }: { server: MediaServer; viewId: string }) {
+function ViewContent({
+  server,
+  viewId,
+  tv,
+}: {
+  server: MediaServer;
+  viewId: string;
+  tv: boolean;
+}) {
   const isPlex = server.kind === "plex";
   const getItemsEmby = useServerFn(embyGetItems);
   const getItemsPlex = useServerFn(plexGetItems);
