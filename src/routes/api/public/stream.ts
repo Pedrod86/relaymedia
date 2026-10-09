@@ -58,8 +58,9 @@ const querySchema = z.object({
 
 const DEVICE_ID = "lovable-media-web";
 
-function proxyHref(sid: string, path: string) {
-  return `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
+function proxyHref(sid: string, path: string, vt?: string | null) {
+  const base = `${MEDIA_PROXY_PATH}?sid=${encodeURIComponent(sid)}&p=${encodeURIComponent(path)}`;
+  return vt ? `${base}&vt=${encodeURIComponent(vt)}` : base;
 }
 
 function embyPath(
@@ -214,14 +215,24 @@ function embyPath(
 }
 
 
+function handoff(location: string) {
+  const r = new Response(null, {
+    status: 302,
+    headers: { location, "cache-control": "no-store", "access-control-allow-origin": "*" },
+  });
+  (r as any).__handoff = true;
+  return r;
+}
+
 async function handle(request: Request) {
   const url = new URL(request.url);
   const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) return new Response("invalid request", { status: 400 });
   const q = parsed.data;
 
-  const { readVaultFromRequest, normalizeUrl } = await import("@/lib/vault.server");
-  const cred = (await readVaultFromRequest(request)).find((c) => c.id === q.sid);
+  const { credentialForStream, normalizeUrl } = await import("@/lib/vault.server");
+  const cred = await credentialForStream(request, q.sid);
+  const vt = url.searchParams.get("vt");
   if (!cred) return new Response("not authenticated", { status: 401 });
 
   const {
@@ -337,12 +348,38 @@ async function handle(request: Request) {
     return new Response("invalid stream target", { status: 400 });
   }
 
-  const doFetch = (u: string) =>
-    fetchUpstream(u, {
-      method: request.method === "HEAD" ? "HEAD" : "GET",
-      headers,
-      signal: request.signal,
-    });
+  const method = request.method === "HEAD" ? "HEAD" : "GET";
+  // Some servers (Silo, debrid-backed libraries) answer a file request with a
+  // redirect to a storage/CDN host. Following it blindly forwards the media
+  // server's Authorization header to that host (often rejected) and makes the
+  // CDN see our server's address, which many block. Follow same-host redirects
+  // ourselves; for another host, try once without credentials and otherwise
+  // hand the address to the device so it fetches the file itself.
+  const doFetch = async (u: string): Promise<Response> => {
+    let current = u;
+    for (let hop = 0; hop < 5; hop++) {
+      const res = await fetchUpstream(current, { method, headers, signal: request.signal, redirect: "manual" });
+      const loc = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (!loc) return res;
+      try { await res.body?.cancel(); } catch { /* ignore */ }
+      const next = new URL(loc, current);
+      const serverOrigin = new URL(`${normalizeUrl(cred.serverUrl)}/`).origin;
+      if (next.origin === serverOrigin) { current = next.toString(); continue; }
+      if (next.protocol !== "https:" && next.protocol !== "http:") break;
+      // Device player (or explicit hand-off): let the device fetch it directly.
+      if (vt || url.searchParams.get("handoff") === "1") return handoff(next.toString());
+      const bare = forwardRequestHeaders(request);
+      try {
+        const ext = await fetchUpstream(next.toString(), { method, headers: bare, signal: request.signal });
+        if (ext.ok || ext.status === 206) return ext;
+        try { await ext.body?.cancel(); } catch { /* ignore */ }
+      } catch (e: any) {
+        if (e?.name === "AbortError") throw e;
+      }
+      return handoff(next.toString());
+    }
+    return new Response("too many redirects", { status: 508 });
+  };
 
   let upstream: Response;
   try {
@@ -369,6 +406,8 @@ async function handle(request: Request) {
     return new Response("upstream unreachable", { status: 502 });
   }
 
+  if ((upstream as any).__handoff) return upstream;
+
   const kind = classify(targetUrl.pathname, upstream.headers.get("content-type") ?? "");
 
   if (kind === "playlist" && upstream.ok && request.method !== "HEAD") {
@@ -382,7 +421,9 @@ async function handle(request: Request) {
   }
 
   if (!upstream.ok && upstream.status !== 206 && upstream.status !== 304) {
-    return new Response(`upstream error ${upstream.status}`, { status: upstream.status });
+    const detail = await upstream.text().catch(() => "");
+    console.error(`[stream] ${cred.kind} ${q.mode} upstream ${upstream.status}:`, detail.slice(0, 300));
+    return new Response(`upstream error ${upstream.status}: ${detail.slice(0, 200)}`, { status: upstream.status });
   }
 
   return buildResponse(upstream, kind, request);

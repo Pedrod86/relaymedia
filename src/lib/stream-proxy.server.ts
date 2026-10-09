@@ -52,7 +52,7 @@ export function forwardRequestHeaders(request: Request, into = new Headers()) {
  */
 export async function fetchUpstream(
   target: string,
-  init: { method: string; headers: Headers; signal?: AbortSignal | null },
+  init: { method: string; headers: Headers; signal?: AbortSignal | null; redirect?: RequestRedirect },
   connectTimeoutMs = 15_000,
 ) {
   const controller = new AbortController();
@@ -64,7 +64,7 @@ export async function fetchUpstream(
     const res = await fetch(target, {
       method: init.method,
       headers: init.headers,
-      redirect: "follow",
+      redirect: init.redirect ?? "follow",
       signal: controller.signal,
     });
     // Headers are in: the body may keep streaming well past the timeout.

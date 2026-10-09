@@ -26,8 +26,8 @@ async function handle(request: Request) {
   if (!sid || !rawPath) return new Response("missing sid or p", { status: 400 });
   if (!rawPath.startsWith("/")) return new Response("invalid path", { status: 400 });
 
-  const { readVaultFromRequest, normalizeUrl } = await import("@/lib/vault.server");
-  const cred = (await readVaultFromRequest(request)).find((c) => c.id === sid);
+  const { credentialForStream, normalizeUrl } = await import("@/lib/vault.server");
+  const cred = await credentialForStream(request, sid);
   if (!cred) return new Response("not authenticated", { status: 401 });
 
   let targetUrl: URL;
