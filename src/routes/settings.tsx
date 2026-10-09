@@ -296,6 +296,107 @@ function SettingsPage() {
   );
 }
 
+function UpdateCheckPanel() {
+  const [state, setState] = useState<
+    | { phase: "idle" }
+    | { phase: "checking" }
+    | { phase: "uptodate"; current: string }
+    | { phase: "available"; check: UpdateCheck }
+    | { phase: "downloading"; percent: number; check: UpdateCheck }
+    | { phase: "error"; message: string }
+  >({ phase: "idle" });
+
+  const check = async () => {
+    setState({ phase: "checking" });
+    const result = await checkForUpdate();
+    if (!result) {
+      setState({
+        phase: "error",
+        message:
+          "Update checks only work inside the Android app. On the web you're always on the latest version.",
+      });
+      return;
+    }
+    if (result.updateAvailable && result.release) {
+      setState({ phase: "available", check: result });
+    } else {
+      setState({ phase: "uptodate", current: result.currentVersionName });
+    }
+  };
+
+  const install = async (c: UpdateCheck) => {
+    if (!c.release) return;
+    if (!c.canInstall) {
+      toast.info("Allow Relay to install apps, then try again.");
+      await openInstallPermission();
+      return;
+    }
+    setState({ phase: "downloading", percent: 0, check: c });
+    const res = await downloadAndInstall(c.release.apkUrl, (percent) =>
+      setState((s) => (s.phase === "downloading" ? { ...s, percent } : s)),
+    );
+    if (res.ok) {
+      toast.success("Download complete — follow the installer to finish.");
+      setState({ phase: "idle" });
+    } else {
+      setState({ phase: "error", message: res.error ?? "Update failed. Try again later." });
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-md border p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold">App updates</h3>
+          <p className="text-xs text-muted-foreground">
+            Check for a newer version of the Android app.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={state.phase === "checking" || state.phase === "downloading"}
+          onClick={() => void check()}
+        >
+          {state.phase === "checking" ? "Checking…" : "Check for updates"}
+        </Button>
+      </div>
+
+      {state.phase === "uptodate" && (
+        <p className="mt-3 text-sm text-muted-foreground">
+          You're up to date — running v{state.current}.
+        </p>
+      )}
+
+      {state.phase === "available" && state.check.release && (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm">
+            <span className="font-medium">v{state.check.release.versionName} available</span>
+            <span className="text-muted-foreground">
+              {" "}
+              — you're on v{state.check.currentVersionName}. {state.check.release.notes}
+            </span>
+          </p>
+          <Button size="sm" onClick={() => void install(state.check)}>
+            Download &amp; install
+          </Button>
+        </div>
+      )}
+
+      {state.phase === "downloading" && (
+        <div className="mt-3 space-y-2">
+          <Progress value={state.percent} />
+          <p className="text-xs text-muted-foreground">Downloading… {state.percent}%</p>
+        </div>
+      )}
+
+      {state.phase === "error" && (
+        <p className="mt-3 text-sm text-muted-foreground">{state.message}</p>
+      )}
+    </div>
+  );
+}
+
 function AboutPanel() {
   return (
     <section className="rounded-lg border p-6">
