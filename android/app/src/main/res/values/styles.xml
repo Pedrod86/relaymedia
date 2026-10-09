@@ -19,4 +19,11 @@
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
     </style>
+    <!-- Media3 player: must be an AppCompat theme because the activity extends
+         AppCompatActivity (a framework theme makes it crash on open). -->
+    <style name="AppTheme.Player" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
 </resources>
