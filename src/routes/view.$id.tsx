@@ -115,7 +115,97 @@ function ViewContent({
           }),
   });
 
+  // TV remote (D-pad) navigation. Browsers never move focus with arrow keys
+  // and TV WebViews only scroll the page, so we drive focus ourselves: between
+  // the header controls (sort menu, Back) and the poster grid below.
+  useEffect(() => {
+    if (!tv) return;
+    const gridCards = () => {
+      const grid = document.querySelector<HTMLElement>("[data-relay-grid]");
+      if (!grid) return [] as HTMLElement[];
+      return Array.from(grid.querySelectorAll<HTMLElement>("a[href]")).filter(
+        (el) => el.offsetParent !== null,
+      );
+    };
+    const headerItems = () => {
+      const header = document.querySelector<HTMLElement>("header");
+      if (!header) return [] as HTMLElement[];
+      const sel = 'a[href], button:not([disabled]), [role="combobox"]';
+      return Array.from(new Set(header.querySelectorAll<HTMLElement>(sel))).filter(
+        (el) => el.offsetParent !== null,
+      );
+    };
 
+    const onKey = (e: KeyboardEvent) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      const ae = document.activeElement as HTMLElement | null;
+      // The open sort menu handles its own keys.
+      if (ae?.closest("[data-radix-popper-content-wrapper], [role='listbox']")) return;
+      const isOnSortMenu =
+        !!ae && ae.getAttribute("role") === "combobox" &&
+        ["ArrowDown", "ArrowUp"].includes(e.key);
+      if (isOnSortMenu) return; // Radix opens/operates the menu itself.
+
+      if (ae?.closest("header")) {
+        const list = headerItems();
+        const i = list.indexOf(ae!);
+        if (e.key === "ArrowRight" && i < list.length - 1) {
+          e.preventDefault();
+          e.stopPropagation();
+          list[i + 1]!.focus({ preventScroll: true });
+        } else if (e.key === "ArrowLeft" && i > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          list[i - 1]!.focus({ preventScroll: true });
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          e.stopPropagation();
+          gridCards()[0]?.focus({ preventScroll: true });
+        }
+        return;
+      }
+
+      const cards = gridCards();
+      if (!cards.length) return;
+      const i = cards.indexOf(ae as HTMLElement);
+      if (i < 0) return; // Focus is elsewhere on the page — leave it alone.
+
+      // Group cards into visual rows by their vertical position.
+      const rows: HTMLElement[][] = [];
+      for (const c of cards) {
+        const top = c.getBoundingClientRect().top;
+        const row = rows.find(
+          (r) => Math.abs(r[0]!.getBoundingClientRect().top - top) < 40,
+        );
+        if (row) row.push(c);
+        else rows.push([c]);
+      }
+      const r = rows.findIndex((row) => row.includes(ae as HTMLElement));
+      const col = rows[r]!.indexOf(ae as HTMLElement);
+      const move = (target: HTMLElement | undefined) => {
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: "nearest" });
+      };
+      if (e.key === "ArrowRight") move(rows[r]![Math.min(col + 1, rows[r]!.length - 1)]);
+      else if (e.key === "ArrowLeft") move(rows[r]![Math.max(col - 1, 0)]);
+      else if (e.key === "ArrowDown") move(rows[Math.min(r + 1, rows.length - 1)]?.[Math.min(col, (rows[Math.min(r + 1, rows.length - 1)] ?? []).length - 1)]);
+      else if (e.key === "ArrowUp") {
+        if (r <= 0) {
+          // Top of the grid: hand focus to the header (sort menu first).
+          e.preventDefault();
+          e.stopPropagation();
+          headerItems()[0]?.focus({ preventScroll: true });
+        } else {
+          move(rows[r - 1]?.[Math.min(col, rows[r - 1]!.length - 1)]);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [tv, viewId]);
 
   return (
     <main className="min-h-screen bg-background">
