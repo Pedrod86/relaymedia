@@ -265,7 +265,10 @@ export async function probeCodecs(): Promise<CodecCap[]> {
   // instead of the browser table there.
   const tvBox = isTvDevice() || isAndroidTvBox() || isAndroidNative();
   if (tvBox) {
-    const forced = new Set(["hevc", "hevc10", "dvhe5", "dvhe8", "ac3", "eac3", "flac", "vorbis", "alac", "pcm", "mp3", "aac"]);
+    // HEVC 10-bit and Dolby Vision are NOT forced: claiming them when the box
+    // can't actually render them makes the server send the original grade,
+    // which shows as a green/purple picture with sound playing underneath.
+    const forced = new Set(["hevc", "ac3", "eac3", "flac", "vorbis", "alac", "pcm", "mp3", "aac"]);
     return list.map((c) => (forced.has(c.name) ? { ...c, supported: true, hardware: true } : c));
   }
 
@@ -440,6 +443,23 @@ export type StreamCheck = {
 
 
 const DIRECT_CONTAINERS = ["mp4", "m4v", "m4a", "mov", "webm", "ogg", "oga", "flac", "wav", "mp3", "aac"];
+
+/**
+ * Dolby Vision with no HDR10/SDR base layer (profile 5, most WEB-DL DV). A
+ * decoder without Dolby Vision support renders it green/purple.
+ */
+export function isDolbyVisionOnly(item: any, version = 0): boolean {
+  const src = item?.MediaSources?.[version] ?? item?.MediaSources?.[0];
+  const v = (src?.MediaStreams ?? item?.MediaStreams ?? []).find((s: any) => s.Type === "Video");
+  if (!v) return false;
+  const raw = String(v.VideoRangeType ?? v.VideoRange ?? "").toUpperCase();
+  const dv = raw.includes("DOVI") || raw.includes("DOLBY") || !!v.DvProfile;
+  if (!dv) return false;
+  if (raw.includes("HDR10") || raw.includes("SDR") || raw.includes("HLG")) return false;
+  const profile = Number(v.DvProfile ?? 0);
+  if (profile === 8 || profile === 7) return Number(v.DvBlSignalCompatibilityId ?? 1) === 0;
+  return true;
+}
 
 function rangeOf(v: any): string {
   const raw = String(v?.VideoRangeType ?? v?.VideoRange ?? "SDR").toUpperCase();
