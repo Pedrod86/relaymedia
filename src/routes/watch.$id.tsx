@@ -927,7 +927,7 @@ function Player({
       subtitleUrl: chosen ? embySubtitleUrl(server, itemId, chosen.mediaSourceId, chosen.index) : undefined,
       subtitleLang: chosen?.lang || "und",
       startPositionMs: Math.floor((videoRef.current?.currentTime ?? 0) * 1000),
-      tunneling: prefs.afr !== "off",
+      tunneling: false,
     });
     if (ok) videoRef.current?.pause();
     else setError("The device player couldn't be opened — staying on the built-in player.");

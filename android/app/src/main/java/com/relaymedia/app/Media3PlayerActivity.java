@@ -57,7 +57,7 @@ public class Media3PlayerActivity extends AppCompatActivity {
             return;
         }
 
-        boolean tunneling = getIntent().getBooleanExtra(EXTRA_TUNNELING, true);
+        boolean tunneling = getIntent().getBooleanExtra(EXTRA_TUNNELING, false);
         long startMs = getIntent().getLongExtra(EXTRA_START_MS, 0L);
 
         DefaultTrackSelector trackSelector = new DefaultTrackSelector(this);
