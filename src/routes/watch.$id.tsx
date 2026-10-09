@@ -5,6 +5,7 @@ import Hls from "hls.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { embySubtitleUrl, streamUrl, type MediaServer } from "@/lib/media-client";
 import { useMediaServers } from "@/lib/use-servers";
+import { deviceStreamToken } from "@/lib/servers.functions";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
@@ -127,6 +128,9 @@ function Player({
   const [isTv, setIsTv] = useState(false);
 
   const [mode, setMode] = useState<"hls" | "direct" | null>(null);
+  // Modes already attempted for this title, so HLS ⇄ direct fallbacks can't
+  // bounce forever (that loop looked like "nothing plays").
+  const triedModes = useRef(new Set<"hls" | "direct">());
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
   // Audio language: null = the server's default track.
@@ -138,6 +142,7 @@ function Player({
   // left completely clean, which is what big-screen viewers expect.
   const [paused, setPaused] = useState(true);
   const getItemEmby = useServerFn(embyGetItem);
+  const getDeviceToken = useServerFn(deviceStreamToken);
 
   const isEmbyFamily = server.kind !== "plex";
 
@@ -416,6 +421,7 @@ function Player({
     // Plex serves the original file in direct mode, which can't switch audio
     // tracks — a chosen track goes through Plex's transcoder instead.
     const effMode = !isEmbyFamily && audioIndex !== null ? "hls" : mode;
+    triedModes.current.add(effMode);
     const src = streamUrl(server, itemId, {
       mode: effMode,
       videoCodec: videoCodecs,
@@ -498,8 +504,12 @@ function Player({
           hlsInstance?.startLoad();
           return;
         }
-        setError(`Playback error: ${data.type} / ${data.details}. Falling back to direct stream…`);
         hlsInstance?.destroy();
+        if (triedModes.current.has("direct")) {
+          setError(`This title couldn't be played by the server (${data.details}). Try the Device player, or another version.`);
+          return;
+        }
+        setError(`Playback error: ${data.type} / ${data.details}. Falling back to direct stream…`);
         setMode("direct");
       });
     } else {
@@ -512,7 +522,7 @@ function Player({
     // stream fails, retry through HLS so the server transcodes instead.
     const onVideoError = () => {
       const code = video.error?.code;
-      if (mode === "direct" && !hlsInstance) {
+      if (mode === "direct" && !hlsInstance && !triedModes.current.has("hls")) {
         setError("This file couldn't play directly on this device — switching to a transcoded stream…");
         setMode("hls");
         return;
@@ -905,7 +915,17 @@ function Player({
 
   async function playNative() {
     const chosen = textSubs.find((s) => s.index === subIndex);
-    const url = streamUrl(server, itemId, {
+    // The device player has no access to the app's sign-in cookie and needs a
+    // full address, so mint a short-lived pass and make every URL absolute.
+    let vt = "";
+    try {
+      vt = (await getDeviceToken({ data: { serverId: server.id } })).token;
+    } catch {
+      setError("Couldn't open the device player — staying on the built-in player.");
+      return;
+    }
+    const abs = (u: string) => `${new URL(u, window.location.origin).toString()}&vt=${encodeURIComponent(vt)}`;
+    const url = abs(streamUrl(server, itemId, {
       mode: "direct",
       session: sessionId,
       maxBitrate: prefs.maxBitrate,
@@ -920,11 +940,11 @@ function Player({
       version,
       container: check?.directContainer ?? "mkv",
       remux: false,
-    });
+    }));
     const ok = await media3Play({
       url,
       title: itemQ.data?.item?.Name ?? "",
-      subtitleUrl: chosen ? embySubtitleUrl(server, itemId, chosen.mediaSourceId, chosen.index) : undefined,
+      subtitleUrl: chosen ? abs(embySubtitleUrl(server, itemId, chosen.mediaSourceId, chosen.index)) : undefined,
       subtitleLang: chosen?.lang || "und",
       startPositionMs: Math.floor((videoRef.current?.currentTime ?? 0) * 1000),
       tunneling: false,
