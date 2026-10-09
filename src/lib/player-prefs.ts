@@ -511,7 +511,9 @@ export function checkItemPlayback(
   const aCap = caps.find((c) => c.track === "audio" && c.name === audioCodec);
 
   const notes: string[] = [];
-  const videoSupported = !!vCap?.supported;
+  // DV with no HDR10 base layer can only be shown by a real Dolby Vision decoder.
+  const dvOnlyUnsupported = isDolbyVision && !dvCap && isDolbyVisionOnly(item);
+  const videoSupported = !!vCap?.supported && !dvOnlyUnsupported;
   const videoHardware = !!vCap?.hardware;
   // AC3 / E-AC3 (Dolby Digital / Digital Plus) are decoded — or bitstreamed to
   // the receiver — by the Android media stack, so no re-encode is needed.
@@ -524,7 +526,7 @@ export function checkItemPlayback(
     passthroughWanted &&
     videoSupported &&
     (isDolbyVision
-      ? hdrSupport.dolbyVision || env.androidNative || prefs.hdr === "passthrough"
+      ? !!dvCap || (!isDolbyVisionOnly(item) && (hdrSupport.hdr10 || env.androidNative || prefs.hdr === "passthrough"))
       : hdrSupport.hdr10 || hdrSupport.hlg || env.hdr10 || prefs.hdr === "passthrough");
   const toneMapping = isHdr && !canPassHdr;
 
