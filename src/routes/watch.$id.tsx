@@ -9,6 +9,7 @@ import { deviceStreamToken } from "@/lib/servers.functions";
 import { embyGetItem, embyGetItems } from "@/lib/emby.functions";
 import { plexGetItem } from "@/lib/plex.functions";
 import { PlaybackDetails } from "@/components/PlaybackDetails";
+import { PlaybackDiagnostics, probeStream, type DiagEntry } from "@/components/PlaybackDiagnostics";
 import { useAudioFx } from "@/lib/use-audio-fx";
 import {
   allowedCodecs,
@@ -131,7 +132,18 @@ function Player({
   // Modes already attempted for this title, so HLS ⇄ direct fallbacks can't
   // bounce forever (that loop looked like "nothing plays").
   const triedModes = useRef(new Set<"hls" | "direct">());
-  useEffect(() => { triedModes.current = new Set(); }, [itemId]);
+  const [diag, setDiag] = useState<DiagEntry[]>([]);
+  const [attempts, setAttempts] = useState<string[]>([]);
+  const [activePlayer, setActivePlayer] = useState("—");
+  const [showDiag, setShowDiag] = useState(false);
+  const logDiag = useCallback((level: DiagEntry["level"], text: string) => {
+    setDiag((d) => [...d.slice(-80), { at: Date.now(), level, text }]);
+  }, []);
+  useEffect(() => {
+    triedModes.current = new Set();
+    setDiag([]);
+    setAttempts([]);
+  }, [itemId]);
   const [error, setError] = useState<string | null>(null);
   const [subIndex, setSubIndex] = useState<number | null>(null); // null = off
   // Audio language: null = the server's default track.
@@ -452,6 +464,14 @@ function Player({
     const nativeHls =
       !Hls.isSupported() && video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
+    const playerName = effMode === "direct" || nativeHls ? "Built-in video player" : "Built-in player (hls.js)";
+    setActivePlayer(playerName);
+    setAttempts((a) => [...a, effMode === "direct" ? (check?.remux ? "direct (remux)" : "direct") : "hls"]);
+    logDiag("info", `Trying ${effMode}${effMode === "direct" && check?.remux ? " (remux)" : ""} with ${playerName}`);
+    const reportFailure = (what: string) => {
+      void probeStream(src).then((r) => logDiag("error", `${what} — server said: ${r}`));
+    };
+
     if (effMode === "direct" || nativeHls) {
       // Native playback: let the browser's own range-based buffering run — it
       // maps directly onto the hardware decoder's demand.
@@ -506,6 +526,7 @@ function Player({
           return;
         }
         hlsInstance?.destroy();
+        reportFailure(`HLS failed: ${data.type} / ${data.details}`);
         if (triedModes.current.has("direct")) {
           setError(`This title couldn't be played by the server (${data.details}). Try the Device player, or another version.`);
           return;
@@ -523,6 +544,8 @@ function Player({
     // stream fails, retry through HLS so the server transcodes instead.
     const onVideoError = () => {
       const code = video.error?.code;
+      const codeName = ["", "aborted", "network", "decode", "format/source not supported"][code ?? 0] ?? "";
+      reportFailure(`Video element error ${code ?? "?"}${codeName ? ` (${codeName})` : ""}${video.error?.message ? `: ${video.error.message}` : ""}`);
       if (mode === "direct" && !hlsInstance && !triedModes.current.has("hls")) {
         setError("This file couldn't play directly on this device — switching to a transcoded stream…");
         setMode("hls");
@@ -923,6 +946,7 @@ function Player({
       vt = (await getDeviceToken({ data: { serverId: server.id } })).token;
     } catch {
       setError("Couldn't open the device player — staying on the built-in player.");
+      logDiag("error", "Couldn't get a device-player pass from the app (server session may have expired)");
       return;
     }
     const abs = (u: string) => `${new URL(u, window.location.origin).toString()}&vt=${encodeURIComponent(vt)}`;
@@ -950,8 +974,12 @@ function Player({
       startPositionMs: Math.floor((videoRef.current?.currentTime ?? 0) * 1000),
       tunneling: false,
     });
-    if (ok) videoRef.current?.pause();
-    else setError("The device player couldn't be opened — staying on the built-in player.");
+    if (ok) {
+      setActivePlayer("Device player (Media3 / ExoPlayer)");
+      setAttempts((a) => [...a, "device player"]);
+      logDiag("info", "Handed playback to the device player (Media3)");
+      videoRef.current?.pause();
+    } else logDiag("error", "Device player couldn't be opened"), setError("The device player couldn't be opened — staying on the built-in player.");
   }
 
   useEffect(() => {
@@ -1052,6 +1080,12 @@ function Player({
             </label>
           )}
           <button
+            onClick={() => setShowDiag((v) => !v)}
+            className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
+          >
+            🩺 Diagnostics
+          </button>
+          <button
             onClick={() => setShowDetails((v) => !v)}
             className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
           >
@@ -1144,6 +1178,20 @@ function Player({
             hdrParam={hdrParam}
             videoCodecs={videoCodecs}
             audioCodecs={audioCodecs}
+          />
+        </div>
+      )}
+
+      {showDiag && (
+        <div data-player-panel className="absolute top-16 left-0 right-0 z-30 mx-6">
+          <PlaybackDiagnostics
+            player={activePlayer}
+            serverKind={server.kind}
+            serverHost={(() => { try { return new URL(server.serverUrl).host; } catch { return server.serverUrl; } })()}
+            streamHost={`${typeof window !== "undefined" ? window.location.host : ""} (app relay) → ${(() => { try { return new URL(server.serverUrl).host; } catch { return "server"; } })()}`}
+            mode={mode}
+            attempts={attempts}
+            entries={diag}
           />
         </div>
       )}
