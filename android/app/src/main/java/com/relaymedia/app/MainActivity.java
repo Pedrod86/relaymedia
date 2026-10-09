@@ -11,6 +11,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(Media3PlayerPlugin.class);
         // In-app APK update checker / installer.
         registerPlugin(AppUpdaterPlugin.class);
+        // Built-in WireGuard VPN.
+        registerPlugin(WireGuardPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
