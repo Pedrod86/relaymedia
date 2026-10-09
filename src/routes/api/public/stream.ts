@@ -387,7 +387,7 @@ async function handle(request: Request) {
     // The server rejected our full transcode profile: retry once with a plain
     // H.264/AAC HLS request that every Emby/Jellyfin build accepts, instead of
     // letting hls.js loop on a 400 (the "flashing on/off" symptom).
-    if (embyBuild && q.mode === "hls" && (upstream.status === 400 || upstream.status === 500)) {
+    if (embyBuild && q.mode === "hls" && !upstream.ok && upstream.status !== 401) {
       try { await upstream.body?.cancel(); } catch { /* ignore */ }
       const retryUrl = resolve(embyBuild(true));
       const retry = await doFetch(retryUrl.toString());
