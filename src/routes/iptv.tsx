@@ -4,9 +4,25 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CalendarClock, Radio, RefreshCw, Search, Trash2, Tv, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarClock,
+  Eye,
+  EyeOff,
+  History,
+  ListOrdered,
+  Radio,
+  RefreshCw,
+  Search,
+  Star,
+  Trash2,
+  Tv,
+  X,
+} from "lucide-react";
 
 import { iptvChannels, iptvGuide, listIptvServers, removeIptvServer } from "@/lib/iptv.functions";
+import { orderGroups, useIptvPrefs } from "@/lib/iptv-prefs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ServerIcon } from "@/components/ServerIcon";
@@ -113,15 +129,39 @@ function IptvPage() {
   });
 
   const epg = guide.data?.guide ?? {};
-  const groups = channels.data?.groups ?? [];
+  const { prefs, toggleFav, markWatched, clearRecent, toggleHidden, setOrder, resetOrganise } =
+    useIptvPrefs(activeId);
+  const [organising, setOrganising] = useState(false);
+  const allGroups = useMemo(
+    () => orderGroups(channels.data?.groups ?? [], prefs.order),
+    [channels.data, prefs.order],
+  );
+  const groups = allGroups.filter((g) => !prefs.hidden.includes(g));
+  const byId = useMemo(
+    () => new Map((channels.data?.channels ?? []).map((c) => [c.id, c])),
+    [channels.data],
+  );
+  const recentChannels = prefs.recent.map((id) => byId.get(id)).filter(Boolean) as Channel[];
   const visible = useMemo(() => {
     const all = channels.data?.channels ?? [];
     const q = search.trim().toLowerCase();
-    return all
-      .filter((c) => (group === "All" ? true : c.group === group))
-      .filter((c) => (q ? c.name.toLowerCase().includes(q) : true))
-      .slice(0, 600);
-  }, [channels.data, group, search]);
+    let base: Channel[];
+    if (group === "Favourites") base = prefs.favs.map((id) => byId.get(id)).filter(Boolean) as Channel[];
+    else if (group === "Recent") base = recentChannels;
+    else if (group === "All") {
+      const rank = new Map(allGroups.map((g, i) => [g, i]));
+      base = all
+        .filter((c) => !prefs.hidden.includes(c.group))
+        .sort((a, b) => (rank.get(a.group) ?? 0) - (rank.get(b.group) ?? 0));
+    } else base = all.filter((c) => c.group === group);
+    return base.filter((c) => (q ? c.name.toLowerCase().includes(q) : true)).slice(0, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels.data, group, search, prefs, allGroups, byId]);
+
+  const watch = (c: Channel) => {
+    markWatched(c.id);
+    setPlaying(c);
+  };
 
   // TV remote: move focus to the nearest button in the pressed direction, so
   // the category chips and every channel in the grid are reachable.
@@ -302,19 +342,64 @@ function IptvPage() {
                   </Button>
                 </div>
 
+                {recentChannels.length > 0 && group !== "Recent" && !search && (
+                  <section className="mb-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <h2 className="text-sm font-semibold">Recently watched</h2>
+                      <button
+                        type="button"
+                        onClick={clearRecent}
+                        className="ms-auto text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {recentChannels.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => watch(c)}
+                          className="flex w-28 shrink-0 flex-col items-center gap-1 rounded-xl border bg-card/60 p-2 text-center hover:border-primary"
+                        >
+                          {c.logo ? (
+                            <img src={c.logo} alt="" loading="lazy" className="h-12 w-12 rounded object-contain" />
+                          ) : (
+                            <span className="flex h-12 w-12 items-center justify-center rounded bg-muted">
+                              <Tv className="h-5 w-5 text-muted-foreground" />
+                            </span>
+                          )}
+                          <span className="line-clamp-2 text-[11px]">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
-                  {["All", ...groups].map((g) => (
+                  <button
+                    type="button"
+                    onClick={() => setOrganising(true)}
+                    className="flex items-center gap-1 whitespace-nowrap rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ListOrdered className="h-3.5 w-3.5" /> Organise
+                  </button>
+                  {["All", "Favourites", "Recent", ...groups].map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => setGroup(g)}
-                      className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs ${
+                      className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1 text-xs ${
                         group === g
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border text-muted-foreground hover:text-foreground"
                       }`}
                     >
+                      {g === "Favourites" && <Star className="h-3 w-3" />}
+                      {g === "Recent" && <History className="h-3 w-3" />}
                       {g}
+                      {g === "Favourites" && prefs.favs.length > 0 && ` (${prefs.favs.length})`}
                     </button>
                   ))}
                 </div>
@@ -337,7 +422,7 @@ function IptvPage() {
                         <div className="flex items-start gap-3">
                           <button
                             type="button"
-                            onClick={() => setPlaying(c)}
+                            onClick={() => watch(c)}
                             className="shrink-0 focus:outline-none"
                             aria-label={`Play ${c.name}`}
                           >
@@ -357,7 +442,7 @@ function IptvPage() {
                           <div className="min-w-0 flex-1 text-left">
                             <button
                               type="button"
-                              onClick={() => setPlaying(c)}
+                              onClick={() => watch(c)}
                               className="line-clamp-1 text-sm font-medium hover:text-primary focus:outline-none"
                             >
                               {c.name}
@@ -394,6 +479,16 @@ function IptvPage() {
                               </button>
                             )}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleFav(c.id)}
+                            aria-label={prefs.favs.includes(c.id) ? `Unfavourite ${c.name}` : `Favourite ${c.name}`}
+                            className="shrink-0 rounded p-1.5"
+                          >
+                            <Star
+                              className={`h-4 w-4 ${prefs.favs.includes(c.id) ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                            />
+                          </button>
                         </div>
                       </li>
                     );
@@ -415,10 +510,71 @@ function IptvPage() {
           now={now}
           onClose={() => setGuideFor(null)}
           onPlay={() => {
-            setPlaying(guideFor);
+            watch(guideFor);
             setGuideFor(null);
           }}
         />
+      )}
+
+      {organising && (
+        <div className="fixed inset-0 z-40 flex items-end bg-black/70 sm:items-center sm:justify-center">
+          <div className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border bg-card p-4 sm:max-w-lg sm:rounded-2xl">
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-base font-semibold">Organise categories</h2>
+              <Button size="sm" variant="ghost" className="ms-auto" onClick={resetOrganise}>
+                Reset
+              </Button>
+              <button
+                type="button"
+                onClick={() => setOrganising(false)}
+                aria-label="Close"
+                className="p-2"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Move categories up or down, or hide the ones you don't want to see.
+            </p>
+            <ul className="space-y-1.5">
+              {allGroups.map((g, i) => {
+                const hidden = prefs.hidden.includes(g);
+                const move = (dir: -1 | 1) => {
+                  const next = [...allGroups];
+                  const j = i + dir;
+                  if (j < 0 || j >= next.length) return;
+                  [next[i], next[j]] = [next[j]!, next[i]!];
+                  setOrder(next);
+                };
+                return (
+                  <li
+                    key={g}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${hidden ? "opacity-50" : ""}`}
+                  >
+                    <span className="flex-1 truncate text-sm">{g}</span>
+                    <button type="button" aria-label={`Move ${g} up`} disabled={i === 0} onClick={() => move(-1)} className="rounded p-1.5 disabled:opacity-30">
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button type="button" aria-label={`Move ${g} down`} disabled={i === allGroups.length - 1} onClick={() => move(1)} className="rounded p-1.5 disabled:opacity-30">
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={hidden ? `Show ${g}` : `Hide ${g}`}
+                      onClick={() => {
+                        toggleHidden(g);
+                        if (!hidden && group === g) setGroup("All");
+                      }}
+                      className="rounded p-1.5"
+                    >
+                      {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
       )}
 
       {playing && (
