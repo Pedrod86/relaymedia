@@ -19,6 +19,7 @@ import {
 } from "@/lib/media-client";
 import { MediaImage } from "@/components/MediaImage";
 import { TorboxRow } from "@/components/TorboxRow";
+import { HomeCollections } from "@/components/CollectionsPanel";
 import { useMediaServers } from "@/lib/use-servers";
 import { isTvDevice } from "@/lib/platform";
 import { ServerSwitcher } from "@/components/ServerSwitcher";
@@ -685,6 +686,7 @@ function LibraryContent({
         )}
 
         {!profile.kids && <TorboxRow />}
+        {!profile.kids && <HomeCollections />}
 
 
         {sections.map((s) =>
@@ -905,6 +907,8 @@ function TVLayout({
           <div className="mb-8">
             {!profile.kids && <TorboxRow tv />}
           </div>
+
+          {!profile.kids && <div className="mb-8"><HomeCollections /></div>}
 
           {sections.map((s) =>
             !s.library ? (

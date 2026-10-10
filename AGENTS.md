@@ -8,3 +8,4 @@
 - The built-in VPN is WireGuard via the native RelayVpn plugin; the config lives only in the APK's private SharedPreferences, never in web storage or our backend, because it holds a private key.
 - Use one shared query-backed WireGuard status hook for home and Settings; query exit country directly from the device and keep only the country in memory, because a server-side lookup would locate Relay’s server instead of the VPN exit.
 - Resolve RelayVpn through a dynamically imported Capacitor registerPlugin proxy after checking native availability; Java plugin registration need not populate the legacy window.Capacitor.Plugins map.
+- Home and Settings share account-scoped collection queries and the same collection detail view; hide home collections in kids profiles because imported titles have no verified age ratings.

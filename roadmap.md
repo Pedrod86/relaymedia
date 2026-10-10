@@ -1,4 +1,6 @@
 # Tasks
+- [x] Show account collections on desktop and TV home screens while retaining Settings management.
+- [x] Verify compilation and public navigation; account collections require a connected server for live home-screen testing.
 - [x] Correct Android VPN detection and verify config saving through a simulated native plugin header; physical-device testing remains unavailable.
 - [x] Add shared WireGuard status, errors and exit-country lookup.
 - [x] Show a home-screen indicator and connection details in Settings.
