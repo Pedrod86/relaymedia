@@ -4,9 +4,25 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CalendarClock, Radio, RefreshCw, Search, Trash2, Tv, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarClock,
+  Eye,
+  EyeOff,
+  History,
+  ListOrdered,
+  Radio,
+  RefreshCw,
+  Search,
+  Star,
+  Trash2,
+  Tv,
+  X,
+} from "lucide-react";
 
 import { iptvChannels, iptvGuide, listIptvServers, removeIptvServer } from "@/lib/iptv.functions";
+import { orderGroups, useIptvPrefs } from "@/lib/iptv-prefs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ServerIcon } from "@/components/ServerIcon";
@@ -113,15 +129,39 @@ function IptvPage() {
   });
 
   const epg = guide.data?.guide ?? {};
-  const groups = channels.data?.groups ?? [];
+  const { prefs, toggleFav, markWatched, clearRecent, toggleHidden, setOrder, resetOrganise } =
+    useIptvPrefs(activeId);
+  const [organising, setOrganising] = useState(false);
+  const allGroups = useMemo(
+    () => orderGroups(channels.data?.groups ?? [], prefs.order),
+    [channels.data, prefs.order],
+  );
+  const groups = allGroups.filter((g) => !prefs.hidden.includes(g));
+  const byId = useMemo(
+    () => new Map((channels.data?.channels ?? []).map((c) => [c.id, c])),
+    [channels.data],
+  );
+  const recentChannels = prefs.recent.map((id) => byId.get(id)).filter(Boolean) as Channel[];
   const visible = useMemo(() => {
     const all = channels.data?.channels ?? [];
     const q = search.trim().toLowerCase();
-    return all
-      .filter((c) => (group === "All" ? true : c.group === group))
-      .filter((c) => (q ? c.name.toLowerCase().includes(q) : true))
-      .slice(0, 600);
-  }, [channels.data, group, search]);
+    let base: Channel[];
+    if (group === "Favourites") base = prefs.favs.map((id) => byId.get(id)).filter(Boolean) as Channel[];
+    else if (group === "Recent") base = recentChannels;
+    else if (group === "All") {
+      const rank = new Map(allGroups.map((g, i) => [g, i]));
+      base = all
+        .filter((c) => !prefs.hidden.includes(c.group))
+        .sort((a, b) => (rank.get(a.group) ?? 0) - (rank.get(b.group) ?? 0));
+    } else base = all.filter((c) => c.group === group);
+    return base.filter((c) => (q ? c.name.toLowerCase().includes(q) : true)).slice(0, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels.data, group, search, prefs, allGroups, byId]);
+
+  const watch = (c: Channel) => {
+    markWatched(c.id);
+    setPlaying(c);
+  };
 
   // TV remote: move focus to the nearest button in the pressed direction, so
   // the category chips and every channel in the grid are reachable.
