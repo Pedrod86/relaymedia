@@ -133,6 +133,10 @@ function Player({
   // Modes already attempted for this title, so HLS ⇄ direct fallbacks can't
   // bounce forever (that loop looked like "nothing plays").
   const triedModes = useRef(new Set<"hls" | "direct">());
+  // Set when a direct stream failed with a media error: the HLS fallback must
+  // force a real transcode (H.264 + AAC stereo). Otherwise the server
+  // stream-copies the same undecodable codec into HLS and it fails identically.
+  const forceTranscode = useRef(false);
   const [diag, setDiag] = useState<DiagEntry[]>([]);
   const [attempts, setAttempts] = useState<string[]>([]);
   const [activePlayer, setActivePlayer] = useState("—");
@@ -142,6 +146,7 @@ function Player({
   }, []);
   useEffect(() => {
     triedModes.current = new Set();
+    forceTranscode.current = false;
     setDiag([]);
     setAttempts([]);
   }, [itemId]);
