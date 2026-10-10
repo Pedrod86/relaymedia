@@ -18,11 +18,22 @@ export async function vpnPlugin(): Promise<VpnPlugin | null> {
   const { Capacitor, registerPlugin } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) return null;
   const legacy = (Capacitor as unknown as { Plugins?: Record<string, unknown> }).Plugins?.["RelayVpn"] as VpnPlugin | undefined;
-  if (legacy) return legacy;
+  if (legacy && registeredVpn) return registeredVpn;
   if (!Capacitor.isPluginAvailable("RelayVpn")) {
     throw new Error("This Android app cannot access the built-in VPN. Install Relay Media 1.7 or newer, then close and reopen the app. If already updated, reopen it and try again.");
   }
-  registeredVpn ??= registerPlugin<VpnPlugin>("RelayVpn");
+  if (!registeredVpn) {
+    const native = legacy ?? registerPlugin<VpnPlugin>("RelayVpn");
+    // Capacitor proxies synthesize every property, including `then`.
+    // Return a plain adapter so Promise resolution cannot call RelayVpn.then.
+    registeredVpn = {
+      getStatus: () => native.getStatus(),
+      saveConfig: (options) => native.saveConfig(options),
+      clearConfig: () => native.clearConfig(),
+      connect: () => native.connect(),
+      disconnect: () => native.disconnect(),
+    };
+  }
   return registeredVpn;
 }
 
