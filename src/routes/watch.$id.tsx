@@ -453,7 +453,7 @@ function Player({
       audioChannels: safe ? 2 : prefs.audioPassthrough ? prefs.audioChannels : 2,
       version,
       session: sessionId,
-      hdr: hdrParam,
+      hdr: safe ? "tonemap" : hdrParam,
       maxHeight: prefs.maxHeight,
       // AFR: keep the transcode at the source cadence instead of 30/60 fps.
       maxFps: prefs.afr !== "off" ? sourceFps : undefined,
@@ -554,8 +554,19 @@ function Player({
       const codeName = ["", "aborted", "network", "decode", "format/source not supported"][code ?? 0] ?? "";
       reportFailure(`Video element error ${code ?? "?"}${codeName ? ` (${codeName})` : ""}${video.error?.message ? `: ${video.error.message}` : ""}`);
       if (mode === "direct" && !hlsInstance && !triedModes.current.has("hls")) {
-        setError("This file couldn't play directly on this device — switching to a transcoded stream…");
+        // Force a real transcode for the retry — a stream-copied HLS of the
+        // same codec would just fail with the same error.
+        forceTranscode.current = true;
+        setError("This file couldn't play directly on this device — switching to a converted stream…");
         setMode("hls");
+        return;
+      }
+      // Both web paths failed: on Android, hand off to the device player,
+      // whose own decoders handle HEVC/E-AC3 the WebView cannot.
+      if (nativePlayer && !handedOff.current) {
+        logDiag("warn", "Built-in player failed in both modes — handing off to the device player");
+        handedOff.current = true;
+        void playNative();
         return;
       }
       setError(`Playback failed on this device${code ? ` (media error ${code})` : ""}.`);
