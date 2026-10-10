@@ -29,6 +29,8 @@ import { SetupSyncPanel } from "@/components/SetupSyncPanel";
 import { TraktPanel } from "@/components/TraktPanel";
 import { SimklPanel } from "@/components/SimklPanel";
 import { RequestsPanel } from "@/components/RequestsPanel";
+import { CollectionsPanel } from "@/components/CollectionsPanel";
+import { Layers } from "lucide-react";
 import { LATEST_ANDROID_RELEASE } from "@/lib/app-release";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -187,6 +189,14 @@ function SettingsPage() {
           librariesPanel={<ActiveServerPanel server={active} only="categories" />}
         />
       ),
+    },
+    {
+      id: "collections",
+      title: "Collections",
+      desc: "Your own lists, plus MDBList, TMDB, TVDB & Trakt imports",
+      icon: Layers,
+      keywords: "collections lists mdblist tmdb tvdb trakt import sync watchlist",
+      render: () => <CollectionsPanel />,
     },
     {
       id: "playback",
