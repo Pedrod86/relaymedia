@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      collections: {
+        Row: {
+          auto_sync: boolean
+          created_at: string
+          description: string
+          id: string
+          items: Json
+          name: string
+          source: string
+          source_url: string | null
+          synced_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_sync?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          items?: Json
+          name: string
+          source?: string
+          source_url?: string | null
+          synced_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_sync?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          items?: Json
+          name?: string
+          source?: string
+          source_url?: string | null
+          synced_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           created_at: string
