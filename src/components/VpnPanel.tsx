@@ -16,10 +16,10 @@ export function VpnPanel() {
   }, [status?.appOnly]);
 
   async function run(fn: (p: VpnPlugin) => Promise<VpnStatus>, ok?: string) {
-    const p = vpnPlugin();
-    if (!p) return false;
     setBusy(true);
     try {
+      const p = await vpnPlugin();
+      if (!p) throw new Error("The browser cannot save a VPN config. Open Relay Media’s installed Android app, version 1.7 or newer.");
       updateStatus(await fn(p));
       if (ok) toast.success(ok);
       return true;
@@ -106,10 +106,6 @@ export function VpnPanel() {
               variant="secondary"
               disabled={busy || !config.trim()}
               onClick={() => {
-                if (!status) {
-                  toast.error("The VPN connects inside the Android app (1.7+). Paste the config there on your phone or TV box.");
-                  return;
-                }
                 void run((p) => p.saveConfig({ config, appOnly }), "VPN config saved").then((saved) => { if (saved) setConfig(""); });
               }}
             >

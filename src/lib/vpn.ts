@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { isNativeApp } from "@/lib/platform";
 
 export type VpnStatus = { available: boolean; connected: boolean; hasConfig: boolean; appOnly: boolean; error?: string };
 export type VpnPlugin = {
@@ -10,10 +9,32 @@ export type VpnPlugin = {
   disconnect: () => Promise<VpnStatus>;
 };
 
-export function vpnPlugin(): VpnPlugin | null {
-  if (typeof window === "undefined" || !isNativeApp()) return null;
-  const w = window as unknown as { Capacitor?: { Plugins?: Record<string, unknown> } };
-  return (w.Capacitor?.Plugins?.["RelayVpn"] as VpnPlugin | undefined) ?? null;
+let registeredVpn: VpnPlugin | undefined;
+
+export async function vpnPlugin(): Promise<VpnPlugin | null> {
+  if (typeof window === "undefined") return null;
+  // Native Java registration exposes a plugin header, not necessarily a
+  // window.Capacitor.Plugins entry. Register the JS proxy before calling it.
+  const { Capacitor, registerPlugin } = await import("@capacitor/core");
+  if (!Capacitor.isNativePlatform()) return null;
+  const legacy = (Capacitor as unknown as { Plugins?: Record<string, unknown> }).Plugins?.["RelayVpn"] as VpnPlugin | undefined;
+  if (legacy && registeredVpn) return registeredVpn;
+  if (!legacy && !Capacitor.isPluginAvailable("RelayVpn")) {
+    throw new Error("This Android app cannot access the built-in VPN. Install Relay Media 1.7 or newer, then close and reopen the app. If already updated, reopen it and try again.");
+  }
+  if (!registeredVpn) {
+    const native = legacy ?? registerPlugin<VpnPlugin>("RelayVpn");
+    // Capacitor proxies synthesize every property, including `then`.
+    // Return a plain adapter so Promise resolution cannot call RelayVpn.then.
+    registeredVpn = {
+      getStatus: () => native.getStatus(),
+      saveConfig: (options) => native.saveConfig(options),
+      clearConfig: () => native.clearConfig(),
+      connect: () => native.connect(),
+      disconnect: () => native.disconnect(),
+    };
+  }
+  return registeredVpn;
 }
 
 export function vpnErrorMessage(error: unknown): string {
@@ -37,7 +58,7 @@ export function useVpnStatus() {
   const state = useQuery({
     queryKey: statusKey,
     queryFn: async () => {
-      const plugin = vpnPlugin();
+      const plugin = await vpnPlugin();
       return plugin ? plugin.getStatus() : null;
     },
     refetchInterval: 5_000,
@@ -69,7 +90,7 @@ export function useVpnStatus() {
     status: state.data ?? null,
     ready: !state.isPending,
     connected,
-    statusError: state.error ? "Couldn’t read WireGuard status. Try refreshing or reopen the Android app." : "",
+    statusError: state.error ? vpnErrorMessage(state.error) : "",
     error: actionError.data || (state.data?.error ? vpnErrorMessage(new Error(state.data.error)) : ""),
     country: connected && !country.isFetching && !country.error ? country.data : undefined,
     countryError: connected && country.error ? "Country lookup unavailable. Check your VPN’s internet connection; the tunnel may still be connected." : "",
