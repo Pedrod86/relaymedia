@@ -441,15 +441,16 @@ function Player({
     // tracks — a chosen track goes through Plex's transcoder instead.
     const effMode = !isEmbyFamily && audioIndex !== null ? "hls" : mode;
     triedModes.current.add(effMode);
+    const safe = forceTranscode.current && effMode === "hls";
     const src = streamUrl(server, itemId, {
       mode: effMode,
-      videoCodec: videoCodecs,
-      audioCodec: audioCodecs,
+      videoCodec: safe ? ["h264"] : videoCodecs,
+      audioCodec: safe ? ["aac", "mp3"] : audioCodecs,
       maxBitrate: prefs.maxBitrate,
       audioIndex: audioIndex ?? undefined,
       // Multichannel tracks often decode silently in the built-in player, so
       // only ask for 5.1/7.1 when passthrough to a receiver is switched on.
-      audioChannels: prefs.audioPassthrough ? prefs.audioChannels : 2,
+      audioChannels: safe ? 2 : prefs.audioPassthrough ? prefs.audioChannels : 2,
       version,
       session: sessionId,
       hdr: hdrParam,
