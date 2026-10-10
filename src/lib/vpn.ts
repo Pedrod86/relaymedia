@@ -19,7 +19,7 @@ export async function vpnPlugin(): Promise<VpnPlugin | null> {
   if (!Capacitor.isNativePlatform()) return null;
   const legacy = (Capacitor as unknown as { Plugins?: Record<string, unknown> }).Plugins?.["RelayVpn"] as VpnPlugin | undefined;
   if (legacy && registeredVpn) return registeredVpn;
-  if (!Capacitor.isPluginAvailable("RelayVpn")) {
+  if (!legacy && !Capacitor.isPluginAvailable("RelayVpn")) {
     throw new Error("This Android app cannot access the built-in VPN. Install Relay Media 1.7 or newer, then close and reopen the app. If already updated, reopen it and try again.");
   }
   if (!registeredVpn) {
