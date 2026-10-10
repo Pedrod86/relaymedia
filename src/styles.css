@@ -42,6 +42,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-vpn-connected: var(--vpn-connected);
+  --color-vpn-disconnected: var(--vpn-disconnected);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -62,6 +64,8 @@
 }
 
 :root {
+  --vpn-connected: oklch(0.74 0.2 145);
+  --vpn-disconnected: oklch(0.66 0.23 25);
   --radius: 0.875rem;
   /* Dark cinematic theme by default — better for video */
   --background: oklch(0.16 0.02 270);
