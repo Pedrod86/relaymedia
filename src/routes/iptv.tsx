@@ -342,19 +342,64 @@ function IptvPage() {
                   </Button>
                 </div>
 
+                {recentChannels.length > 0 && group !== "Recent" && !search && (
+                  <section className="mb-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <h2 className="text-sm font-semibold">Recently watched</h2>
+                      <button
+                        type="button"
+                        onClick={clearRecent}
+                        className="ms-auto text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {recentChannels.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => watch(c)}
+                          className="flex w-28 shrink-0 flex-col items-center gap-1 rounded-xl border bg-card/60 p-2 text-center hover:border-primary"
+                        >
+                          {c.logo ? (
+                            <img src={c.logo} alt="" loading="lazy" className="h-12 w-12 rounded object-contain" />
+                          ) : (
+                            <span className="flex h-12 w-12 items-center justify-center rounded bg-muted">
+                              <Tv className="h-5 w-5 text-muted-foreground" />
+                            </span>
+                          )}
+                          <span className="line-clamp-2 text-[11px]">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
-                  {["All", ...groups].map((g) => (
+                  <button
+                    type="button"
+                    onClick={() => setOrganising(true)}
+                    className="flex items-center gap-1 whitespace-nowrap rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ListOrdered className="h-3.5 w-3.5" /> Organise
+                  </button>
+                  {["All", "Favourites", "Recent", ...groups].map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => setGroup(g)}
-                      className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs ${
+                      className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1 text-xs ${
                         group === g
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border text-muted-foreground hover:text-foreground"
                       }`}
                     >
+                      {g === "Favourites" && <Star className="h-3 w-3" />}
+                      {g === "Recent" && <History className="h-3 w-3" />}
                       {g}
+                      {g === "Favourites" && prefs.favs.length > 0 && ` (${prefs.favs.length})`}
                     </button>
                   ))}
                 </div>
@@ -377,7 +422,7 @@ function IptvPage() {
                         <div className="flex items-start gap-3">
                           <button
                             type="button"
-                            onClick={() => setPlaying(c)}
+                            onClick={() => watch(c)}
                             className="shrink-0 focus:outline-none"
                             aria-label={`Play ${c.name}`}
                           >
@@ -397,7 +442,7 @@ function IptvPage() {
                           <div className="min-w-0 flex-1 text-left">
                             <button
                               type="button"
-                              onClick={() => setPlaying(c)}
+                              onClick={() => watch(c)}
                               className="line-clamp-1 text-sm font-medium hover:text-primary focus:outline-none"
                             >
                               {c.name}
