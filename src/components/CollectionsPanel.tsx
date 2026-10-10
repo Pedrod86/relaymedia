@@ -54,13 +54,75 @@ export function CollectionsPanel() {
   return <CollectionsInner />;
 }
 
+export function HomeCollections() {
+  const { user, isLoading } = useAuth();
+  if (isLoading || !user) return null;
+  return <HomeCollectionsInner userId={user.id} />;
+}
+
+function HomeCollectionsInner({ userId }: { userId: string }) {
+  const list = useServerFn(listCollections);
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["collections", userId], queryFn: () => list() });
+  const [openId, setOpenId] = useState<string | null>(null);
+  const collections = q.data?.collections ?? [];
+  const open = collections.find((c) => c.id === openId);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["collections"] });
+
+  return (
+    <section data-section-id="my-collections" aria-label="My collections" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">My collections</h2>
+        <Button asChild variant="ghost" size="sm" data-tv-card className="tv-card shrink-0">
+          <Link to="/settings" search={{ section: "collections" }}>Manage collections</Link>
+        </Button>
+      </div>
+      {q.isLoading && <p className="text-sm text-muted-foreground">Loading collections…</p>}
+      {q.isError && (
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-destructive">Couldn't load your collections.</p>
+          <Button variant="outline" size="sm" data-tv-card onClick={() => q.refetch()}>Try again</Button>
+        </div>
+      )}
+      {open ? (
+        <CollectionView key={open.id} collection={open} onBack={() => setOpenId(null)} onChanged={refresh} />
+      ) : (
+        <>
+          {!q.isLoading && !q.isError && !collections.length && <p className="text-sm text-muted-foreground">No collections yet.</p>}
+          <div className="flex gap-4 overflow-x-auto pb-3">
+            {collections.map((c) => (
+              <Button
+                key={c.id}
+                variant="outline"
+                data-tv-card
+                onClick={() => setOpenId(c.id)}
+                className="tv-card h-auto w-56 shrink-0 flex-col items-stretch gap-3 overflow-hidden rounded-lg p-3 text-left focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex h-32 gap-1 overflow-hidden rounded-md bg-muted">
+                  {c.items.slice(0, 3).map((it) => it.poster ? (
+                    <img key={it.key} src={it.poster} alt={it.title} loading="lazy" className="h-full min-w-0 flex-1 object-cover" />
+                  ) : <span key={it.key} className="grid min-w-0 flex-1 place-items-center"><Film className="size-6 text-muted-foreground" /></span>)}
+                  {!c.items.length && <span className="grid w-full place-items-center"><Film className="size-8 text-muted-foreground" /></span>}
+                </span>
+                <span className="block truncate font-semibold">{c.name}</span>
+                <span className="text-xs text-muted-foreground">{c.items.length} titles · {SOURCE_LABEL[c.source]}</span>
+              </Button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 function CollectionsInner() {
   const qc = useQueryClient();
   const list = useServerFn(listCollections);
   const create = useServerFn(createCollection);
   const importFn = useServerFn(importCollection);
   const syncFn = useServerFn(syncCollection);
-  const q = useQuery({ queryKey: ["collections"], queryFn: () => list() });
+  const { user } = useAuth();
+  const q = useQuery({ queryKey: ["collections", user?.id], queryFn: () => list() });
   const collections = q.data?.collections ?? [];
   const [openId, setOpenId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
