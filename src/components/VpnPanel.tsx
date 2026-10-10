@@ -2,51 +2,31 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { isNativeApp } from "@/lib/platform";
-
-type VpnStatus = { available: boolean; connected: boolean; hasConfig: boolean; appOnly: boolean; error?: string };
-type VpnPlugin = {
-  getStatus: () => Promise<VpnStatus>;
-  saveConfig: (o: { config: string; appOnly: boolean }) => Promise<VpnStatus>;
-  clearConfig: () => Promise<VpnStatus>;
-  connect: () => Promise<VpnStatus>;
-  disconnect: () => Promise<VpnStatus>;
-};
-
-function plugin(): VpnPlugin | null {
-  if (typeof window === "undefined" || !isNativeApp()) return null;
-  const w = window as unknown as { Capacitor?: { Plugins?: Record<string, unknown> } };
-  return (w.Capacitor?.Plugins?.["RelayVpn"] as VpnPlugin | undefined) ?? null;
-}
+import { useVpnStatus, vpnPlugin, vpnErrorMessage, type VpnStatus, type VpnPlugin } from "@/lib/vpn";
+import { VpnConnectionDetails } from "@/components/VpnStatus";
 
 export function VpnPanel() {
-  const [status, setStatus] = useState<VpnStatus | null>(null);
-  const [ready, setReady] = useState(false);
+  const { status, ready, updateStatus, reportError } = useVpnStatus();
   const [config, setConfig] = useState("");
   const [appOnly, setAppOnly] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const p = plugin();
-    if (!p) return setReady(true);
-    p.getStatus()
-      .then((s) => {
-        setStatus(s);
-        setAppOnly(s.appOnly);
-      })
-      .catch(() => setStatus(null))
-      .finally(() => setReady(true));
-  }, []);
+    if (status) setAppOnly(status.appOnly);
+  }, [status?.appOnly]);
 
   async function run(fn: (p: VpnPlugin) => Promise<VpnStatus>, ok?: string) {
-    const p = plugin();
-    if (!p) return;
+    const p = vpnPlugin();
+    if (!p) return false;
     setBusy(true);
     try {
-      setStatus(await fn(p));
+      updateStatus(await fn(p));
       if (ok) toast.success(ok);
-    } catch (e: any) {
-      toast.error(e?.message ?? "VPN action failed");
+      return true;
+    } catch (e: unknown) {
+      reportError(e);
+      toast.error(vpnErrorMessage(e));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -66,20 +46,7 @@ export function VpnPanel() {
 
       {!ready ? null : (
         <div className="mt-4 space-y-4">
-          {status ? (
-            <p className="text-sm">
-              Status:{" "}
-              <span className={status.connected ? "font-medium text-primary" : "text-muted-foreground"}>
-                {status.connected ? "Connected" : status.hasConfig ? "Disconnected" : "Not set up"}
-              </span>
-            </p>
-          ) : (
-            <p className="rounded-md border border-ring/40 bg-muted/40 p-3 text-sm">
-              You're in the web app right now. The VPN connects inside the <strong>Relay Media Android app
-              (version 1.7 or newer)</strong> on phones and TV boxes — but you can paste your config below, and
-              it will be ready to save on your device.
-            </p>
-          )}
+          <VpnConnectionDetails />
 
           {status?.hasConfig && (
             <div className="flex flex-wrap gap-2">
@@ -143,13 +110,14 @@ export function VpnPanel() {
                   toast.error("The VPN connects inside the Android app (1.7+). Paste the config there on your phone or TV box.");
                   return;
                 }
-                run((p) => p.saveConfig({ config, appOnly }), "VPN config saved").then(() => setConfig(""));
+                void run((p) => p.saveConfig({ config, appOnly }), "VPN config saved").then((saved) => { if (saved) setConfig(""); });
               }}
             >
               {status?.hasConfig ? "Replace config" : "Save config"}
             </Button>
             <p className="text-xs text-muted-foreground">
               Your config is stored only inside the app on this device and never sent to our servers.
+              {" "}While connected, api.country.is receives your public exit IP to identify its approximate country; Relay does not store that IP.
             </p>
           </div>
         </div>

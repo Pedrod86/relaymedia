@@ -22,6 +22,7 @@ import { TorboxRow } from "@/components/TorboxRow";
 import { useMediaServers } from "@/lib/use-servers";
 import { isTvDevice } from "@/lib/platform";
 import { ServerSwitcher } from "@/components/ServerSwitcher";
+import { VpnHomeStatus } from "@/components/VpnStatus";
 import { useWatchHistory } from "@/lib/use-watch-history";
 import { clearHistory, type HistoryEntry } from "@/lib/watch-history";
 import { useSavedList } from "@/lib/use-saved-items";
@@ -46,6 +47,10 @@ export const Route = createFileRoute("/library")({
     meta: [
       { title: "Your Library — Relay Media" },
       { name: "description", content: "Browse your movies, TV shows, live TV and downloads from your connected media servers." },
+      { property: "og:title", content: "Your Library — Relay Media" },
+      { property: "og:description", content: "Browse your movies, TV shows, live TV and downloads from your connected media servers." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LibraryPage,
@@ -621,8 +626,9 @@ function LibraryContent({
             <p className="truncate text-base font-semibold sm:text-lg">Hi, {server.userName}</p>
           </div>
         )}
+        <VpnHomeStatus />
         {prefs.quickActions && (
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="min-h-11 min-w-11" asChild aria-label="Search">
               <Link to="/search">
                 <Search className="size-5" />
