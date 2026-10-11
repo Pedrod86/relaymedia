@@ -1,6 +1,6 @@
 // Settings > Collections: build your own lists, import lists from MDBList,
 // TMDB, TVDB or Trakt, keep them synced, and see which titles you own.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -304,6 +304,19 @@ function CollectionView({ collection: c, onBack, onChanged }: { collection: Coll
   const [results, setResults] = useState<CollectionItem[]>([]);
   const [requested, setRequested] = useState<Set<string>>(new Set());
   const manual = c.source === "manual";
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // When a collection opens (especially on TV), reset the page scroll to the
+  // top and move remote focus onto the Back button so the user can navigate
+  // through the whole view instead of landing at the bottom.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    const t = setTimeout(() => {
+      const first = rootRef.current?.querySelector<HTMLElement>("[data-tv-card]");
+      first?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [c.id]);
 
   useEffect(() => {
     if (!manual || q.trim().length < 2) return setResults([]);
@@ -353,7 +366,7 @@ function CollectionView({ collection: c, onBack, onChanged }: { collection: Coll
   const shown = c.items.filter((i) => filter === "all" || (filter === "have" ? map[i.key] : owned.data && !map[i.key]));
 
   return (
-    <div className="space-y-5">
+    <div ref={rootRef} className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <Button data-tv-card variant="ghost" size="icon" onClick={onBack} aria-label="Back to collections">
           <ChevronLeft className="size-5" />
