@@ -304,6 +304,19 @@ function CollectionView({ collection: c, onBack, onChanged }: { collection: Coll
   const [results, setResults] = useState<CollectionItem[]>([]);
   const [requested, setRequested] = useState<Set<string>>(new Set());
   const manual = c.source === "manual";
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // When a collection opens (especially on TV), reset the page scroll to the
+  // top and move remote focus onto the Back button so the user can navigate
+  // through the whole view instead of landing at the bottom.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    const t = setTimeout(() => {
+      const first = rootRef.current?.querySelector<HTMLElement>("[data-tv-card]");
+      first?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [c.id]);
 
   useEffect(() => {
     if (!manual || q.trim().length < 2) return setResults([]);
