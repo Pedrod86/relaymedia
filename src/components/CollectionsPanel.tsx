@@ -1,6 +1,6 @@
 // Settings > Collections: build your own lists, import lists from MDBList,
 // TMDB, TVDB or Trakt, keep them synced, and see which titles you own.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -366,7 +366,7 @@ function CollectionView({ collection: c, onBack, onChanged }: { collection: Coll
   const shown = c.items.filter((i) => filter === "all" || (filter === "have" ? map[i.key] : owned.data && !map[i.key]));
 
   return (
-    <div className="space-y-5">
+    <div ref={rootRef} className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <Button data-tv-card variant="ghost" size="icon" onClick={onBack} aria-label="Back to collections">
           <ChevronLeft className="size-5" />
