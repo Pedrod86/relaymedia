@@ -18,6 +18,7 @@ import {
   Star,
   Trash2,
   Tv,
+  Trophy,
   X,
 } from "lucide-react";
 
@@ -385,6 +386,13 @@ function IptvPage() {
                   >
                     <ListOrdered className="h-3.5 w-3.5" /> Organise
                   </button>
+                  <Link
+                    to="/scores"
+                    data-tv-card
+                    className="tv-card flex items-center gap-1 whitespace-nowrap rounded-full border border-primary px-3 py-1 text-xs text-foreground"
+                  >
+                    <Trophy className="h-3.5 w-3.5" /> Live scores
+                  </Link>
                   {["All", "Favourites", "Recent", ...groups].map((g) => (
                     <button
                       key={g}
