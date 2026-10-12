@@ -518,17 +518,27 @@ function IptvPage() {
 
       {organising && (
         <div className="fixed inset-0 z-40 flex items-end bg-black/70 sm:items-center sm:justify-center">
-          <div className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border bg-card p-4 sm:max-w-lg sm:rounded-2xl">
+          <div
+            ref={(el) => {
+              // TV: move remote focus into the sheet when it opens.
+              if (el && !el.dataset.focused) {
+                el.dataset.focused = "1";
+                setTimeout(() => el.querySelector<HTMLElement>("[data-tv-card]")?.focus(), 50);
+              }
+            }}
+            className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border bg-card p-4 sm:max-w-lg sm:rounded-2xl"
+          >
             <div className="mb-3 flex items-center gap-2">
               <h2 className="text-base font-semibold">Organise categories</h2>
-              <Button size="sm" variant="ghost" className="ms-auto" onClick={resetOrganise}>
+              <Button data-tv-card size="sm" variant="ghost" className="tv-card ms-auto" onClick={resetOrganise}>
                 Reset
               </Button>
               <button
                 type="button"
+                data-tv-card
                 onClick={() => setOrganising(false)}
                 aria-label="Close"
-                className="p-2"
+                className="tv-card rounded p-2"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -545,6 +555,12 @@ function IptvPage() {
                   if (j < 0 || j >= next.length) return;
                   [next[i], next[j]] = [next[j]!, next[i]!];
                   setOrder(next);
+                  // Keep remote focus on the moved row's same button.
+                  setTimeout(() => {
+                    document
+                      .querySelector<HTMLElement>(`[aria-label="Move ${g} ${dir === -1 ? "up" : "down"}"]`)
+                      ?.focus();
+                  }, 30);
                 };
                 return (
                   <li
@@ -552,20 +568,21 @@ function IptvPage() {
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${hidden ? "opacity-50" : ""}`}
                   >
                     <span className="flex-1 truncate text-sm">{g}</span>
-                    <button type="button" aria-label={`Move ${g} up`} disabled={i === 0} onClick={() => move(-1)} className="rounded p-1.5 disabled:opacity-30">
+                    <button type="button" data-tv-card aria-label={`Move ${g} up`} disabled={i === 0} onClick={() => move(-1)} className="tv-card rounded p-1.5 disabled:opacity-30">
                       <ArrowUp className="h-4 w-4" />
                     </button>
-                    <button type="button" aria-label={`Move ${g} down`} disabled={i === allGroups.length - 1} onClick={() => move(1)} className="rounded p-1.5 disabled:opacity-30">
+                    <button type="button" data-tv-card aria-label={`Move ${g} down`} disabled={i === allGroups.length - 1} onClick={() => move(1)} className="tv-card rounded p-1.5 disabled:opacity-30">
                       <ArrowDown className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
+                      data-tv-card
                       aria-label={hidden ? `Show ${g}` : `Hide ${g}`}
                       onClick={() => {
                         toggleHidden(g);
                         if (!hidden && group === g) setGroup("All");
                       }}
-                      className="rounded p-1.5"
+                      className="tv-card rounded p-1.5"
                     >
                       {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
