@@ -16,9 +16,9 @@ export type AppRelease = {
 };
 
 export const LATEST_ANDROID_RELEASE: AppRelease = {
-  versionName: "1.7",
-  versionCode: 9,
-  apkUrl: "https://stream-vault.live/__l5e/assets-v1/a01488fd-67f8-46b3-a138-f7c5a3d03563/relay-media-1.7.apk",
-  notes: "Adds a built-in WireGuard VPN (Settings → Integrations).",
+  versionName: "1.8",
+  versionCode: 10,
+  apkUrl: "https://stream-vault.live/__l5e/assets-v1/03675413-7192-4a9a-a06c-53840f916772/relay-media-1.8.apk",
+  notes: "Adds the built-in MPV player (Settings → Player → Device player engine).",
   mandatory: false,
 };
