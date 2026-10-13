@@ -9,3 +9,4 @@
 - Use one shared query-backed WireGuard status hook for home and Settings; query exit country directly from the device and keep only the country in memory, because a server-side lookup would locate Relay’s server instead of the VPN exit.
 - Resolve RelayVpn through a dynamically imported Capacitor registerPlugin proxy after checking native availability; Java plugin registration need not populate the legacy window.Capacitor.Plugins map.
 - Home and Settings share account-scoped collection queries and the same collection detail view; hide home collections in kids profiles because imported titles have no verified age ratings.
+- Built-in MPV device player engine is selectable in Settings → Player and routed through the Media3Player plugin's playMpv, falling back to Media3 on older APKs; APK minSdk is 26 because libmpv requires it.
