@@ -43,6 +43,8 @@ export type PlayerPrefs = {
   audioLanguage: string;
   /** Intro/credits skipping: always skip, show a button, or never. */
   introSkip: "always" | "ask" | "never";
+  /** Built-in Android player engine: AndroidX Media3 (ExoPlayer) or MPV. */
+  nativeEngine: "media3" | "mpv";
 };
 
 export const DEFAULT_PREFS: PlayerPrefs = {
@@ -57,6 +59,7 @@ export const DEFAULT_PREFS: PlayerPrefs = {
   audioPassthrough: false,
   audioLanguage: "",
   introSkip: "ask",
+  nativeEngine: "media3",
 };
 
 const KEY = "media_player_prefs_v1";

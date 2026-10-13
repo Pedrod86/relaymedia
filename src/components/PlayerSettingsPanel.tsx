@@ -178,6 +178,21 @@ export function PlayerSettingsPanel() {
       </div>
 
       <div className="mt-6">
+        <h3 className="text-sm font-semibold">Device player engine</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Used by the Android app's Device player. MPV handles almost any file and styled subtitles; needs app 1.8+.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {([["media3","Media3 (ExoPlayer)"],["mpv","MPV"]] as const).map(([v,l]) => (
+            <button key={v} type="button" data-tv-card onClick={() => update({ nativeEngine: v })}
+              className={`tv-card rounded-md border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${prefs.nativeEngine === v ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6">
         <h3 className="text-sm font-semibold">Skip intros</h3>
         <div className="mt-2 flex flex-wrap gap-2">
           {([["always","Skip automatically"],["ask","Ask to skip"],["never","Never"]] as const).map(([v,l]) => (
