@@ -41,6 +41,9 @@ android {
             }
         }
     }
+    packagingOptions {
+        jniLibs { pickFirsts += ["**/libc++_shared.so"]; useLegacyPackaging = true }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -76,6 +79,8 @@ dependencies {
     implementation "org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1"
     // libass rendering for styled ASS/SSA (anime) subtitles, including ones embedded in MKV.
     implementation "io.github.peerless2012:ass-media:0.4.0"
+    // MPV (libmpv + FFmpeg) as an alternative device player engine.
+    implementation "dev.jdtech.mpv:libmpv:1.0.0"
     // Built-in WireGuard VPN (userspace Go backend).
     implementation "com.wireguard.android:tunnel:1.0.20230706"
     testImplementation "junit:junit:$junitVersion"
