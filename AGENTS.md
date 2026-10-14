@@ -10,3 +10,4 @@
 - Resolve RelayVpn through a dynamically imported Capacitor registerPlugin proxy after checking native availability; Java plugin registration need not populate the legacy window.Capacitor.Plugins map.
 - Home and Settings share account-scoped collection queries and the same collection detail view; hide home collections in kids profiles because imported titles have no verified age ratings.
 - Built-in MPV device player engine is selectable in Settings → Player and routed through the Media3Player plugin's playMpv, falling back to Media3 on older APKs; APK minSdk is 26 because libmpv requires it.
+- Silo sign-in authenticates via Silo V2 (/api/v2/auth/login) and discovers the Jellyfin-compatible URL from /api/v2/compat/connect-info; library and playback still use that Jellyfin endpoint because the V2 playback protocol needs device-negotiated plans we cannot yet test.
