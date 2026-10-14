@@ -16,6 +16,52 @@ import {
 
 const serverRef = z.object({ serverId: z.string().min(1).max(100) });
 
+type SiloV2Result =
+  | { kind: "ok"; jellyfinUrl: string }
+  | { kind: "unsupported" }
+  | { kind: "error"; error: string };
+
+/** Sign in through Silo's V2 API and look up its Jellyfin-compatible address. */
+async function siloV2Discover(root: string, username: string, password: string): Promise<SiloV2Result> {
+  const login = await fetch(`${root}/api/v2/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ username, password }),
+  }).catch(() => null);
+  if (!login) return { kind: "unsupported" };
+  const ct = login.headers.get("content-type") ?? "";
+  if (!ct.includes("json") || login.status === 404 || login.status === 405) return { kind: "unsupported" };
+  if (login.status === 401 || login.status === 403) {
+    return { kind: "error", error: "Silo sign-in failed: incorrect username or password." };
+  }
+  if (!login.ok) {
+    const text = await login.text().catch(() => "");
+    console.error(`Silo V2 login failed [${login.status}]: ${text.slice(0, 200)}`);
+    return { kind: "error", error: `Silo sign-in failed (${login.status}). Try again in a moment.` };
+  }
+  const pair = (await login.json().catch(() => null)) as { access_token?: string } | null;
+  if (!pair?.access_token) return { kind: "error", error: "Silo didn't return a sign-in session." };
+  const auth = { Authorization: `Bearer ${pair.access_token}`, Accept: "application/json" };
+  try {
+    const info = await fetch(`${root}/api/v2/compat/connect-info`, { headers: auth }).catch(() => null);
+    const json = (await info?.json().catch(() => null)) as
+      | { jellyfin?: { enabled?: boolean; public_url?: string } }
+      | null;
+    const jf = json?.jellyfin;
+    if (!jf?.enabled) {
+      return {
+        kind: "error",
+        error:
+          "Signed in to Silo, but its Jellyfin compatibility is switched off. Turn it on in Silo's settings (Admin → Jellyfin compatibility), then sign in again.",
+      };
+    }
+    return { kind: "ok", jellyfinUrl: jf.public_url ? new URL(jf.public_url, `${root}/`).toString() : root };
+  } finally {
+    // We only needed the V2 session for discovery; don't leave it open.
+    fetch(`${root}/api/v2/auth/logout`, { method: "POST", headers: auth }).catch(() => null);
+  }
+}
+
 export const embyLogin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -27,10 +73,23 @@ export const embyLogin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     assertSafeServerUrl(data.serverUrl);
+    let root = normalizeUrl(data.serverUrl);
+
+    // Silo: sign in with Silo's own V2 API first. That accepts the normal Silo
+    // website address, verifies the account, and tells us where Silo's
+    // Jellyfin-compatible endpoint lives (used for library + playback).
+    if (data.kind === "silo") {
+      const v2 = await siloV2Discover(root, data.username, data.password);
+      if (v2.kind === "error") return { ok: false as const, error: v2.error };
+      if (v2.kind === "ok") {
+        assertSafeServerUrl(v2.jellyfinUrl);
+        root = normalizeUrl(v2.jellyfinUrl);
+      }
+    }
+
     // Some servers (notably Silo) serve their web app at the root and expose the
     // Jellyfin-compatible API under a sub-path. Try the root first, then common
     // prefixes, and only accept a real JSON response.
-    const root = normalizeUrl(data.serverUrl);
     const bases = [root, `${root}/jellyfin`, `${root}/emby`, `${root}/api`, `${root}/api/jellyfin`];
     let res: Response | null = null;
     let apiBase = root;

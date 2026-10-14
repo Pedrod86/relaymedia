@@ -46,7 +46,7 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "silo", label: "Silo", hint: "Silo's Jellyfin-compatible URL, e.g. silo-jf.example.com or 192.168.1.50:8096" },
+  { value: "silo", label: "Silo", hint: "Your Silo address, e.g. silo.example.com" },
   { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
 ];
 
@@ -73,18 +73,6 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-
-  const SILO_EXAMPLE_URL = "https://silo1234-jf.yourprovider.com";
-
-  async function copySiloExample() {
-    try {
-      await navigator.clipboard.writeText(SILO_EXAMPLE_URL);
-      setTestResult({ ok: true, message: "Example address copied — paste it into the box below." });
-    } catch {
-      setServerUrl(SILO_EXAMPLE_URL);
-      setTestResult({ ok: true, message: "Example address filled in for you." });
-    }
-  }
 
   async function testConnection() {
     setTestResult(null);
@@ -359,35 +347,18 @@ function LoginPage() {
 
 
             {kind === "silo" && (
-              <div className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm">
-                <p className="font-medium">Two addresses — which one goes here?</p>
+              <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">Sign in with your normal Silo address</p>
                 <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Silo website address</span>{" "}
-                  (e.g. <code className="rounded bg-background px-1">silo.example.com</code>) — that's the page you
-                  open in a browser to manage Silo. Relay Media can't use this one.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Jellyfin-compatible URL</span> — this is what you
-                  enter. Turn on the <span className="font-medium text-foreground">Jellyfin compatibility</span>{" "}
-                  option in Silo's own settings; it shows the address and port there (usually port{" "}
-                  <span className="font-medium text-foreground">8096</span>, or a separate address like{" "}
-                  <code className="rounded bg-background px-1">silo-jf.example.com</code>). Enter that one here.
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <code className="rounded bg-background px-2 py-1 text-xs break-all">{SILO_EXAMPLE_URL}</code>
-                  <Button type="button" variant="outline" size="sm" onClick={copySiloExample}>
-                    Copy example
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  That's just an example — your own address will follow the same pattern, with your
-                  server's name instead. Silo's settings show you the exact one to use.
+                  Relay signs in using Silo's own sign-in and finds the playback connection for you
+                  automatically. Just make sure <span className="font-medium text-foreground">Jellyfin compatibility</span>{" "}
+                  is switched on in Silo's settings.
                 </p>
               </div>
             )}
 
             <div className={`space-y-2 ${isIptv && iptvMode === "m3u" ? "hidden" : ""}`}>
-              <Label htmlFor="server">{isIptv ? "Xtream server URL" : kind === "silo" ? "Silo Jellyfin-compatible URL" : "Server URL"}</Label>
+              <Label htmlFor="server">{isIptv ? "Xtream server URL" : kind === "silo" ? "Silo address" : "Server URL"}</Label>
               <Input
                 id="server"
                 placeholder={KINDS.find((k) => k.value === kind)?.hint}
@@ -398,10 +369,10 @@ function LoginPage() {
               />
               {kind === "silo" && (
                 <p className="text-xs text-muted-foreground">
-                  Not Silo's website address — the Jellyfin-compatible one from Silo's settings.
+                  The same address you open Silo with in a browser works here.
                 </p>
               )}
-              {(kind === "emby" || kind === "jellyfin" || kind === "silo") && (
+              {(kind === "emby" || kind === "jellyfin") && (
                 <div className="space-y-2 pt-1">
                   <Button
                     type="button"
