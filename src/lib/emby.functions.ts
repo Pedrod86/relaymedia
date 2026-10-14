@@ -55,7 +55,7 @@ async function siloV2Discover(root: string, username: string, password: string):
           "Signed in to Silo, but its Jellyfin compatibility is switched off. Turn it on in Silo's settings (Admin → Jellyfin compatibility), then sign in again.",
       };
     }
-    return { kind: "ok", jellyfinUrl: jf.public_url || root };
+    return { kind: "ok", jellyfinUrl: jf.public_url ? new URL(jf.public_url, `${root}/`).toString() : root };
   } finally {
     // We only needed the V2 session for discovery; don't leave it open.
     fetch(`${root}/api/v2/auth/logout`, { method: "POST", headers: auth }).catch(() => null);
