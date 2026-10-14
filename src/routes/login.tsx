@@ -74,18 +74,6 @@ function LoginPage() {
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const SILO_EXAMPLE_URL = "https://silo1234-jf.yourprovider.com";
-
-  async function copySiloExample() {
-    try {
-      await navigator.clipboard.writeText(SILO_EXAMPLE_URL);
-      setTestResult({ ok: true, message: "Example address copied — paste it into the box below." });
-    } catch {
-      setServerUrl(SILO_EXAMPLE_URL);
-      setTestResult({ ok: true, message: "Example address filled in for you." });
-    }
-  }
-
   async function testConnection() {
     setTestResult(null);
     if (!serverUrl.trim()) {
@@ -384,7 +372,7 @@ function LoginPage() {
                   The same address you open Silo with in a browser works here.
                 </p>
               )}
-              {(kind === "emby" || kind === "jellyfin" || kind === "silo") && (
+              {(kind === "emby" || kind === "jellyfin") && (
                 <div className="space-y-2 pt-1">
                   <Button
                     type="button"
