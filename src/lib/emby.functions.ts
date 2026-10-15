@@ -48,14 +48,29 @@ async function siloV2Discover(root: string, username: string, password: string):
       | { jellyfin?: { enabled?: boolean; public_url?: string } }
       | null;
     const jf = json?.jellyfin;
-    if (!jf?.enabled) {
+    const candidates: string[] = [];
+    if (jf?.public_url) candidates.push(new URL(jf.public_url, `${root}/`).toString());
+    // Hosted Silo commonly serves Jellyfin on a sibling "<name>-jf" host.
+    try {
+      const u = new URL(root);
+      const [first, ...rest] = u.hostname.split(".");
+      if (rest.length && !first.endsWith("-jf")) {
+        u.hostname = [`${first}-jf`, ...rest].join(".");
+        candidates.push(u.toString());
+      }
+    } catch {}
+    for (const c of candidates) {
+      const r = await fetch(`${normalizeUrl(c)}/System/Info/Public`, { headers: { Accept: "application/json" } }).catch(() => null);
+      if (r?.ok && (r.headers.get("content-type") ?? "").includes("json")) return { kind: "ok", jellyfinUrl: c };
+    }
+    if (jf && jf.enabled === false) {
       return {
         kind: "error",
         error:
           "Signed in to Silo, but its Jellyfin compatibility is switched off. Turn it on in Silo's settings (Admin → Jellyfin compatibility), then sign in again.",
       };
     }
-    return { kind: "ok", jellyfinUrl: jf.public_url ? new URL(jf.public_url, `${root}/`).toString() : root };
+    return { kind: "ok", jellyfinUrl: candidates[0] ?? root };
   } finally {
     // We only needed the V2 session for discovery; don't leave it open.
     fetch(`${root}/api/v2/auth/logout`, { method: "POST", headers: auth }).catch(() => null);
