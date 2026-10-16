@@ -2,6 +2,7 @@
 // Credentials never reach the browser; playback URLs are sealed tokens.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { normalizeServerInput } from "./media-client";
 
 const urlish = z.string().trim().min(4).max(2048);
 
@@ -20,7 +21,8 @@ export const iptvAddXtream = createServerFn({ method: "POST" })
     const { xtreamAuth } = await import("./iptv.server");
     const { addCredential } = await import("./vault.server");
     try {
-      const base = normalizeUrl(data.serverUrl);
+      const base = normalizeUrl(normalizeServerInput(data.serverUrl, "iptv"));
+      if (data.epgUrl) data.epgUrl = normalizeServerInput(data.epgUrl, "iptv");
       assertSafeServerUrl(base);
       if (data.epgUrl) assertSafeServerUrl(data.epgUrl);
       const info = await xtreamAuth(base, data.username, data.password);
@@ -53,6 +55,8 @@ export const iptvAddM3u = createServerFn({ method: "POST" })
     const { m3uProbe } = await import("./iptv.server");
     const { addCredential } = await import("./vault.server");
     try {
+      data.url = normalizeServerInput(data.url, "iptv");
+      if (data.epgUrl) data.epgUrl = normalizeServerInput(data.epgUrl, "iptv");
       assertSafeServerUrl(data.url);
       if (data.epgUrl) assertSafeServerUrl(data.epgUrl);
       const probe = await m3uProbe(data.url);

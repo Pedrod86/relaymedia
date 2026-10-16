@@ -89,16 +89,8 @@ export const embyLogin = createServerFn({ method: "POST" })
       password: z.string().max(500),
     }),
   )
-  .inputValidator((input) => {
-    const data = z.object({
-      kind: z.enum(["emby", "jellyfin", "silo"]),
-      serverUrl: z.string().trim().min(1).max(500),
-      username: z.string().min(1).max(200),
-      password: z.string().max(500),
-    }).parse(input);
-    return { ...data, serverUrl: z.string().url().parse(normalizeServerInput(data.serverUrl, data.kind)) };
-  })
   .handler(async ({ data }) => {
+    data.serverUrl = normalizeServerInput(data.serverUrl, data.kind);
     assertSafeServerUrl(data.serverUrl);
     let root = normalizeUrl(data.serverUrl);
 
