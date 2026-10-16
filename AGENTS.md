@@ -1,4 +1,5 @@
 # Architecture rules
+- Normalize media sign-in addresses with the shared normalizeServerInput helper before validation; retain explicit ports and use service defaults only for Plex, Emby and Jellyfin because Silo/IPTV ports vary by provider.
 
 - Store custom CSS as device-local preferences and apply it through one root-mounted style element that also suspends the built-in theme class while active (theme selectors outrank user rules); keep Settings exempt so broken overrides cannot block recovery.
 - Render custom CSS previews in a script-disabled iframe and assign CSS using textContent, never HTML interpolation, to isolate user styles from the settings editor.

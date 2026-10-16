@@ -46,8 +46,8 @@ const KINDS: { value: ServerKind; label: string; hint: string }[] = [
   { value: "plex", label: "Plex", hint: "192.168.1.50 or plex.example.com:32400" },
   { value: "emby", label: "Emby", hint: "192.168.1.50 or emby.example.com:8096" },
   { value: "jellyfin", label: "Jellyfin", hint: "192.168.1.50:8096 or jellyfin.example.com" },
-  { value: "silo", label: "Silo", hint: "Your Silo address, e.g. silo.example.com" },
-  { value: "iptv", label: "IPTV", hint: "http://line.provider.tv:8080" },
+  { value: "silo", label: "Silo", hint: "203.0.113.50:38036 or silo.example.com" },
+  { value: "iptv", label: "IPTV", hint: "203.0.113.50:8080 or line.provider.tv:8080" },
 ];
 
 function LoginPage() {
@@ -116,12 +116,12 @@ function LoginPage() {
       // access token in an encrypted httpOnly cookie. Nothing secret comes
       // back to this page.
       if (kind === "iptv") {
-        const trimmedEpg = epgUrl.trim();
+        const trimmedEpg = epgUrl.trim() ? normalizeServerInput(epgUrl, "iptv") : "";
         const res =
           iptvMode === "m3u"
             ? await iptvM3uFn({
                 data: {
-                  url: m3uUrl.trim(),
+                  url: normalizeServerInput(m3uUrl, "iptv"),
                   name: iptvName.trim() || undefined,
                   ...(trimmedEpg ? { epgUrl: trimmedEpg } : {}),
                 },
@@ -367,6 +367,9 @@ function LoginPage() {
                 required={!(isIptv && iptvMode === "m3u")}
                 autoComplete="url"
               />
+              <p className="text-xs text-muted-foreground">
+                IP address or domain name accepted. Include your server's port, and https:// if required.
+              </p>
               {kind === "silo" && (
                 <p className="text-xs text-muted-foreground">
                   The same address you open Silo with in a browser works here.

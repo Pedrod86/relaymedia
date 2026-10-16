@@ -37,17 +37,28 @@ export function purgeLegacyTokenStorage() {
  * Accepts what people actually type for a server address — a bare IP or host
  * ("192.168.1.50", "192.168.1.50:8096", "media.example.com"), with or without a
  * scheme — and turns it into a full URL. Bare hosts default to http://, and a
- * bare IP with no port gets the default Emby/Jellyfin port so "just the IP"
- * works.
+ * bare IP with no port gets the default Plex/Emby/Jellyfin port. Silo and
+ * IPTV have no universal port, so their supplied/default HTTP port is retained.
  */
 export function normalizeServerInput(input: string, kind?: ServerKind): string {
   let v = input.trim().replace(/\s+/g, "");
   if (!v) return "";
   v = v.replace(/\/+$/, "");
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = `http://${v}`;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) {
+    // Unbracketed IPv6 is accepted without a port; use [address]:port for one.
+    if (!v.startsWith("[") && v.split("/")[0].split(":").length > 2) {
+      const slash = v.indexOf("/");
+      v = slash < 0 ? `[${v}]` : `[${v.slice(0, slash)}]${v.slice(slash)}`;
+    }
+    v = `http://${v}`;
+  }
   try {
     const u = new URL(v);
-    if (!u.port && /^\d{1,3}(\.\d{1,3}){3}$/.test(u.hostname) && u.protocol === "http:") {
+    const bareIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(u.hostname) || u.hostname.startsWith("[");
+    const authority = v.split("://")[1]?.split(/[/?#]/)[0] ?? "";
+    const explicitPort = /(?:\]|\d):\d+$/.test(authority);
+    if (!u.port && !explicitPort && bareIp && u.protocol === "http:" &&
+        (kind === "plex" || kind === "emby" || kind === "jellyfin")) {
       u.port = kind === "plex" ? "32400" : "8096";
     }
     return u.toString().replace(/\/+$/, "");

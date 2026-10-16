@@ -56,12 +56,11 @@ export function isBareIpHost(url: string): boolean {
 }
 
 export const DIRECT_IP_ERROR =
-  "The hosting network blocks connections made to a bare IP address. Use a domain name for your server (e.g. https://media.yourdomain.com:42420 or a free DDNS hostname) and try again.";
+  "This server refused direct IP access. Check its IP address and port; if your provider requires a hostname, use the domain name they supplied. Private home-network IPs must be reachable from Relay's hosting network.";
 
 /**
- * The published app runs behind a network that refuses outbound requests to raw
- * IP addresses (it answers with "error code: 1003"). Translate that into advice
- * instead of a bare HTTP status.
+ * Some upstream proxies require a hostname (error 1003). Only identify that
+ * explicit error, not every 403: a 403 can also be an account-permission error.
  */
 export function upstreamBlockMessage(
   status: number,
@@ -69,7 +68,7 @@ export function upstreamBlockMessage(
   serverUrl: string,
 ): string | null {
   const blocked = /error code:\s*1003|direct ip access/i.test(body);
-  if (blocked || (status === 403 && isBareIpHost(serverUrl))) return DIRECT_IP_ERROR;
+  if (blocked && isBareIpHost(serverUrl)) return DIRECT_IP_ERROR;
   return null;
 }
 
