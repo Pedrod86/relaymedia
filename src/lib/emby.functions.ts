@@ -6,11 +6,13 @@
 // an opaque serverId.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { normalizeServerInput } from "./media-client";
 import {
   assertSafeServerUrl,
   embyAuthHeader,
   embyFetch,
   normalizeUrl,
+  isBareIpHost,
   upstreamBlockMessage,
 } from "./media.server";
 
@@ -54,12 +56,13 @@ async function siloV2Discover(root: string, username: string, password: string):
     try {
       const u = new URL(root);
       const [first, ...rest] = u.hostname.split(".");
-      if (rest.length && !first.endsWith("-jf")) {
+      if (!isBareIpHost(root) && rest.length && !first.endsWith("-jf")) {
         u.hostname = [`${first}-jf`, ...rest].join(".");
         candidates.push(u.toString());
       }
     } catch {}
     for (const c of candidates) {
+      assertSafeServerUrl(c);
       const r = await fetch(`${normalizeUrl(c)}/System/Info/Public`, { headers: { Accept: "application/json" } }).catch(() => null);
       if (r?.ok && (r.headers.get("content-type") ?? "").includes("json")) return { kind: "ok", jellyfinUrl: c };
     }
@@ -81,12 +84,13 @@ export const embyLogin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       kind: z.enum(["emby", "jellyfin", "silo"]),
-      serverUrl: z.string().url().max(500),
+      serverUrl: z.string().trim().min(1).max(500),
       username: z.string().min(1).max(200),
       password: z.string().max(500),
     }),
   )
   .handler(async ({ data }) => {
+    data.serverUrl = normalizeServerInput(data.serverUrl, data.kind);
     assertSafeServerUrl(data.serverUrl);
     let root = normalizeUrl(data.serverUrl);
 
@@ -183,10 +187,11 @@ export const embyTestConnection = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       kind: z.enum(["emby", "jellyfin", "silo"]),
-      serverUrl: z.string().url().max(500),
+      serverUrl: z.string().trim().min(1).max(500),
     }),
   )
   .handler(async ({ data }) => {
+    data.serverUrl = normalizeServerInput(data.serverUrl, data.kind);
     assertSafeServerUrl(data.serverUrl);
     const root = normalizeUrl(data.serverUrl);
     const bases = [root, `${root}/jellyfin`, `${root}/emby`, `${root}/api`, `${root}/api/jellyfin`];

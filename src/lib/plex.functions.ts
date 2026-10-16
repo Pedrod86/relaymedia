@@ -11,7 +11,9 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { normalizeServerInput } from "./media-client";
 import {
+  assertSafeServerUrl,
   normalizeUrl,
   plexFetch,
   plexHeaders,
@@ -148,13 +150,15 @@ function normalizeMetadata(m: any): any {
 export const plexAddServer = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      serverUrl: z.string().url().max(500),
+      serverUrl: z.string().trim().min(1).max(500),
       username: z.string().max(200).optional(),
       password: z.string().max(500).optional(),
       token: z.string().max(500).optional(),
     }),
   )
   .handler(async ({ data }) => {
+    data.serverUrl = normalizeServerInput(data.serverUrl, "plex");
+    assertSafeServerUrl(data.serverUrl);
     let token = data.token?.trim() ?? "";
     let userName = data.username?.trim() || "Plex user";
 
