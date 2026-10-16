@@ -1031,13 +1031,8 @@ function TVLibrarySection({
     <section className="mb-10">
       <div className="mb-4 flex items-end justify-between gap-3">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
-        <Link
-          to="/view/$id"
-          params={{ id }}
-          className="text-sm text-muted-foreground hover:text-primary"
-        >
-          See all →
-        </Link>
+        {/* Decorative — not in the D-pad nav; the first tile in the row is the focusable one */}
+        <span className="text-sm text-muted-foreground" aria-hidden>See all →</span>
       </div>
       <div
         ref={rowRef}
@@ -1045,18 +1040,21 @@ function TVLibrarySection({
         className="tv-scroll flex gap-5 overflow-x-auto pb-4"
         data-active={isActive}
       >
-        {q.data.items.map((it) => (
-          <TVCard key={it.Id} item={it} server={server} kind="primary" />
-        ))}
+        {/* "See all" is the FIRST data-tv-card so Left-arrow from the first poster lands here */}
         <Link
           to="/view/$id"
           params={{ id }}
           data-tv-card
           tabIndex={0}
-          className="flex aspect-[2/3] w-44 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 text-lg font-semibold text-muted-foreground outline-none transition focus:scale-105 focus:border-primary focus:text-primary"
+          aria-label={`See all ${title}`}
+          className="flex aspect-[2/3] w-32 shrink-0 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-card/60 text-center text-sm font-semibold text-muted-foreground outline-none transition focus:scale-105 focus:border-primary focus:text-primary"
         >
-          See all →
+          <span className="text-3xl leading-none">→</span>
+          <span className="leading-tight">See all</span>
         </Link>
+        {q.data.items.map((it) => (
+          <TVCard key={it.Id} item={it} server={server} kind="primary" />
+        ))}
       </div>
     </section>
   );
