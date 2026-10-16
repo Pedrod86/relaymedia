@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Accept IP/domain addresses consistently for all server sign-ins and IPTV links; verify normalization and sign-in form submission.
+- [x] Accept IP/domain addresses consistently for all server sign-ins and IPTV links; nine normalization tests and all five form submissions verified. Real service authentication remains untested without a reachable server/account.
 - [x] Show account collections on desktop and TV home screens while retaining Settings management.
 - [x] Verify compilation and public navigation; account collections require a connected server for live home-screen testing.
 - [x] Correct Android VPN detection and verify config saving through a simulated native plugin header; physical-device testing remains unavailable.
